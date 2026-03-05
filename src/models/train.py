@@ -126,7 +126,7 @@ def load_splits(feature_list: list[str]) -> dict:
 
 def _median_impute(X_train: pd.DataFrame, X_others: list[pd.DataFrame]):
     """Fit imputer on train, transform all splits. Skips empty DataFrames."""
-    imp = SimpleImputer(strategy="median")
+    imp = SimpleImputer(strategy="median", keep_empty_features=True)
     X_train_imp = pd.DataFrame(imp.fit_transform(X_train), columns=X_train.columns)
     X_others_imp = [
         pd.DataFrame(imp.transform(X), columns=X.columns) if len(X) > 0
