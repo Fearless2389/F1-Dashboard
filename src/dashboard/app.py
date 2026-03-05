@@ -22,8 +22,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import shap
 import streamlit as st
+
+try:
+    import shap
+    SHAP_AVAILABLE = True
+except ImportError:
+    SHAP_AVAILABLE = False
 
 # ── Path setup ────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parents[2]
@@ -341,7 +346,9 @@ with tab2:
 
             # SHAP for this driver's last known race
             st.markdown("#### SHAP Feature Contributions (latest race)")
-            if "last_result" in st.session_state and artifact is not None:
+            if not SHAP_AVAILABLE:
+                st.warning("SHAP not installed. Run `pip install shap` to enable this section.")
+            elif "last_result" in st.session_state and artifact is not None:
                 result = st.session_state["last_result"]
                 quali  = st.session_state.get("last_quali")
 
