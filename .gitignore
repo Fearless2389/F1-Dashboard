@@ -19,19 +19,22 @@ env/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data files (large files - add specific ones if needed)
+# Data files (large files - never commit these)
 *.csv
 *.parquet
 *.pkl
 *.pickle
 *.h5
 *.hdf5
+*.sqlite
+*.db
 data/raw/
 data/processed/
+data/cache/
 
 # Models
-models/*.pkl
-models/*.joblib
+models/trained/
+*.joblib
 *.model
 
 # Environment variables
