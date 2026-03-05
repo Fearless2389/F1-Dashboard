@@ -31,6 +31,11 @@ def precision_at_k(
     count how many are actually top-10 finishers.
     Average across races.
     """
+    # Reset to positional index so iloc works correctly regardless of origin
+    y_true  = pd.Series(np.asarray(y_true)).reset_index(drop=True)
+    y_prob  = pd.Series(np.asarray(y_prob)).reset_index(drop=True)
+    groups  = pd.Series(np.asarray(groups)).reset_index(drop=True)
+
     scores = []
     for _, idx in groups.groupby(groups).groups.items():
         gt   = y_true.iloc[idx].values
