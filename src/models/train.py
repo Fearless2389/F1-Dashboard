@@ -82,8 +82,42 @@ def load_splits(feature_list: list[str]) -> dict:
             "y":       sub[TARGET].values,
             "race_id": sub["_race_id"],
             "meta":    sub[["season", "round", "driver_code", "team_name"]],
+            "empty":   len(sub) == 0,
         }
-        log.info(f"  {name:5s}: {len(sub):,} rows  ({sub['season'].min()}–{sub['season'].max()})")
+        if len(sub) == 0:
+            log.warning(f"  {name:5s}: 0 rows — seasons {seasons} not in data")
+        else:
+            log.info(f"  {name:5s}: {len(sub):,} rows  ({sub['season'].min()}–{sub['season'].max()})")
+
+    # If val or test are empty (e.g. only 1 season fetched), fall back to
+    # using the last 20% of training rounds as a proxy val set.
+    if splits["val"]["empty"]:
+        log.warning("  Val set is empty — using last 20% of train rounds as fallback val.")
+        train_meta = splits["train"]["meta"].copy()
+        all_rounds = train_meta.drop_duplicates(["season", "round"]).sort_values(["season", "round"])
+        cutoff = int(len(all_rounds) * 0.8)
+        val_rounds = set(
+            zip(all_rounds.iloc[cutoff:]["season"], all_rounds.iloc[cutoff:]["round"])
+        )
+        train_mask = train_meta.apply(
+            lambda r: (r["season"], r["round"]) not in val_rounds, axis=1
+        )
+        val_mask = ~train_mask
+
+        for split_name, mask in [("train", train_mask), ("val", val_mask)]:
+            sub = splits["train"]
+            splits[split_name] = {
+                "X":       sub["X"][mask.values].copy(),
+                "y":       sub["y"][mask.values],
+                "race_id": sub["race_id"][mask.values],
+                "meta":    sub["meta"][mask.values],
+                "empty":   False,
+            }
+        log.info(f"  train (trimmed): {splits['train']['y'].size:,} rows")
+        log.info(f"  val (fallback):  {splits['val']['y'].size:,} rows")
+
+    if splits["test"]["empty"]:
+        log.warning("  Test set is empty — test metrics will be skipped.")
 
     return splits, available
 
@@ -130,6 +164,9 @@ def train_baseline(splits: dict, features: list[str]) -> dict:
         ("val",   X_vl_imp, "val"),
         ("test",  X_te_imp, "test"),
     ]:
+        if splits[split]["empty"] or len(X_imp) == 0:
+            log.warning(f"  Skipping {name} evaluation — no data")
+            continue
         prob = pipe.predict_proba(X_imp)[:, 1]
         results[name] = evaluate(
             splits[split]["y"], prob,
@@ -182,6 +219,9 @@ def train_xgb(splits: dict, features: list[str]) -> dict:
         ("val",   X_vl_imp, "val"),
         ("test",  X_te_imp, "test"),
     ]:
+        if splits[split]["empty"] or len(X_imp) == 0:
+            log.warning(f"  Skipping {name} evaluation — no data")
+            continue
         prob = model.predict_proba(X_imp)[:, 1]
         results[name] = evaluate(
             splits[split]["y"], prob,
@@ -198,9 +238,11 @@ def train_xgb(splits: dict, features: list[str]) -> dict:
     log.info("\n  Top-15 features by gain:")
     log.info(importance.head(15).to_string())
 
-    # Calibration data (val set)
-    val_prob = model.predict_proba(X_vl_imp)[:, 1]
-    cal_df = calibration_data(splits["val"]["y"], val_prob)
+    # Calibration data (val set, or train as fallback)
+    cal_source = X_vl_imp if not splits["val"]["empty"] and len(X_vl_imp) > 0 else X_tr_imp
+    cal_y      = splits["val"]["y"] if not splits["val"]["empty"] and len(X_vl_imp) > 0 else splits["train"]["y"]
+    val_prob   = model.predict_proba(cal_source)[:, 1]
+    cal_df     = calibration_data(cal_y, val_prob)
 
     # Save
     artifact = {
