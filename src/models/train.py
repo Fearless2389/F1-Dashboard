@@ -104,13 +104,13 @@ def load_splits(feature_list: list[str]) -> dict:
         )
         val_mask = ~train_mask
 
+        original_train = splits["train"]
         for split_name, mask in [("train", train_mask), ("val", val_mask)]:
-            sub = splits["train"]
             splits[split_name] = {
-                "X":       sub["X"][mask.values].copy(),
-                "y":       sub["y"][mask.values],
-                "race_id": sub["race_id"][mask.values],
-                "meta":    sub["meta"][mask.values],
+                "X":       original_train["X"][mask.values].copy(),
+                "y":       original_train["y"][mask.values],
+                "race_id": original_train["race_id"][mask.values],
+                "meta":    original_train["meta"][mask.values],
                 "empty":   False,
             }
         log.info(f"  train (trimmed): {splits['train']['y'].size:,} rows")
