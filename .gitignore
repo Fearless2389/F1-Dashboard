@@ -20,7 +20,7 @@ env/
 *.ipynb_checkpoints
 
 # Data files (large files - never commit these)
-*.csv
+# Note: examples/*.csv is tracked intentionally
 *.parquet
 *.pkl
 *.pickle

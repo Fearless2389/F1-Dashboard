@@ -1,0 +1,21 @@
+driver_code,team_name,quali_position,q1_time_ms,q2_time_ms,q3_time_ms
+VER,Red Bull Racing,1,88234,87891,87543
+NOR,McLaren,2,88312,88021,87698
+LEC,Ferrari,3,88401,88134,87812
+PIA,McLaren,4,88423,88201,87934
+HAM,Mercedes,5,88512,88312,88012
+RUS,Mercedes,6,88534,88334,88134
+SAI,Ferrari,7,88601,88412,88201
+ANT,Mercedes,8,88712,88523,,
+ALO,Aston Martin,9,88801,88634,,
+STR,Aston Martin,10,88923,88745,,
+GAS,Alpine,11,89012,88834,,
+OCO,Alpine,12,89123,88923,,
+HUL,Haas,13,89234,89012,,
+MAG,Haas,14,89345,89101,,
+TSU,Racing Bulls,15,89456,89212,,
+LAW,Racing Bulls,16,89567,,
+ALB,Williams,17,89678,,
+SAR,Williams,18,89789,,
+BOT,Kick Sauber,19,89890,,
+ZHO,Kick Sauber,20,89991,,
