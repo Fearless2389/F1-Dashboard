@@ -125,11 +125,13 @@ def load_splits(feature_list: list[str]) -> dict:
 # ── Imputation ────────────────────────────────────────────────────────────────
 
 def _median_impute(X_train: pd.DataFrame, X_others: list[pd.DataFrame]):
-    """Fit imputer on train, transform all splits."""
+    """Fit imputer on train, transform all splits. Skips empty DataFrames."""
     imp = SimpleImputer(strategy="median")
     X_train_imp = pd.DataFrame(imp.fit_transform(X_train), columns=X_train.columns)
     X_others_imp = [
-        pd.DataFrame(imp.transform(X), columns=X.columns) for X in X_others
+        pd.DataFrame(imp.transform(X), columns=X.columns) if len(X) > 0
+        else X.copy()
+        for X in X_others
     ]
     return X_train_imp, X_others_imp, imp
 
