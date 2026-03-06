@@ -253,7 +253,7 @@ def section_examples(artifact: dict, df: pd.DataFrame, split: str = "val") -> No
     sub = sub.copy()
     sub["prob_top10"] = prob
     sub["actual_top10"] = y
-    sub["error"] = (prob - y).abs()
+    sub["error"] = np.abs(prob - y)
 
     # False positives: predicted top-10 (prob > 0.6) but didn't finish there
     fp = sub[(sub["prob_top10"] > 0.6) & (sub["actual_top10"] == 0)]
