@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
 
 import { teamColorFallback } from "@/lib/teams";
 import type { TopPrediction } from "@/lib/types";
@@ -13,9 +12,12 @@ interface Props {
 /**
  * Editorial hero card — italic Playfair driver name on team-gradient backdrop,
  * Top Prediction pill, reasoning paragraph, big win-prob % + progress bar.
+ *
+ * The headshot bleed used to sit on the right; removed since the OpenF1
+ * portrait URLs aren't always reliable for the next-season grid (especially
+ * for rookies and drivers who just switched teams).
  */
 export function TopPredictionCard({ top, stochasticMean, qualiSource }: Props) {
-  const [imgErr, setImgErr] = useState(false);
   const color = teamColorFallback(top.team_colour, top.team_name);
   const pct = Math.round((top.win_prob || 0) * 100);
   const deltaVsMean = stochasticMean != null
@@ -25,19 +27,8 @@ export function TopPredictionCard({ top, stochasticMean, qualiSource }: Props) {
   return (
     <div
       className="relative overflow-hidden rounded-xl paddock-dashed-coral bg-paddock-panel"
-      style={{ background: `linear-gradient(120deg, ${color}11 0%, transparent 50%), var(--color-paddock-panel)` }}
+      style={{ background: `linear-gradient(120deg, ${color}22 0%, transparent 60%), var(--color-paddock-panel)` }}
     >
-      {/* Headshot — masked right-side bleed */}
-      {top.headshot_url && !imgErr && (
-        <img
-          src={top.headshot_url}
-          alt=""
-          className="absolute right-0 top-0 bottom-0 h-full w-[55%] object-cover object-right opacity-50 select-none pointer-events-none"
-          style={{ maskImage: "linear-gradient(to left, black 30%, transparent 100%)" }}
-          onError={() => setImgErr(true)}
-        />
-      )}
-
       <div className="relative p-5 md:p-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="paddock-pill">TOP PREDICTION</span>
