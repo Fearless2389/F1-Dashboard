@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { NextRaceHero } from "@/components/panels/NextRaceHero";
-import { RaceRecapCard } from "@/components/panels/RaceRecapCard";
 import { useSchedule } from "@/hooks/useApi";
 import { useRaceContext } from "@/store/raceContext";
 import { cn } from "@/lib/cn";
@@ -195,13 +194,6 @@ function RaceCard({
                 hint="Live forecast (Open-Meteo); only meaningful for races within ~5 days"
               />
             </div>
-            {/* Recap card — only for races that have already happened. */}
-            {status === "past" && (
-              <div className="border-t border-f1-edge">
-                <RaceRecapCard season={ev.season} round={ev.round} variant="compact" />
-              </div>
-            )}
-
             <div className="flex justify-end px-5 pb-5">
               <Button size="sm" variant="secondary">Predict this race →</Button>
             </div>

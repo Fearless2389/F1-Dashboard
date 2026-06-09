@@ -55,8 +55,6 @@ export type WinProbabilityRow    = S["WinProbabilityRow"];
 // Phase 9.1 — replay overtakes
 export type OvertakeEvent        = S["OvertakeEvent"];
 export type OvertakesResponse    = S["OvertakesResponse"];
-export type RaceRecapResponse    = S["RaceRecapResponse"];
-export type RaceRecapHighlight   = S["RaceRecapHighlight"];
 
 // Phase 13 — Apex Predictor
 export type ApexResponse         = S["ApexResponse"];

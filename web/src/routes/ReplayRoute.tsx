@@ -17,7 +17,6 @@ import { OvertakeFeed } from "@/components/panels/OvertakeFeed";
 import { TrackStatusBanner } from "@/components/panels/TrackStatusBanner";
 import { WinProbabilityChart } from "@/components/panels/WinProbabilityChart";
 import { DriverTelemetry } from "@/components/panels/DriverTelemetry";
-import { RaceRecapCard } from "@/components/panels/RaceRecapCard";
 import { useReplay } from "@/hooks/useReplay";
 import { api } from "@/lib/api";
 import type { OvertakesResponse, ReplayDriver } from "@/lib/types";
@@ -94,8 +93,7 @@ export default function ReplayRoute() {
   }
 
   return (
-    <div className="-m-6 flex flex-col">
-      <div className="flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
+    <div className="-m-6 flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
       {/* TOP STRIP — back / breadcrumb + scrub controls.
           Compact so the map gets maximum vertical room. */}
       <div className="shrink-0 border-b border-f1-edge bg-f1-dark/80 backdrop-blur px-4 py-2 flex items-center justify-between gap-3">
@@ -360,13 +358,6 @@ export default function ReplayRoute() {
           />
         </div>
       )}
-      </div>
-
-      {/* Race recap — sits below the playback canvas. Auto-generated headline,
-          lead paragraph, and highlight chips from race results + overtake feed. */}
-      <div className="p-6">
-        <RaceRecapCard season={season} round={roundNum} />
-      </div>
     </div>
   );
 }

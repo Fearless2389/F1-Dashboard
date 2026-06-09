@@ -10,7 +10,6 @@ import { Select } from "@/components/ui/Input";
 import { PodiumHero } from "@/components/panels/PodiumHero";
 import { SeasonProgressionCard } from "@/components/panels/SeasonProgressionCard";
 import { ChampionshipProgressionChart } from "@/components/panels/ChampionshipProgressionChart";
-import { RaceRecapCard } from "@/components/panels/RaceRecapCard";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { teamColor } from "@/lib/teams";
@@ -209,11 +208,6 @@ export default function StandingsRoute() {
           constructorLeaderPoints={constructorRows[0]?.points}
         />
       </div>
-
-      {/* Recap of the most recent race — auto-templated headline + chips. */}
-      {recentRace?.round != null && recentRace.round > 0 && (
-        <RaceRecapCard season={season} round={recentRace.round} />
-      )}
 
       {/* Championship development line chart — every driver's cumulative points across rounds */}
       <ChampionshipProgressionChart data={progression} isLoading={progressionLoading} />

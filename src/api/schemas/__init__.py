@@ -34,8 +34,6 @@ from .model import ModelManifest, TargetMetrics
 from .replay import (
     OvertakeEvent,
     OvertakesResponse,
-    RaceRecapHighlight,
-    RaceRecapResponse,
     ReplayRaceListEntry,
     ReplayMeta,
     ReplayPodium,
