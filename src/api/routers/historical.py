@@ -9,6 +9,7 @@ from ...live.current_grid import (
     compute_standings,
     constructor_standings,
     get_current_grid,
+    season_progression,
     season_results,
 )
 from ...live.driver_metrics import compute_metrics
@@ -21,7 +22,10 @@ from ..schemas import (
     DriverSeasonResult,
     DriverSeasonRow,
     DriverStandingsRow,
+    ProgressionDriver,
+    ProgressionRound,
     RadarMetrics,
+    StandingsProgressionResponse,
     StandingsResponse,
     TeamTrendRow,
 )
@@ -209,6 +213,20 @@ def standings(season: int) -> StandingsResponse:
             )
             for _, r in constructors_df.iterrows()
         ],
+    )
+
+
+@router.get("/standings/{season}/progression", response_model=StandingsProgressionResponse)
+def standings_progression(season: int) -> StandingsProgressionResponse:
+    """Per-round cumulative points for every driver — drives the championship
+    development line chart on the Standings page."""
+    data = season_progression(season)
+    if not data["drivers"]:
+        raise HTTPException(404, f"No progression data for season {season}")
+    return StandingsProgressionResponse(
+        season=season,
+        rounds=[ProgressionRound(**r) for r in data["rounds"]],
+        drivers=[ProgressionDriver(**d) for d in data["drivers"]],
     )
 
 

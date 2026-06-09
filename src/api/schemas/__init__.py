@@ -23,7 +23,10 @@ from .historical import (
     DriverSeasonResult,
     DriverSeasonRow,
     DriverStandingsRow,
+    ProgressionDriver,
+    ProgressionRound,
     RadarMetrics,
+    StandingsProgressionResponse,
     StandingsResponse,
     TeamTrendRow,
 )

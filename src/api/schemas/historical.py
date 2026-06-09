@@ -46,6 +46,23 @@ class StandingsResponse(BaseModel):
     constructors: list[ConstructorStandingsRow]
 
 
+class ProgressionRound(BaseModel):
+    round: int
+    race_name: str
+
+
+class ProgressionDriver(BaseModel):
+    driver_code: str
+    team_name: Optional[str] = None
+    cumulative_points: list[float]
+
+
+class StandingsProgressionResponse(BaseModel):
+    season: int
+    rounds: list[ProgressionRound]
+    drivers: list[ProgressionDriver]
+
+
 class DriverSeasonRow(BaseModel):
     season: int
     round: int

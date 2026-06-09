@@ -187,6 +187,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/standings/{season}/progression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Standings Progression
+         * @description Per-round cumulative points for every driver — drives the championship
+         *     development line chart on the Standings page.
+         */
+        get: operations["standings_progression_api_standings__season__progression_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/teams": {
         parameters: {
             query?: never;
@@ -383,6 +404,54 @@ export interface paths {
         };
         /** Replay Snapshot */
         get: operations["replay_snapshot_api_replay__season___round_num__snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/replay/{season}/{round_num}/trajectory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay Trajectory
+         * @description One-shot payload: every driver's session-time-resolution progress curve.
+         *
+         *     The frontend fetches this once per race, then drives playback locally via
+         *     requestAnimationFrame — lerping between samples to get genuinely smooth dot
+         *     motion. No per-lap polling required.
+         */
+        get: operations["replay_trajectory_api_replay__season___round_num__trajectory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/replay/{season}/{round_num}/telemetry/{driver_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay Telemetry
+         * @description 30 s rolling-window telemetry slice for a single driver, used by the
+         *     DriverTelemetry mini-window on the replay page.
+         *
+         *     Returns 204 when the race's `car_data.ff1pkl` isn't on disk (older
+         *     2024/earlier sessions were ingested with `telemetry=False`).
+         */
+        get: operations["replay_telemetry_api_replay__season___round_num__telemetry__driver_code__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -979,6 +1048,22 @@ export interface components {
              */
             podium_combinations: components["schemas"]["PodiumProbability"][];
         };
+        /** ProgressionDriver */
+        ProgressionDriver: {
+            /** Driver Code */
+            driver_code: string;
+            /** Team Name */
+            team_name?: string | null;
+            /** Cumulative Points */
+            cumulative_points: number[];
+        };
+        /** ProgressionRound */
+        ProgressionRound: {
+            /** Round */
+            round: number;
+            /** Race Name */
+            race_name: string;
+        };
         /** QualiInput */
         QualiInput: {
             /** Driver Code */
@@ -1199,6 +1284,15 @@ export interface components {
             /** Podium Combinations */
             podium_combinations: components["schemas"]["PodiumProbability"][];
         };
+        /** StandingsProgressionResponse */
+        StandingsProgressionResponse: {
+            /** Season */
+            season: number;
+            /** Rounds */
+            rounds: components["schemas"]["ProgressionRound"][];
+            /** Drivers */
+            drivers: components["schemas"]["ProgressionDriver"][];
+        };
         /** StandingsResponse */
         StandingsResponse: {
             /** Season */
@@ -1238,6 +1332,45 @@ export interface components {
             /** Points */
             points: number;
         };
+        /** TelemetryWindowResponse */
+        TelemetryWindowResponse: {
+            /** Driver Code */
+            driver_code: string;
+            /** From T */
+            from_t: number;
+            /** To T */
+            to_t: number;
+            /**
+             * T
+             * @default []
+             */
+            t: number[];
+            /**
+             * Speed
+             * @default []
+             */
+            speed: number[];
+            /**
+             * Throttle
+             * @default []
+             */
+            throttle: number[];
+            /**
+             * Brake
+             * @default []
+             */
+            brake: boolean[];
+            /**
+             * Gear
+             * @default []
+             */
+            gear: number[];
+            /**
+             * Drs
+             * @default []
+             */
+            drs: number[];
+        };
         /** TopPrediction */
         TopPrediction: {
             /** Driver Code */
@@ -1262,6 +1395,140 @@ export interface components {
             stochastic_mean?: number | null;
             /** Description */
             description: string;
+        };
+        /** TrajectoryCompoundChange */
+        TrajectoryCompoundChange: {
+            /** Lap */
+            lap: number;
+            /** Compound */
+            compound?: string | null;
+            /** Stint */
+            stint?: number | null;
+        };
+        /** TrajectoryDriver */
+        TrajectoryDriver: {
+            /** Code */
+            code: string;
+            /** Number */
+            number?: number | null;
+            /**
+             * Team Name
+             * @default
+             */
+            team_name: string;
+            /** Team Colour */
+            team_colour?: string | null;
+            samples: components["schemas"]["TrajectorySamples"];
+            /**
+             * Compound Changes
+             * @default []
+             */
+            compound_changes: components["schemas"]["TrajectoryCompoundChange"][];
+            /**
+             * Pit Laps
+             * @default []
+             */
+            pit_laps: number[];
+            /**
+             * Pit Windows
+             * @default []
+             */
+            pit_windows: components["schemas"]["TrajectoryPitWindow"][];
+            /**
+             * Lap Times
+             * @default []
+             */
+            lap_times: components["schemas"]["TrajectoryLapTime"][];
+            /**
+             * Final Lap
+             * @default 0
+             */
+            final_lap: number;
+        };
+        /** TrajectoryLapTime */
+        TrajectoryLapTime: {
+            /** Lap */
+            lap: number;
+            /** T */
+            t: number;
+            /** Compound */
+            compound?: string | null;
+        };
+        /** TrajectoryPitWindow */
+        TrajectoryPitWindow: {
+            /** Lap */
+            lap: number;
+            /** In T */
+            in_t: number;
+            /** Out T */
+            out_t: number;
+        };
+        /** TrajectoryResponse */
+        TrajectoryResponse: {
+            /** Season */
+            season: number;
+            /** Round */
+            round: number;
+            /** Race Name */
+            race_name: string;
+            /** Circuit Id */
+            circuit_id?: string | null;
+            /** N Laps */
+            n_laps: number;
+            /** Session Duration S */
+            session_duration_s: number;
+            /**
+             * Race Start T
+             * @default 0
+             */
+            race_start_t: number;
+            /**
+             * Race End T
+             * @default 0
+             */
+            race_end_t: number;
+            /** Drivers */
+            drivers: components["schemas"]["TrajectoryDriver"][];
+            /**
+             * Lap Marks
+             * @default []
+             */
+            lap_marks: number[];
+            /**
+             * Track Status Changes
+             * @default []
+             */
+            track_status_changes: components["schemas"]["TrajectoryStatusChange"][];
+            /**
+             * Overtakes
+             * @default []
+             */
+            overtakes: components["schemas"]["OvertakeEvent"][];
+            /**
+             * Sector Marks
+             * @default []
+             */
+            sector_marks: number[];
+        };
+        /** TrajectorySamples */
+        TrajectorySamples: {
+            /** T */
+            t: number[];
+            /** P */
+            p: number[];
+            /** Pos */
+            pos: number[];
+            /** Gap */
+            gap: (number | null)[];
+            /** Int */
+            int: (number | null)[];
+        };
+        /** TrajectoryStatusChange */
+        TrajectoryStatusChange: {
+            /** T */
+            t: number;
+            /** Status */
+            status: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1657,6 +1924,37 @@ export interface operations {
             };
         };
     };
+    standings_progression_api_standings__season__progression_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StandingsProgressionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_teams_api_teams_get: {
         parameters: {
             query?: never;
@@ -2014,6 +2312,83 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_trajectory_api_replay__season___round_num__trajectory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+                round_num: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrajectoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_telemetry_api_replay__season___round_num__telemetry__driver_code__get: {
+        parameters: {
+            query: {
+                /** @description Session time (seconds) — window start */
+                from_t: number;
+                /** @description Session time (seconds) — window end */
+                to_t: number;
+            };
+            header?: never;
+            path: {
+                season: number;
+                round_num: number;
+                driver_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelemetryWindowResponse"];
+                };
+            };
+            /** @description Telemetry not cached for this race */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

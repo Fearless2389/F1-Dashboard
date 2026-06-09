@@ -157,6 +157,84 @@ def constructor_standings(season: int) -> pd.DataFrame:
     )
 
 
+def season_progression(season: int) -> dict:
+    """
+    Per-round cumulative points for every driver in `season`. Drives the
+    championship-development line chart on the Standings page.
+
+    Returns: {
+        "rounds":  [ {"round": 1, "race_name": "Bahrain Grand Prix"}, ... ],
+        "drivers": [ {"driver_code": "VER",
+                      "team_name": "Red Bull Racing",
+                      "cumulative_points": [25.0, 43.0, 61.0, ...]}, ... ]
+    }
+
+    Sorted by final cumulative points descending (championship order).
+    Falls back to the local aligned dataset if Jolpica is unreachable.
+    """
+    df = pd.DataFrame()
+    try:
+        df = jolpica.race_results(season)
+    except Exception as exc:
+        log.warning("Jolpica race_results failed for progression: %s", exc)
+
+    if df.empty:
+        local = _load_aligned()
+        if local is not None:
+            sub = local[local["season"] == season]
+            if not sub.empty:
+                df = sub.rename(columns={"finish_position_clean": "position"})[
+                    ["season", "round", "race_name", "driver_code", "team_name", "points"]
+                ].copy()
+
+    if df.empty:
+        return {"rounds": [], "drivers": []}
+
+    df = df.copy()
+    df["team_name"] = df["team_name"].map(_canonicalise_team)
+    df = df.sort_values(["round", "driver_code"])
+
+    rounds_df = (
+        df[["round", "race_name"]]
+        .drop_duplicates("round")
+        .sort_values("round")
+    )
+    rounds = [
+        {"round": int(r["round"]), "race_name": str(r.get("race_name") or "")}
+        for _, r in rounds_df.iterrows()
+    ]
+    round_seq = [r["round"] for r in rounds]
+
+    points_per_round = (
+        df.pivot_table(
+            index="driver_code", columns="round", values="points",
+            aggfunc="sum", fill_value=0.0,
+        )
+        .reindex(columns=round_seq, fill_value=0.0)
+    )
+    cumulative = points_per_round.cumsum(axis=1)
+
+    final_pts = cumulative.iloc[:, -1] if cumulative.shape[1] else cumulative.sum(axis=1)
+    ordered_drivers = final_pts.sort_values(ascending=False).index.tolist()
+
+    # Most-recent team for each driver (their seat at the latest round they entered).
+    latest_team = (
+        df.sort_values("round")
+        .groupby("driver_code")["team_name"]
+        .last()
+    )
+
+    drivers = [
+        {
+            "driver_code":       code,
+            "team_name":         latest_team.get(code) or None,
+            "cumulative_points": [float(v) for v in cumulative.loc[code].tolist()],
+        }
+        for code in ordered_drivers
+    ]
+    return {"rounds": rounds, "drivers": drivers}
+
+
 def season_results(season: int, driver_code: str) -> list[dict]:
     """
     Per-race results for a driver in `season`. Prefers Jolpica (current),
