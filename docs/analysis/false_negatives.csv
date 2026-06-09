@@ -1,0 +1,16 @@
+season,round,race_name,driver_code,team_name,prob_top10,finish_position_clean
+2024,3,Australian Grand Prix,MAG,Haas F1 Team,0.04308219,10.0
+2024,2,Saudi Arabian Grand Prix,HUL,Haas F1 Team,0.10540059,10.0
+2024,3,Australian Grand Prix,TSU,RB,0.112987086,7.0
+2024,3,Australian Grand Prix,HUL,Haas F1 Team,0.115329266,9.0
+2024,8,Monaco Grand Prix,ALB,Williams,0.1308836,9.0
+2024,8,Monaco Grand Prix,GAS,Alpine,0.16016102,10.0
+2024,21,São Paulo Grand Prix,HAM,Mercedes,0.17128384,10.0
+2024,8,Monaco Grand Prix,TSU,RB,0.17354976,8.0
+2024,19,United States Grand Prix,LAW,RB,0.22417642,9.0
+2024,20,Mexico City Grand Prix,PIA,McLaren,0.23273827,8.0
+2024,20,Mexico City Grand Prix,GAS,Alpine,0.24322572,10.0
+2024,6,Miami Grand Prix,OCO,Alpine,0.24946275,10.0
+2024,11,Austrian Grand Prix,RIC,RB,0.28273612,9.0
+2024,5,Chinese Grand Prix,HUL,Haas F1 Team,0.29154435,10.0
+2024,4,Japanese Grand Prix,TSU,RB,0.30751273,10.0

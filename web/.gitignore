@@ -1,0 +1,22 @@
+# Web (Vite + React) artefacts — most overlap with the root .gitignore but
+# this keeps git operations from accidentally walking into node_modules.
+
+node_modules/
+dist/
+dist-ssr/
+.vite/
+.cache/
+*.tsbuildinfo
+
+# Test artefacts
+test-results/
+playwright-report/
+playwright/.cache/
+coverage/
+
+# Editor / OS
+.DS_Store
+*.local
+.env
+.env.local
+.env.*.local

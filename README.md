@@ -1,259 +1,235 @@
-# F1 2026 Race Outcome Prediction System
+# F1 ML — Live predictions, race tracking, and analytics
 
-A production-style machine learning pipeline that predicts the probability of each driver finishing in the top 10 for Formula 1 races, built on FastF1 telemetry data and XGBoost.
+An interactive Formula 1 analytics platform built on the existing FastF1 ingestion + multi-target ML pipeline, with a React dashboard for live race tracking, predictions, and historical exploration.
 
-## Overview
+## What's new in this rebuild
 
-- **Target**: Binary classification — top-10 finish (1) or not (0)
-- **Training data**: 2018–2023 seasons
-- **Validation**: 2024 season
-- **Test**: 2025 season
-- **Prediction target**: 2026 races
-- **Model**: XGBoost with 27 engineered features + Logistic Regression baseline
+| Area | Before | Now |
+|---|---|---|
+| Frontend | Streamlit, static matplotlib | **React + Vite + Tailwind v4 + shadcn-style components**, Recharts, Framer Motion |
+| Live updates | None | **WebSocket** stream from OpenF1 → animated track map + telemetry |
+| Predictions | Top-10 only | **Top-10, podium, winner (rank-aware), DNF, fastest lap, qualifying** |
+| Backend | Direct Python imports inside Streamlit | **FastAPI** REST + WebSocket API |
+| Race calendar | None | Schedule + countdown + 3-day weather forecast per circuit |
+| Uncertainty | None | Split-conformal intervals on the winner model |
+| Simulation | None | Monte Carlo race simulator (Plackett-Luce + DNF sampling) |
+| Driver / team features | 27 base features | + practice pace, per-race z-scores, SVD embeddings |
 
 ## Architecture
 
 ```
-FastF1 API
-    │
-    ▼
-┌─────────────────────────────┐
-│  Phase 1 — Data Ingestion   │  fetch_sessions.py, fetch_laps.py
-│  race results, qualifying,  │
-│  lap data, weather          │
-└──────────────┬──────────────┘
-               │ data/raw/*.parquet
-               ▼
-┌─────────────────────────────┐
-│  Phase 2 — Cleaning         │  align.py
-│  DNF flags, position fill,  │
-│  quali gap, join on         │
-│  (season, round, driver)    │
-└──────────────┬──────────────┘
-               │ aligned_race_dataset.parquet
-               ▼
-┌─────────────────────────────┐
-│  Phase 3 — Feature Eng.     │  driver/team/pace/strategy features
-│  27 features, rolling       │
-│  windows, no leakage        │
-└──────────────┬──────────────┘
-               │ final_feature_matrix.parquet
-               ▼
-┌─────────────────────────────┐
-│  Phase 4 — Model Training   │  train.py
-│  Baseline + XGBoost         │
-│  time-aware splits          │
-└──────────────┬──────────────┘
-               │ models/trained/*.pkl
-               ▼
-┌─────────────────────────────┐
-│  Phase 5 — Evaluation       │  analysis.py
-│  SHAP, calibration,         │
-│  error breakdown            │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│  Phase 6 — Inference        │  predict.py
-│  2026 qualifying → probs    │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│  Phase 7 — Dashboard        │  app.py (Streamlit)
-│  dark F1 UI, SHAP viewer    │
-└─────────────────────────────┘
+                 ┌──────────────────┐
+                 │  React frontend  │  Vite + TS + Tailwind v4 + Recharts/Visx
+                 │  web/            │  Routes: live · calendar · predict · explore · driver · model
+                 └────────┬─────────┘
+                          │ REST + WebSocket
+                          ▼
+                 ┌──────────────────┐
+                 │  FastAPI         │  src/api/
+                 │  + APScheduler   │  routers · schemas · websocket
+                 └────────┬─────────┘
+                          │
+        ┌─────────────────┼──────────────────┐
+        ▼                 ▼                  ▼
+┌───────────────┐ ┌───────────────┐ ┌──────────────────┐
+│ Live data     │ │ ML pipeline   │ │ Historical store │
+│ src/live/     │ │ src/models/   │ │ data/processed/  │
+│ OpenF1 client │ │ targets/      │ │ feature matrix   │
+│ Schedule      │ │ uncertainty   │ │ parquets         │
+│ Open-Meteo    │ │ simulator     │ └──────────────────┘
+└───────────────┘ └───────────────┘
 ```
 
-## Tech Stack
-
-| Category | Library |
-|---|---|
-| F1 data | `fastf1` |
-| Data processing | `pandas`, `numpy`, `pyarrow` |
-| ML | `scikit-learn`, `xgboost` |
-| Explainability | `shap` |
-| Visualisation | `matplotlib` |
-| Dashboard | `streamlit` |
-| Pipeline | Python stdlib |
+External data: [FastF1](https://docs.fastf1.dev/) (historical), [OpenF1](https://openf1.org/) (live), [Open-Meteo](https://open-meteo.com/) (weather).
 
 ## Setup
 
 ```bash
-# 1. Clone
-git clone https://github.com/Fearless2389/f1-ml.git
-cd f1-ml
-
-# 2. Create virtual environment (recommended)
+# 1. Python deps
 python -m venv venv
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
-
-# 3. Install dependencies
+source venv/bin/activate          # macOS/Linux
+venv\Scripts\activate             # Windows
 pip install -r requirements.txt
+
+# 2. JS deps
+cd web
+pnpm install                      # or npm install
+cd ..
 ```
 
-## Quick Start — Full Pipeline
+## Quick start (local dev)
 
-Run everything in one command (takes time on first run — FastF1 downloads ~2–5 GB):
+You need **two terminals**:
 
 ```bash
-# All seasons 2018–2025 (full training run)
-python run_pipeline.py
+# Terminal 1 — FastAPI backend on :8000
+uvicorn src.api.main:app --reload --port 8000
 
-# Single season (fast — good for testing)
-python run_pipeline.py --seasons 2023 --skip-analysis
-
-# Skip data fetch if already downloaded
-python run_pipeline.py --skip-fetch
+# Terminal 2 — Vite dev server on :5173 (proxies /api/* to :8000)
+cd web && pnpm dev
 ```
 
-## Step-by-Step Pipeline
+Then open `http://localhost:5173`.
+
+Windows users: `scripts/dev.ps1` launches both at once.
+
+### Without the live refresher
+
+The FastAPI app starts an APScheduler thread that polls OpenF1 every 5s. To skip that (e.g. for offline dev or unit tests):
 
 ```bash
-# Phase 1 — Fetch session data (race results, qualifying, weather)
+$env:F1ML_DISABLE_REFRESHER = "1"          # PowerShell
+export F1ML_DISABLE_REFRESHER=1            # bash
+uvicorn src.api.main:app --reload
+```
+
+## Training & data
+
+```bash
+# 1. Fetch sessions + laps (skip if already done)
 python -m src.ingestion.fetch_sessions --resume
-
-# Phase 1 — Fetch lap data (pace, strategy features)
 python -m src.ingestion.fetch_laps --resume
 
-# Phase 2 — Clean and align datasets
+# 2. Clean + align
 python -m src.cleaning.align
 
-# Phase 3 — Build feature matrix (27 features)
+# 3. Feature matrix (now includes embeddings + per-race z-scores)
 python -m src.features.build_features
 
-# Phase 4 — Train models
-python -m src.models.train                    # baseline + XGBoost
-python -m src.models.train --model xgb        # XGBoost only
+# 4. Train all six targets at once
+python -m src.models.train --targets all
 
-# Phase 5 — Error analysis + SHAP
-python -m src.models.analysis                 # val set (2024)
-python -m src.models.analysis --split test    # test set (2025)
-python -m src.models.analysis --no-shap       # skip SHAP (faster)
+# Just a few targets
+python -m src.models.train --targets top10,podium,winner
+
+# Refresh the live snapshot once (no scheduler)
+python -m src.live.refresher --once
 ```
 
-## Running the Dashboard
+After training, `models/trained/manifest.json` is regenerated and surfaced via `/api/models`.
+
+## The six prediction targets
+
+Defined in `src/models/targets/`. Each target is a single file conforming to the `Target` dataclass.
+
+| Target       | Kind        | Model                | Label                                   | Output file              |
+|--------------|-------------|----------------------|-----------------------------------------|--------------------------|
+| `top10`      | binary      | XGBClassifier        | `finish_position <= 10`                 | `xgb_top10.pkl`          |
+| `podium`     | binary      | XGBClassifier (boosted positive weight) | `finish_position <= 3`     | `xgb_podium.pkl`         |
+| `winner`     | ranker      | LGBMRanker (group = race) | `21 - finish_position`             | `lgbm_winner.pkl`        |
+| `dnf`        | binary      | XGBClassifier        | `is_dnf`                                | `xgb_dnf.pkl`            |
+| `fastest_lap`| regression  | LGBMRegressor        | per-race median-lap rank                | `lgbm_fastest_lap.pkl`   |
+| `quali`      | regression  | LGBMRegressor (no quali leakage) | `quali_position` (regressed)      | `lgbm_quali.pkl`         |
+
+The `predict_race` function in `src/inference/predict.py` branches on `artifact["kind"]` so all targets share one call path. Multi-target predictions are returned in a single response from `POST /api/predict`.
+
+Monte Carlo race simulation runs in `src/inference/simulator.py` — sample DNFs from per-driver `prob_dnf`, sample finish order via Plackett-Luce on `prob_win`, sample fastest-lap holder weighted by `prob_fastest_lap`. Returns win/podium distributions, expected points, and top podium combinations.
+
+## React frontend routes
+
+| Route | What it shows |
+|---|---|
+| `/live` | WebSocket-driven timing tower, animated track map, telemetry overlay, race-control feed |
+| `/calendar` | Season calendar with countdown timers, weather forecasts, circuit metadata |
+| `/predict` | Run multi-target predictions; tabs per target; Monte Carlo podium combinations |
+| `/explore` | Driver-vs-driver comparison across seasons |
+| `/driver/:code` | Driver profile + rolling form |
+| `/model` | Manifest of trained models + per-target feature importance |
+
+Charts are Recharts (SVG, hover/zoom out of the box). Track map is a hand-rolled SVG that can be replaced with circuit-specific outlines from `web/public/circuits/{id}.svg` later.
+
+## API surface
+
+`uvicorn src.api.main:app` exposes the OpenAPI schema at `/docs`. Key endpoints:
+
+```
+GET    /api/health                          status + refresher state
+GET    /api/schedule/{year}                 enriched season schedule
+GET    /api/schedule/{year}/{round}         single race + weather
+GET    /api/schedule/circuits/all           circuit metadata
+GET    /api/live/snapshot                   last cached live snapshot
+WS     /api/live/stream                     pushes snapshots as they come in
+GET    /api/live/telemetry                  raw car_data for a driver
+GET    /api/drivers                         all known driver codes
+GET    /api/drivers/{code}                  profile + rolling stats
+GET    /api/teams                           all team names
+GET    /api/teams/{name}/trend              points per round
+GET    /api/compare?drivers=VER,LEC         multi-driver comparison
+POST   /api/predict                         multi-target prediction
+POST   /api/predict/simulate                Monte Carlo run
+GET    /api/models                          manifest of trained models
+GET    /api/models/{target}/importance      feature importance for a target
+```
+
+Regenerate TypeScript types from the live OpenAPI schema:
 
 ```bash
-streamlit run src/dashboard/app.py
+cd web
+pnpm types:gen        # writes src/lib/types.gen.ts
 ```
 
-Opens at `http://localhost:8501`. Three tabs:
-- **Predict** — upload qualifying CSV → ranked probability table + bar chart
-- **Driver Insight** — rolling form chart, per-driver SHAP contributions
-- **Model Info** — metrics, calibration curve, feature importance
-
-## Making 2026 Predictions
+## Tests
 
 ```bash
-# Using the sample Bahrain 2026 qualifying
-python -m src.inference.predict \
-  --input examples/sample_quali_2026_bahrain.csv \
-  --circuit "Bahrain International Circuit" \
-  --round 1 \
-  --season 2026 \
-  --output data/processed/bahrain_2026_predictions.csv
+# Python
+pytest tests/
 
-# Wet race
-python -m src.inference.predict \
-  --input examples/sample_quali_2026_bahrain.csv \
-  --circuit "Bahrain International Circuit" \
-  --round 1 \
-  --rain
+# Frontend (scaffold ready — wire Vitest in web/package.json when adding tests)
+cd web && pnpm lint
 ```
 
-### Input CSV format
+## Deployment
+
+See [`docs/deployment.md`](docs/deployment.md). Short version:
+
+- **Frontend → Vercel** (Vite preset, root `web/`)
+- **Backend → Railway** (Nixpacks auto-detects Python; one-line `Procfile` runs `uvicorn`)
+- **No Docker required** — neither host needs it.
+
+## Roadmap (v2, after the rehaul ships)
+
+- LLM race recap generator (post-race summaries on `/calendar`)
+- Race replay scrubber (`/live` timeline drags through any completed race)
+- Causal driver-vs-car decomposition ("What if Hamilton drove a Red Bull?")
+
+See the full optional menu in [`docs/v2-roadmap.md`](docs/v2-roadmap.md) (Phase 8 of the rebuild plan).
+
+## Project structure
 
 ```
-driver_code,team_name,quali_position,q1_time_ms,q2_time_ms,q3_time_ms
-VER,Red Bull Racing,1,88234,87891,87543
-NOR,McLaren,2,88312,88021,87698
-...
-```
-
-See `examples/sample_quali_2026_bahrain.csv` for the full template.
-
-## Project Structure
-
-```
-f1-ml/
-├── run_pipeline.py              # End-to-end pipeline runner
-├── requirements.txt
-├── .gitignore
+F1 ML/
+├── run_pipeline.py
+├── requirements.txt           # +fastapi, +httpx, +apscheduler
+├── pytest.ini
+├── Procfile                   # Railway / Heroku-compatible
+├── runtime.txt
 │
 ├── src/
-│   ├── ingestion/
-│   │   ├── config.py            # Paths, seasons, constants
-│   │   ├── fetch_sessions.py    # Race results, qualifying, weather
-│   │   └── fetch_laps.py        # Lap-level data
-│   ├── cleaning/
-│   │   └── align.py             # Join + DNF flagging + target var
-│   ├── features/
-│   │   ├── driver_features.py   # Rolling driver stats (L5/L10)
-│   │   ├── team_features.py     # Team rolling stats + pit times
-│   │   ├── pace_features.py     # Lap pace, degradation, strategy
-│   │   └── build_features.py    # Orchestrator → feature matrix
-│   ├── models/
-│   │   ├── config.py            # Feature lists, hyperparameters
-│   │   ├── train.py             # Baseline + XGBoost training
-│   │   ├── evaluate.py          # ROC-AUC, Brier, Precision@10
-│   │   └── analysis.py          # SHAP, calibration, error breakdown
-│   ├── inference/
-│   │   └── predict.py           # 2026 race prediction engine
-│   └── dashboard/
-│       └── app.py               # Streamlit UI
+│   ├── ingestion/             # Existing FastF1 ingestion
+│   ├── cleaning/              # align.py
+│   ├── features/              # + embeddings.py, practice_features.py
+│   ├── models/                # + targets/, normalize.py, uncertainty.py
+│   │   └── targets/           # top10, podium, winner_ranker, dnf, fastest_lap, quali
+│   ├── inference/             # + simulator.py
+│   ├── live/                  # OpenF1 client, schedule, weather, refresher
+│   ├── api/                   # FastAPI app + routers + schemas + websocket
+│   └── dashboard/             # Legacy Streamlit dashboard (kept until React parity confirmed)
+│
+├── web/                       # React frontend
+│   ├── src/
+│   │   ├── routes/            # Live · Calendar · Predict · Explore · Driver · Model
+│   │   ├── components/        # ui/ · panels/ · Shell
+│   │   ├── hooks/             # useApi, useLiveSocket
+│   │   ├── lib/               # api, types, teams, cn
+│   │   └── store/             # raceContext (zustand)
+│   └── public/
 │
 ├── data/
-│   ├── raw/                     # Parquet files (gitignored)
-│   ├── processed/               # Feature matrix (gitignored)
-│   └── cache/                   # FastF1 cache (gitignored)
+│   ├── raw/  processed/  cache/
+│   ├── live/                  # Refresher writes current_session.json here
+│   └── schedule/              # Schedule parquets + circuits.csv
 │
-├── models/
-│   └── trained/                 # Saved .pkl artifacts (gitignored)
-│
-├── examples/
-│   └── sample_quali_2026_bahrain.csv
-│
+├── models/trained/            # Pickles + manifest.json
+├── tests/                     # pytest tests for simulator, targets, uncertainty, API smoke
 └── docs/
-    ├── feature_schema.md        # Full feature definitions + dtypes
-    └── analysis/                # SHAP plots, calibration curves
 ```
-
-## Feature Engineering
-
-27 features across 6 categories (see `docs/feature_schema.md` for full schema):
-
-| Category | Features | Note |
-|---|---|---|
-| Qualifying | `quali_position`, `quali_gap_to_pole_ms`, `quali_position_vs_team` | Pre-race |
-| Driver form | `driver_avg_finish_L5/L10`, `driver_dnf_rate_L10`, `driver_points_L5`, `driver_experience`, `driver_circuit_avg_finish` | Rolling, no leakage |
-| Team | `team_avg_finish_L5`, `team_dnf_rate_L10`, `team_points_L5`, `team_avg_pit_time_ms` | Rolling |
-| Pace | `median_clean_lap_ms`, `lap_time_vs_field_pct`, `sector_consistency`, `deg_slope` | In-race only |
-| Strategy | `starting_compound_enc`, `num_stints`, `num_pit_stops` | In-race only |
-| Context | `air_temp_mean`, `track_temp_mean`, `rainfall`, `round_number`, `season_stage` | Pre-race |
-
-> **In-race features** are used during training only. The inference pipeline substitutes historical averages for pre-race prediction.
-
-## Validation Results
-
-Fill in after running the full pipeline:
-
-| Split | Seasons | ROC-AUC | Brier | Precision@10 |
-|---|---|---|---|---|
-| Train | 2018–2023 | — | — | — |
-| Val | 2024 | — | — | — |
-| Test | 2025 | — | — | — |
-
-## Limitations
-
-- **In-race leakage in training**: Pace and strategy features use data from the race being predicted. This improves training metrics but means the model sees the outcome's context. The inference pipeline avoids this by using only pre-race features.
-- **Driver transfers**: Rolling stats carry over between teams. A driver's team form from their previous constructor affects their first race at a new team.
-- **2026 regulation changes**: The 2026 F1 season has major regulation changes (new power unit formula). Team and driver performance baselines from 2018–2025 may not generalise as well to 2026.
-- **Safety cars / red flags**: Race outcomes affected by safety car periods are harder to predict and contribute to false positives.
-
-## Roadmap (Phase 8)
-
-Future enhancements planned:
-- **Monte Carlo race simulator** — 1000-run simulation with DNF sampling
-- **Learning-to-Rank (LambdaMART)** — full race order prediction
-- **Bayesian uncertainty intervals** — confidence bounds on probabilities
-- **Drift monitoring** — track model performance degradation across seasons

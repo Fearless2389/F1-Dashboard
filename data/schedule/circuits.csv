@@ -1,0 +1,29 @@
+circuit_id,name,country,lat,lon,lap_length_km,num_corners,drs_zones,downforce_level,overtake_difficulty,typical_air_temp_c,wet_race_rate
+bahrain,Bahrain International Circuit,Bahrain,26.0325,50.5106,5.412,15,3,medium,2,28,0.02
+jeddah,Jeddah Corniche Circuit,Saudi Arabia,21.6319,39.1044,6.174,27,3,low,4,30,0.0
+melbourne,Albert Park Circuit,Australia,-37.8497,144.968,5.278,14,4,medium,3,22,0.08
+suzuka,Suzuka International Racing Course,Japan,34.8431,136.541,5.807,18,1,high,4,18,0.20
+shanghai,Shanghai International Circuit,China,31.3389,121.22,5.451,16,2,medium,3,18,0.15
+miami,Miami International Autodrome,USA,25.9581,-80.2389,5.412,19,3,medium,3,28,0.05
+imola,Autodromo Enzo e Dino Ferrari,Italy,44.3439,11.7167,4.909,19,2,medium,4,18,0.18
+monaco,Circuit de Monaco,Monaco,43.7347,7.4206,3.337,19,1,high,5,21,0.10
+montreal,Circuit Gilles Villeneuve,Canada,45.5,-73.5228,4.361,14,3,low,2,21,0.25
+barcelona,Circuit de Barcelona-Catalunya,Spain,41.57,2.2611,4.657,16,2,high,3,22,0.10
+spielberg,Red Bull Ring,Austria,47.2197,14.7647,4.318,10,3,low,2,18,0.30
+silverstone,Silverstone Circuit,UK,52.0786,-1.0169,5.891,18,2,high,3,17,0.30
+hungaroring,Hungaroring,Hungary,47.5789,19.2486,4.381,14,1,high,5,24,0.15
+spa,Circuit de Spa-Francorchamps,Belgium,50.4372,5.9714,7.004,19,2,medium,3,17,0.55
+zandvoort,Circuit Zandvoort,Netherlands,52.3888,4.5409,4.259,14,2,high,4,20,0.20
+monza,Autodromo Nazionale Monza,Italy,45.6156,9.2811,5.793,11,2,low,2,24,0.10
+baku,Baku City Circuit,Azerbaijan,40.3725,49.8533,6.003,20,2,low,3,26,0.05
+singapore,Marina Bay Street Circuit,Singapore,1.2914,103.8642,4.94,19,3,high,5,28,0.30
+austin,Circuit of the Americas,USA,30.1328,-97.6411,5.513,20,2,medium,3,25,0.20
+mexico,Autodromo Hermanos Rodriguez,Mexico,19.4042,-99.0907,4.304,17,3,medium,3,21,0.05
+interlagos,Autodromo Jose Carlos Pace,Brazil,-23.7036,-46.6997,4.309,15,2,medium,2,24,0.40
+vegas,Las Vegas Strip Circuit,USA,36.1147,-115.1728,6.201,17,2,low,3,15,0.05
+losail,Losail International Circuit,Qatar,25.49,51.4542,5.419,16,1,high,4,27,0.0
+yas_marina,Yas Marina Circuit,UAE,24.4672,54.6031,5.281,16,2,medium,3,28,0.0
+portimao,Algarve International Circuit,Portugal,37.2272,-8.6275,4.653,15,1,high,3,22,0.15
+mugello,Autodromo Internazionale del Mugello,Italy,43.9975,11.3719,5.245,15,1,high,3,25,0.20
+nurburgring,Nurburgring,Germany,50.3356,6.9475,5.148,15,1,high,3,15,0.40
+istanbul,Intercity Istanbul Park,Turkey,40.9517,29.405,5.338,14,1,medium,3,22,0.30

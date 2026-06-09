@@ -250,7 +250,27 @@ def predict_race(
     # Second imputation pass for in-race NaN columns
     X_imp = X_imp.fillna(X_imp.median())
 
-    probs = artifact["model"].predict_proba(X_imp)[:, 1]
+    # Branch on model kind — binary classifier vs ranker vs regressor.
+    # We always populate `prob_top10` so downstream code stays uniform; for
+    # ranker/regressor targets it's a normalised score, not a true probability.
+    kind = artifact.get("kind", "binary")
+    model_obj = artifact["model"]
+
+    if kind == "binary" and hasattr(model_obj, "predict_proba"):
+        probs = model_obj.predict_proba(X_imp)[:, 1]
+    elif kind == "ranker":
+        raw = np.asarray(model_obj.predict(X_imp), dtype=float)
+        # Softmax → field sums to 1 (interpreted as win-probability share)
+        exp = np.exp(raw - raw.max())
+        probs = exp / exp.sum()
+    elif kind == "regression":
+        raw = np.asarray(model_obj.predict(X_imp), dtype=float)
+        # Lower predicted (e.g. position) = better. Invert + softmax.
+        inv = -raw
+        exp = np.exp(inv - inv.max())
+        probs = exp / exp.sum()
+    else:
+        probs = model_obj.predict_proba(X_imp)[:, 1]
 
     # ── Build output ──────────────────────────────────────────────────────────
     output = features[["driver_code", "team_name", "quali_position"]].copy()

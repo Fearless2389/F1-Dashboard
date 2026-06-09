@@ -31,6 +31,10 @@ env/
 data/raw/
 data/processed/
 data/cache/
+data/live/
+
+# Runtime weather caches (re-fetched on demand from Open-Meteo)
+data/schedule/weather_*.json
 
 # Models
 models/trained/
@@ -54,3 +58,19 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Node / Vite (React frontend in web/)
+node_modules/
+web/dist/
+web/.vite/
+web/coverage/
+web/test-results/
+web/playwright-report/
+web/playwright/.cache/
+
+# Build artefacts
+*.tsbuildinfo
+.swc/
+
+# Editor / OS extras
+*.code-workspace

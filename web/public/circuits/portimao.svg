@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1d1d36"/>
+      <stop offset="100%" stop-color="#0e0e1a"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <g transform="scale(800 450)">
+    <path d="M 0.12 0.50 C 0.12 0.32 0.30 0.22 0.45 0.25 C 0.58 0.28 0.60 0.40 0.70 0.42 C 0.82 0.44 0.88 0.50 0.88 0.60 C 0.88 0.72 0.74 0.74 0.58 0.72 C 0.42 0.70 0.32 0.74 0.20 0.72 C 0.12 0.68 0.12 0.60 0.12 0.50 Z" fill="none" stroke="#2c2c4a" stroke-width="0.06" stroke-linejoin="round"/>
+    <path d="M 0.12 0.50 C 0.12 0.32 0.30 0.22 0.45 0.25 C 0.58 0.28 0.60 0.40 0.70 0.42 C 0.82 0.44 0.88 0.50 0.88 0.60 C 0.88 0.72 0.74 0.74 0.58 0.72 C 0.42 0.70 0.32 0.74 0.20 0.72 C 0.12 0.68 0.12 0.60 0.12 0.50 Z" fill="none" stroke="#e10600" stroke-width="0.012" stroke-linejoin="round" filter="url(#glow)" opacity="0.85"/>
+    <path d="M 0.12 0.50 C 0.12 0.32 0.30 0.22 0.45 0.25 C 0.58 0.28 0.60 0.40 0.70 0.42 C 0.82 0.44 0.88 0.50 0.88 0.60 C 0.88 0.72 0.74 0.74 0.58 0.72 C 0.42 0.70 0.32 0.74 0.20 0.72 C 0.12 0.68 0.12 0.60 0.12 0.50 Z" fill="none" stroke="#ffffff" stroke-width="0.003" stroke-dasharray="0.012 0.018"/>
+  </g>
+  <text x="20" y="34" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600" fill="#8a8aa3" letter-spacing="2">ALGARVE INTERNATIONAL CIRCUIT</text>
+</svg>

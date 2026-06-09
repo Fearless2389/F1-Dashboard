@@ -1,42 +1,47 @@
 """
-Phase 4 — Model Training
+Phase 4 — Multi-target Model Training
 
-Trains two models with time-aware train/val/test splits:
-  1. Logistic Regression baseline (qualifying position only)
-  2. XGBoost (full feature set)
+Trains one or more prediction targets from the target registry:
+    top10, podium, winner, dnf, fastest_lap, quali
 
-Saves artifacts to models/trained/.
+Each target produces:
+    models/trained/<target.output_filename>   (pickled artifact)
+    models/trained/manifest.json              (target → metrics summary)
 
 Usage:
     python -m src.models.train
-    python -m src.models.train --model xgb       # XGBoost only
-    python -m src.models.train --model baseline  # Baseline only
+    python -m src.models.train --targets top10,podium,winner
+    python -m src.models.train --targets all
 """
 
 import argparse
+import json
 import logging
 import pickle
-import sys
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_squared_error, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from xgboost import XGBClassifier
 
 from ..ingestion.config import DATA_PROCESSED
-from .config import (
-    ALL_FEATURES,
-    LOGISTIC_PARAMS,
-    PRE_RACE_FEATURES,
-    SPLIT,
-    TARGET,
-    XGB_PARAMS,
-)
-from .evaluate import calibration_data, evaluate, print_summary
+from .config import ALL_FEATURES, LOGISTIC_PARAMS, SPLIT, TARGET
+from .targets import REGISTRY as TARGET_REGISTRY
+from .targets.base import Target
+from .uncertainty import fit_conformal
+
+try:
+    from .evaluate import calibration_data, evaluate, print_summary
+except Exception:
+    calibration_data = None
+    evaluate = None
+    print_summary = None
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,85 +52,61 @@ log = logging.getLogger(__name__)
 
 FEATURE_MATRIX = DATA_PROCESSED / "final_feature_matrix.parquet"
 MODELS_DIR     = Path(__file__).resolve().parents[2] / "models" / "trained"
+MANIFEST_FILE  = MODELS_DIR / "manifest.json"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ── Data loading & splitting ──────────────────────────────────────────────────
+# ── Split loading ─────────────────────────────────────────────────────────────
 
-def load_splits(feature_list: list[str]) -> dict:
-    """
-    Load feature matrix and split strictly by season.
-    Returns dict with keys train/val/test, each containing X, y, race_id.
-    """
-    if not FEATURE_MATRIX.exists():
-        log.error(f"Feature matrix not found at {FEATURE_MATRIX}. Run build_features.py first.")
-        sys.exit(1)
-
-    df = pd.read_parquet(FEATURE_MATRIX)
-    log.info(f"Loaded feature matrix: {len(df):,} rows")
-
-    # Check which requested features are actually present
-    available = [f for f in feature_list if f in df.columns]
-    missing   = [f for f in feature_list if f not in df.columns]
+def load_splits_for_target(target: Target, df: pd.DataFrame) -> dict:
+    """Build per-split X/y/groups for a single target."""
+    available = [f for f in target.features if f in df.columns]
+    missing = [f for f in target.features if f not in df.columns]
     if missing:
-        log.warning(f"  Features not found (will be skipped): {missing}")
+        log.warning("[%s] features not in matrix (skipped): %s", target.name, missing)
 
-    # Race ID for Precision@10 grouping
+    df = df.copy()
+    df["_label"] = target.label_fn(df)
     df["_race_id"] = df["season"].astype(str) + "_R" + df["round"].astype(str)
 
     splits = {}
     for name, seasons in SPLIT.items():
-        mask = df["season"].isin(seasons)
-        sub  = df[mask].copy()
+        sub = df[df["season"].isin(seasons)].copy()
+        if sub.empty:
+            splits[name] = {"empty": True, "X": pd.DataFrame(), "y": np.array([]),
+                            "race_id": pd.Series(dtype=str), "meta": pd.DataFrame(),
+                            "groups": np.array([])}
+            continue
+
+        # Drop rows with NaN labels (e.g. quali target on sprint weekends)
+        valid = sub["_label"].notna()
+        sub = sub[valid]
+        if sub.empty:
+            splits[name] = {"empty": True, "X": pd.DataFrame(), "y": np.array([]),
+                            "race_id": pd.Series(dtype=str), "meta": pd.DataFrame(),
+                            "groups": np.array([])}
+            continue
+
+        # For rankers we need per-race group sizes
+        groups = (
+            sub.groupby(["season", "round"]).size().values
+            if target.kind == "ranker"
+            else np.array([])
+        )
+
         splits[name] = {
+            "empty":   False,
             "X":       sub[available].copy(),
-            "y":       sub[TARGET].values,
+            "y":       sub["_label"].astype(float).values,
             "race_id": sub["_race_id"],
             "meta":    sub[["season", "round", "driver_code", "team_name"]],
-            "empty":   len(sub) == 0,
+            "groups":  groups,
         }
-        if len(sub) == 0:
-            log.warning(f"  {name:5s}: 0 rows — seasons {seasons} not in data")
-        else:
-            log.info(f"  {name:5s}: {len(sub):,} rows  ({sub['season'].min()}–{sub['season'].max()})")
-
-    # If val or test are empty (e.g. only 1 season fetched), fall back to
-    # using the last 20% of training rounds as a proxy val set.
-    if splits["val"]["empty"]:
-        log.warning("  Val set is empty — using last 20% of train rounds as fallback val.")
-        train_meta = splits["train"]["meta"].copy()
-        all_rounds = train_meta.drop_duplicates(["season", "round"]).sort_values(["season", "round"])
-        cutoff = int(len(all_rounds) * 0.8)
-        val_rounds = set(
-            zip(all_rounds.iloc[cutoff:]["season"], all_rounds.iloc[cutoff:]["round"])
-        )
-        train_mask = train_meta.apply(
-            lambda r: (r["season"], r["round"]) not in val_rounds, axis=1
-        )
-        val_mask = ~train_mask
-
-        original_train = splits["train"]
-        for split_name, mask in [("train", train_mask), ("val", val_mask)]:
-            splits[split_name] = {
-                "X":       original_train["X"][mask.values].copy(),
-                "y":       original_train["y"][mask.values],
-                "race_id": original_train["race_id"][mask.values],
-                "meta":    original_train["meta"][mask.values],
-                "empty":   False,
-            }
-        log.info(f"  train (trimmed): {splits['train']['y'].size:,} rows")
-        log.info(f"  val (fallback):  {splits['val']['y'].size:,} rows")
-
-    if splits["test"]["empty"]:
-        log.warning("  Test set is empty — test metrics will be skipped.")
 
     return splits, available
 
 
-# ── Imputation ────────────────────────────────────────────────────────────────
-
 def _median_impute(X_train: pd.DataFrame, X_others: list[pd.DataFrame]):
-    """Fit imputer on train, transform all splits. Skips empty DataFrames."""
     imp = SimpleImputer(strategy="median", keep_empty_features=True)
     X_train_imp = pd.DataFrame(imp.fit_transform(X_train), columns=X_train.columns)
     X_others_imp = [
@@ -136,155 +117,266 @@ def _median_impute(X_train: pd.DataFrame, X_others: list[pd.DataFrame]):
     return X_train_imp, X_others_imp, imp
 
 
-# ── Baseline: Logistic Regression ────────────────────────────────────────────
+# ── Per-target trainer ────────────────────────────────────────────────────────
 
-def train_baseline(splits: dict, features: list[str]) -> dict:
-    """
-    Logistic Regression on qualifying position only (single feature baseline).
-    Demonstrates the simplest possible model as benchmark.
-    """
-    log.info("\n── Baseline: Logistic Regression (quali_position only) ──")
+def train_target(target: Target, df: pd.DataFrame) -> dict:
+    log.info("\n── %s (%s) ──", target.name, target.kind)
 
-    baseline_feat = ["quali_position"] if "quali_position" in features else features[:1]
-    log.info(f"  Features: {baseline_feat}")
+    splits, features = load_splits_for_target(target, df)
+    if splits["train"]["empty"]:
+        log.error("[%s] empty train split — skipping", target.name)
+        return {"target": target.name, "status": "skipped_empty_train"}
 
-    X_tr = splits["train"]["X"][baseline_feat]
-    X_vl = splits["val"]["X"][baseline_feat]
-    X_te = splits["test"]["X"][baseline_feat]
+    X_tr = splits["train"]["X"]
+    X_vl = splits["val"]["X"]
+    X_te = splits["test"]["X"]
 
     X_tr_imp, [X_vl_imp, X_te_imp], imp = _median_impute(X_tr, [X_vl, X_te])
 
+    model = target.model_factory()
+
+    fit_kwargs: dict = {}
+    if target.kind == "ranker":
+        fit_kwargs["group"] = splits["train"]["groups"]
+        if not splits["val"]["empty"]:
+            fit_kwargs["eval_set"] = [(X_vl_imp, splits["val"]["y"])]
+            fit_kwargs["eval_group"] = [splits["val"]["groups"]]
+        model.fit(X_tr_imp, splits["train"]["y"], **fit_kwargs)
+    elif target.kind == "binary" and hasattr(model, "fit") and not splits["val"]["empty"]:
+        # XGBoost early stopping
+        try:
+            model.fit(
+                X_tr_imp, splits["train"]["y"],
+                eval_set=[(X_vl_imp, splits["val"]["y"])],
+                verbose=False,
+            )
+        except TypeError:
+            model.fit(X_tr_imp, splits["train"]["y"])
+    else:
+        model.fit(X_tr_imp, splits["train"]["y"])
+
+    # ── Metrics ───────────────────────────────────────────────────────────────
+    metrics = {}
+    for name, X_imp in [("train", X_tr_imp), ("val", X_vl_imp), ("test", X_te_imp)]:
+        if splits[name]["empty"] or len(X_imp) == 0:
+            continue
+        y = splits[name]["y"]
+        if target.kind == "binary":
+            prob = model.predict_proba(X_imp)[:, 1]
+            try:
+                metrics[name] = float(roc_auc_score(y, prob))
+            except Exception:
+                metrics[name] = None
+        elif target.kind == "regression":
+            pred = model.predict(X_imp)
+            metrics[name] = float(np.sqrt(mean_squared_error(y, pred)))
+        elif target.kind == "ranker":
+            raw = model.predict(X_imp)
+            # NDCG@1 — fraction of races where top-predicted is also top-actual
+            meta = splits[name]["meta"].copy()
+            meta["_score"] = raw
+            meta["_y"] = y
+            hits = 0
+            races = 0
+            for _, g in meta.groupby(["season", "round"]):
+                if g.empty:
+                    continue
+                pred_top = g["_score"].idxmax()
+                actual_top = g["_y"].idxmax()
+                if pred_top == actual_top:
+                    hits += 1
+                races += 1
+            metrics[name] = float(hits / races) if races else None
+
+    log.info("  Metrics: %s", metrics)
+
+    # ── Feature importance ──────────────────────────────────────────────────────
+    importance = None
+    if hasattr(model, "feature_importances_"):
+        importance = pd.Series(
+            model.feature_importances_, index=features
+        ).sort_values(ascending=False)
+
+    # ── Calibration data + conformal (binary only) ──────────────────────────────
+    calibration = None
+    conformal = None
+    if target.kind == "binary" and not splits["val"]["empty"]:
+        val_prob = model.predict_proba(X_vl_imp)[:, 1]
+        if calibration_data is not None:
+            try:
+                calibration = calibration_data(splits["val"]["y"], val_prob)
+            except Exception:
+                pass
+        try:
+            conformal = fit_conformal(val_prob, splits["val"]["y"], alpha=0.1)
+        except Exception:
+            pass
+
+    artifact = {
+        "target":     target.name,
+        "kind":       target.kind,
+        "model":      model,
+        "imputer":    imp,
+        "features":   features,
+        "importance": importance,
+        "calibration": calibration,
+        "conformal":  conformal,
+        "metrics":    metrics,
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    path = MODELS_DIR / target.output_filename
+    with open(path, "wb") as f:
+        pickle.dump(artifact, f)
+    log.info("  Saved → %s", path)
+
+    return {
+        "target":           target.name,
+        "kind":             target.kind,
+        "output_filename":  target.output_filename,
+        "train_rows":       int(splits["train"]["X"].shape[0]),
+        "n_features":       len(features),
+        "val_metric":       metrics.get("val"),
+        "test_metric":      metrics.get("test"),
+        "val_metric_name":  target.eval_metric_name,
+        "train_date":       artifact["trained_at"],
+    }
+
+
+# ── Baseline (kept for backwards compat) ──────────────────────────────────────
+
+def train_baseline(df: pd.DataFrame) -> Optional[dict]:
+    """Logistic regression baseline on quali_position only."""
+    log.info("\n── Baseline: Logistic Regression (quali_position only) ──")
+    df = df.copy()
+    df["_label"] = (df["finish_position_clean"] <= 10).astype("int8")
+
+    feat = "quali_position"
+    if feat not in df.columns:
+        log.warning("baseline skipped — no quali_position column")
+        return None
+
+    splits = {}
+    for name, seasons in SPLIT.items():
+        sub = df[df["season"].isin(seasons)]
+        splits[name] = {
+            "X": sub[[feat]].copy(),
+            "y": sub["_label"].values,
+            "empty": sub.empty,
+        }
+
+    if splits["train"]["empty"]:
+        log.warning("baseline skipped — empty train split")
+        return None
+
+    X_tr_imp, [X_vl_imp, X_te_imp], imp = _median_impute(
+        splits["train"]["X"], [splits["val"]["X"], splits["test"]["X"]],
+    )
     pipe = Pipeline([
         ("scaler", StandardScaler()),
         ("clf",    LogisticRegression(**LOGISTIC_PARAMS)),
     ])
     pipe.fit(X_tr_imp, splits["train"]["y"])
 
-    results = {}
-    for name, X_imp, split in [
-        ("train", X_tr_imp, "train"),
-        ("val",   X_vl_imp, "val"),
-        ("test",  X_te_imp, "test"),
-    ]:
-        if splits[split]["empty"] or len(X_imp) == 0:
-            log.warning(f"  Skipping {name} evaluation — no data")
+    metrics = {}
+    for name, X_imp in [("train", X_tr_imp), ("val", X_vl_imp), ("test", X_te_imp)]:
+        if splits[name]["empty"] or len(X_imp) == 0:
             continue
         prob = pipe.predict_proba(X_imp)[:, 1]
-        results[name] = evaluate(
-            splits[split]["y"], prob,
-            race_ids=splits[split]["race_id"],
-            label=f"baseline/{name}",
-        )
+        try:
+            metrics[name] = float(roc_auc_score(splits[name]["y"], prob))
+        except Exception:
+            metrics[name] = None
 
-    print_summary(results)
-
-    # Save
-    artifact = {"model": pipe, "imputer": imp, "features": baseline_feat, "type": "baseline"}
+    artifact = {
+        "target": "top10_baseline",
+        "kind":   "binary",
+        "model":  pipe,
+        "imputer": imp,
+        "features": [feat],
+        "metrics": metrics,
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+    }
     path = MODELS_DIR / "logistic_baseline.pkl"
     with open(path, "wb") as f:
         pickle.dump(artifact, f)
-    log.info(f"  Saved → {path}")
+    log.info("  Saved → %s", path)
 
-    return results
-
-
-# ── XGBoost ───────────────────────────────────────────────────────────────────
-
-def train_xgb(splits: dict, features: list[str]) -> dict:
-    """XGBoost on full feature set with early stopping on validation AUC."""
-    log.info("\n── XGBoost (full feature set) ──")
-    log.info(f"  Features: {len(features)}")
-
-    X_tr = splits["train"]["X"][features]
-    X_vl = splits["val"]["X"][features]
-    X_te = splits["test"]["X"][features]
-
-    X_tr_imp, [X_vl_imp, X_te_imp], imp = _median_impute(X_tr, [X_vl, X_te])
-
-    params = {k: v for k, v in XGB_PARAMS.items()
-              if k != "early_stopping_rounds"}
-
-    model = XGBClassifier(
-        **params,
-        early_stopping_rounds=XGB_PARAMS["early_stopping_rounds"],
-    )
-    model.fit(
-        X_tr_imp, splits["train"]["y"],
-        eval_set=[(X_vl_imp, splits["val"]["y"])],
-        verbose=50,
-    )
-    log.info(f"  Best iteration: {model.best_iteration}")
-
-    results = {}
-    for name, X_imp, split in [
-        ("train", X_tr_imp, "train"),
-        ("val",   X_vl_imp, "val"),
-        ("test",  X_te_imp, "test"),
-    ]:
-        if splits[split]["empty"] or len(X_imp) == 0:
-            log.warning(f"  Skipping {name} evaluation — no data")
-            continue
-        prob = model.predict_proba(X_imp)[:, 1]
-        results[name] = evaluate(
-            splits[split]["y"], prob,
-            race_ids=splits[split]["race_id"],
-            label=f"xgb/{name}",
-        )
-
-    print_summary(results)
-
-    # Feature importance table
-    importance = pd.Series(
-        model.feature_importances_, index=features
-    ).sort_values(ascending=False)
-    log.info("\n  Top-15 features by gain:")
-    log.info(importance.head(15).to_string())
-
-    # Calibration data (val set, or train as fallback)
-    cal_source = X_vl_imp if not splits["val"]["empty"] and len(X_vl_imp) > 0 else X_tr_imp
-    cal_y      = splits["val"]["y"] if not splits["val"]["empty"] and len(X_vl_imp) > 0 else splits["train"]["y"]
-    val_prob   = model.predict_proba(cal_source)[:, 1]
-    cal_df     = calibration_data(cal_y, val_prob)
-
-    # Save
-    artifact = {
-        "model": model,
-        "imputer": imp,
-        "features": features,
-        "importance": importance,
-        "calibration": cal_df,
-        "best_iteration": model.best_iteration,
-        "type": "xgb",
+    return {
+        "target": "logistic_baseline",
+        "kind": "binary",
+        "output_filename": "logistic_baseline.pkl",
+        "n_features": 1,
+        "val_metric": metrics.get("val"),
+        "test_metric": metrics.get("test"),
+        "val_metric_name": "roc_auc",
+        "train_date": artifact["trained_at"],
     }
-    path = MODELS_DIR / "xgb_top10.pkl"
-    with open(path, "wb") as f:
-        pickle.dump(artifact, f)
-    log.info(f"  Saved → {path}")
 
-    return results
+
+# ── Manifest ──────────────────────────────────────────────────────────────────
+
+def write_manifest(entries: list[dict]) -> None:
+    manifest = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "targets":      entries,
+    }
+    MANIFEST_FILE.write_text(json.dumps(manifest, indent=2, default=str))
+    log.info("  Manifest → %s", MANIFEST_FILE)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def run(model_choice: str = "both") -> None:
-    log.info("Phase 4 — Model Training")
+def run(targets: list[str], with_baseline: bool = True) -> None:
+    if not FEATURE_MATRIX.exists():
+        log.error("Feature matrix not found at %s. Run build_features.py first.", FEATURE_MATRIX)
+        return
 
-    splits, features = load_splits(ALL_FEATURES)
+    df = pd.read_parquet(FEATURE_MATRIX)
+    log.info("Loaded feature matrix: %d rows", len(df))
 
-    if model_choice in ("both", "baseline"):
-        train_baseline(splits, features)
+    entries: list[dict] = []
 
-    if model_choice in ("both", "xgb"):
-        train_xgb(splits, features)
+    if with_baseline:
+        baseline = train_baseline(df)
+        if baseline is not None:
+            entries.append(baseline)
 
-    log.info("\nDone. Models saved to models/trained/")
+    for name in targets:
+        if name not in TARGET_REGISTRY:
+            log.error("Unknown target %s. Available: %s", name, list(TARGET_REGISTRY))
+            continue
+        try:
+            entry = train_target(TARGET_REGISTRY[name], df)
+            entries.append(entry)
+        except Exception as exc:
+            log.exception("Training %s failed: %s", name, exc)
+            entries.append({"target": name, "status": "failed", "error": str(exc)})
+
+    write_manifest(entries)
+    log.info("\nDone.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train F1 top-10 prediction models")
+    parser = argparse.ArgumentParser(description="Multi-target F1 model trainer")
     parser.add_argument(
-        "--model", choices=["both", "baseline", "xgb"], default="both",
-        help="Which model(s) to train"
+        "--targets", default="all",
+        help="Comma-separated targets, or 'all'. Available: " + ",".join(TARGET_REGISTRY),
     )
+    parser.add_argument("--no-baseline", action="store_true",
+                        help="Skip the logistic regression baseline")
+    # Backwards-compat for the old "--model" flag
+    parser.add_argument("--model", choices=["both", "baseline", "xgb"], default=None)
     args = parser.parse_args()
-    run(model_choice=args.model)
+
+    if args.model is not None:
+        with_base = args.model in ("both", "baseline")
+        targets_arg = ["top10"] if args.model in ("both", "xgb") else []
+    else:
+        with_base = not args.no_baseline
+        if args.targets == "all":
+            targets_arg = list(TARGET_REGISTRY)
+        else:
+            targets_arg = [t.strip() for t in args.targets.split(",") if t.strip()]
+
+    run(targets=targets_arg, with_baseline=with_base)

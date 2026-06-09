@@ -1,0 +1,144 @@
+/*
+ * Paddock Dashboard — global stylesheet.
+ *
+ * Two-tone brand palette:
+ *   - paddock-coral (primary): brand, LIVE pill, primary actions, "performance" stats
+ *   - paddock-cyan  (secondary): status indicators, "Telemetry" tab, success states
+ *
+ * The legacy `--color-f1-*` tokens are kept as aliases — components written
+ * against them inherit the new palette automatically. To rebrand again later,
+ * change the values below and nothing else needs to move.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  /* Paddock palette (primary tokens) */
+  --color-paddock-coral:      #ff5e6c;   /* brand, LIVE, primary actions */
+  --color-paddock-coral-soft: #ff8b96;   /* hover, soft outlines */
+  --color-paddock-coral-deep: #c43d4a;   /* pressed, dense bars */
+  --color-paddock-cyan:       #22e8c9;   /* status, secondary */
+  --color-paddock-cyan-soft:  #6cf3dd;
+  --color-paddock-dark:       #0b0e1a;   /* page background */
+  --color-paddock-panel:      #141826;   /* card / panel surface */
+  --color-paddock-edge:       #232a40;   /* borders, dividers */
+  --color-paddock-white:      #f5f5f7;
+  --color-paddock-muted:      #8a92ad;
+
+  /* ── Legacy aliases — every `bg-f1-red`, `text-f1-muted` etc still works ── */
+  --color-f1-red:    var(--color-paddock-coral);
+  --color-f1-dark:   var(--color-paddock-dark);
+  --color-f1-panel:  var(--color-paddock-panel);
+  --color-f1-grey:   #38383f;
+  --color-f1-edge:   var(--color-paddock-edge);
+  --color-f1-white:  var(--color-paddock-white);
+  --color-f1-muted:  var(--color-paddock-muted);
+
+  --color-team-redbull:  #3671c6;
+  --color-team-mclaren:  #ff8000;
+  --color-team-ferrari:  #e8002d;
+  --color-team-mercedes: #27f4d2;
+  --color-team-aston:    #229971;
+  --color-team-alpine:   #ff87bc;
+  --color-team-haas:     #b6babd;
+  --color-team-rb:       #6692ff;
+  --color-team-williams: #64c4ff;
+  --color-team-sauber:   #52e252;
+
+  /* Typography — `font-display` / `font-body` / `font-mono` utilities */
+  --font-display: "Playfair Display", "Times New Roman", Georgia, serif;
+  --font-body:    "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-sans:    var(--font-body);
+}
+
+html, body, #root {
+  background: var(--color-paddock-dark);
+  color: var(--color-paddock-white);
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "cv11", "cv02";
+  min-height: 100vh;
+}
+
+/* Headings → editorial serif */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Tabular numbers → monospace so digits line up across rows */
+.tabular-nums {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Brand wordmark utility — italic Playfair, coral */
+.paddock-brand {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-paddock-coral);
+  text-shadow: 0 0 24px rgba(255, 94, 108, 0.18);
+}
+
+.font-emphasis {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* Signature dashed-border accent — used on active nav, side cards, focus chips */
+.paddock-dashed {
+  border: 1.5px dashed var(--color-paddock-cyan);
+  border-radius: 8px;
+}
+.paddock-dashed-coral { border: 1.5px dashed var(--color-paddock-coral); border-radius: 8px; }
+.paddock-dashed-muted { border: 1.5px dashed rgba(138, 146, 173, 0.55); border-radius: 8px; }
+
+/* Compact glowing pill — used by LIVE indicator and main-nav active states */
+.paddock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-paddock-coral);
+  color: var(--color-paddock-coral);
+  background: rgba(255, 94, 108, 0.08);
+  box-shadow: 0 0 18px rgba(255, 94, 108, 0.25);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar         { width: 8px; height: 8px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #2a3149; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4366; }
+
+/* Live pulse */
+@keyframes f1-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.18); }
+}
+.f1-pulse { animation: f1-pulse 1.4s ease-in-out infinite; }
+
+@keyframes paddock-glow {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 94, 108, 0.22); }
+  50%      { box-shadow: 0 0 26px rgba(255, 94, 108, 0.55); }
+}
+.paddock-glow { animation: paddock-glow 1.8s ease-in-out infinite; }
+
+.f1-grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

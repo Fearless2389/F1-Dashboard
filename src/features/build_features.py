@@ -24,9 +24,12 @@ import numpy as np
 import pandas as pd
 
 from ..ingestion.config import DATA_PROCESSED, LAP_DATA_FILE
+from ..models.normalize import add_per_race_zscores
 from .driver_features import add_driver_features
-from .team_features import add_team_features
+from .embeddings import build_embeddings
 from .pace_features import compute_lap_features
+from .practice_features import compute_practice_features
+from .team_features import add_team_features
 
 logging.basicConfig(
     level=logging.INFO,
@@ -134,6 +137,26 @@ def build(use_lap_data: bool = True) -> pd.DataFrame:
         lap_features = compute_lap_features(lap_data)
         df = df.merge(lap_features, on=["season", "round", "driver_code"], how="left")
         log.info(f"  Merged pace/strategy features: {lap_features.shape[1]-3} new columns")
+
+    # Optional practice features (no-op if practice_lap_data.parquet missing)
+    practice = compute_practice_features()
+    if not practice.empty:
+        df = df.merge(practice, on=["season", "round", "driver_code"], how="left")
+        log.info(f"  Merged practice features: {practice.shape[1]-3} new columns")
+
+    # Per-race z-scores (robust to grid-strength shifts)
+    log.info("Adding per-race z-score normalisations...")
+    df = add_per_race_zscores(df)
+
+    # Driver/team SVD embeddings
+    log.info("Building driver/team embeddings...")
+    try:
+        emb = build_embeddings(df, dim=8)
+        if not emb.empty:
+            df = df.merge(emb, on=["season", "driver_code", "team_name"], how="left")
+            log.info(f"  Merged embeddings: {emb.shape[1]-3} new columns")
+    except Exception as exc:
+        log.warning(f"  Embedding build failed (continuing): {exc}")
 
     # ── Final column order ────────────────────────────────────────────────────
     id_cols     = ["season", "round", "race_name", "circuit_id",
