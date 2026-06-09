@@ -157,7 +157,16 @@ function DriverProfile({
   const teamName = prof?.current_team ?? "";
   const color = teamColor(teamName);
   const fullName = prof?.full_name ?? code;
+
+  // For rookies (Antonelli, Bearman, etc.) the comparison season may predate
+  // their F1 debut. The API returns zeroed-out fields rather than a 404, so
+  // we detect "no data" defensively and gate the comparison panels behind it.
+  const compareHasData = compareProf != null && (
+    (compareProf.season_results?.length ?? 0) > 0
+    || (compareProf.season_points ?? 0) > 0
+  );
   const isComparing = compareSeason != null && compareProf != null;
+  const isComparingWithData = isComparing && compareHasData;
 
   return (
     <div className="space-y-4">
@@ -175,15 +184,22 @@ function DriverProfile({
               }}
             />
             {prof.driver_number != null && (
-              <div
-                className="absolute right-6 top-1/2 -translate-y-1/2 font-display font-black italic select-none pointer-events-none leading-none"
-                style={{
-                  color: `${color}22`,
-                  fontSize: "min(22rem, 30vw)",
-                  textShadow: `0 0 80px ${color}33`,
-                }}
-              >
-                {String(prof.driver_number).padStart(2, "0")}
+              // Flex-centre the watermark inside an absolute box that fills the
+              // hero so the italic glyph's ascender + descender are both safely
+              // inside the card. (Previous top-1/2/translate-y centering was
+              // measuring from the line-box, which clipped the bottom curve of
+              // numbers like "1" once font-size grew past ~14rem.)
+              <div className="absolute inset-0 flex items-center justify-end pr-6 md:pr-10 pointer-events-none">
+                <div
+                  className="font-display font-black italic select-none leading-[0.85]"
+                  style={{
+                    color: `${color}22`,
+                    fontSize: "min(14rem, 24vw)",
+                    textShadow: `0 0 80px ${color}33`,
+                  }}
+                >
+                  {String(prof.driver_number).padStart(2, "0")}
+                </div>
               </div>
             )}
 
@@ -236,20 +252,33 @@ function DriverProfile({
           {/* ── Career trajectory across all seasons (only if 2+ seasons) ── */}
           <DriverCareerChart driverCode={code} timeline={prof.timeline ?? []} />
 
+          {/* "Driver did not race in YYYY" notice — surfaced when the user
+              compares a rookie against a season that predates their debut. */}
+          {isComparing && !compareHasData && (
+            <div className="rounded-md border border-paddock-cyan/30 bg-paddock-cyan/5 px-4 py-3 text-xs text-paddock-cyan">
+              <span className="font-semibold">{fullName.toUpperCase()}</span>
+              <span className="text-f1-muted"> did not race in</span> <span className="font-mono font-semibold">{compareSeason}</span>
+              <span className="text-f1-muted"> — comparison panels show only the {season} season.</span>
+            </div>
+          )}
+
           {/* ── Stats row + radar (two-column) ── */}
           <div className="grid gap-4 grid-cols-1 xl:grid-cols-[3fr_2fr] items-stretch">
             <BigStatsBlock prof={prof} comparison={isComparing ? compareProf : null} season={season} compareSeason={compareSeason} />
             <PerformanceRadar
               driverCode={code}
               values={prof.radar}
-              compareValues={isComparing ? compareProf.radar : null}
+              compareValues={isComparingWithData ? compareProf.radar : null}
               primaryLabel={String(season)}
               compareLabel={compareSeason != null ? String(compareSeason) : undefined}
             />
           </div>
 
-          {/* ── Race-by-race comparison (compare mode only) ── */}
-          {isComparing && (
+          {/* ── Race-by-race comparison — only when the comparison season
+              actually has results. For rookies the dropdown might offer a
+              pre-debut season; in that case we skip this chart entirely
+              rather than draw a one-line graph that looks broken. ── */}
+          {isComparingWithData && (
             <SeasonComparisonChart
               primary={{
                 season,
