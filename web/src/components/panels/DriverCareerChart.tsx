@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import {
-  Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer,
-  Tooltip, type TooltipProps, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, Cell, LabelList,
+  ResponsiveContainer, Tooltip, type TooltipProps, XAxis, YAxis,
 } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -23,10 +23,11 @@ interface SeasonAggregate {
 }
 
 /**
- * Career trajectory — one bar per season showing points scored, plus an
- * overlaid line for average finish position on a secondary inverted axis
- * (P1 at top). Aggregated client-side from the driver-profile `timeline`,
- * so no backend round-trip needed.
+ * Career trajectory — one bar per season showing points scored, in that
+ * season's team livery colour. The season's average finish position is
+ * labelled directly above each bar as `P4.7` so points (height) and
+ * finish position (label) read together for the same year instead of
+ * floating on a separate inverted secondary axis.
  *
  * Renders nothing when the driver has fewer than 2 seasons of data —
  * a one-season "trajectory" is just a single bar and not useful.
@@ -49,7 +50,6 @@ export function DriverCareerChart({ driverCode, timeline }: Props) {
         if (!r.is_dnf && r.finish_position != null) finishes.push(r.finish_position);
         if (r.team_name) teams.set(r.team_name, (teams.get(r.team_name) ?? 0) + 1);
       }
-      // Most-frequent team this season (drivers occasionally swap mid-year)
       const dominant = [...teams.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
       out.push({
         season,
@@ -65,18 +65,44 @@ export function DriverCareerChart({ driverCode, timeline }: Props) {
 
   if (aggregates.length < 2) return null;
 
+  // Recharts LabelList passes `index` to a content function, so we close
+  // over `aggregates` and look up the row to get this bar's avg-finish.
+  // (`value` from LabelList is the data key's value, i.e. points — useless
+  // here since we want a separate field per cell.)
+  function AvgPLabel(props: { x?: string | number; y?: string | number; width?: string | number; index?: number }) {
+    const xn = typeof props.x === "number" ? props.x : Number(props.x);
+    const yn = typeof props.y === "number" ? props.y : Number(props.y);
+    const wn = typeof props.width === "number" ? props.width : Number(props.width);
+    if (!Number.isFinite(xn) || !Number.isFinite(yn) || !Number.isFinite(wn) || props.index == null) return null;
+    const row = aggregates[props.index];
+    if (!row || row.avg_finish == null) return null;
+    return (
+      <text
+        x={xn + wn / 2}
+        y={yn - 6}
+        textAnchor="middle"
+        fill="#a4acc4"
+        fontSize={10}
+        fontFamily="ui-monospace, SFMono-Regular, monospace"
+        fontWeight={600}
+      >
+        P{row.avg_finish.toFixed(1)}
+      </text>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle>Career trajectory</CardTitle>
         <CardDescription>
-          {driverCode} · {aggregates.length} seasons · bars = points scored · line = avg finish position
+          {driverCode} · {aggregates.length} seasons · bar height = points scored · label above each bar = average finish position
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[240px] w-full">
           <ResponsiveContainer>
-            <ComposedChart data={aggregates} margin={{ top: 8, right: 8, bottom: 4, left: -8 }}>
+            <BarChart data={aggregates} margin={{ top: 28, right: 8, bottom: 4, left: -4 }}>
               <CartesianGrid stroke="#2a2a40" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="season"
@@ -85,61 +111,28 @@ export function DriverCareerChart({ driverCode, timeline }: Props) {
                 tickFormatter={(s) => String(s)}
               />
               <YAxis
-                yAxisId="points"
                 stroke="#8a8aa3"
                 tick={{ fontSize: 11 }}
                 width={40}
                 label={{ value: "Points", position: "insideTopLeft", fill: "#8a8aa3", fontSize: 10, dy: -4 }}
               />
-              <YAxis
-                yAxisId="finish"
-                orientation="right"
-                stroke="#8a8aa3"
-                tick={{ fontSize: 11 }}
-                width={36}
-                reversed
-                domain={[1, 20]}
-                label={{ value: "Avg P", position: "insideTopRight", fill: "#8a8aa3", fontSize: 10, dy: -4 }}
-              />
-              <Tooltip content={<CareerTooltip />} />
+              <Tooltip content={<CareerTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
               <Bar
                 dataKey="points"
-                yAxisId="points"
                 radius={[4, 4, 0, 0]}
                 isAnimationActive={false}
               >
+                <LabelList content={AvgPLabel} />
                 {aggregates.map((row) => (
-                  <CareerBarCell key={row.season} fill={row.fill} />
+                  <Cell key={row.season} fill={row.fill} />
                 ))}
               </Bar>
-              <Line
-                yAxisId="finish"
-                type="monotone"
-                dataKey="avg_finish"
-                stroke="#ffd200"
-                strokeWidth={2}
-                strokeDasharray="5 3"
-                dot={{ r: 3, fill: "#ffd200" }}
-                connectNulls
-                isAnimationActive={false}
-              />
-            </ComposedChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
   );
-}
-
-/**
- * Recharts pattern: <Bar> children must be `<Cell>`-ish primitives.
- * We forward `fill` from each season's aggregate so every bar gets that
- * season's team livery colour. (Cell from recharts is just a wrapper that
- * forwards props down to the bar's path.)
- */
-import { Cell } from "recharts";
-function CareerBarCell({ fill }: { fill: string }) {
-  return <Cell fill={fill} />;
 }
 
 function CareerTooltip({ active, payload }: TooltipProps<number, string>) {
