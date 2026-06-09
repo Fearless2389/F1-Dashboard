@@ -25,7 +25,12 @@ log = logging.getLogger(__name__)
 
 
 def _canonicalise_team(name: Optional[str]) -> str:
-    """Normalise Jolpica's team labels to the names our roster + UI use."""
+    """Normalise Jolpica/FastF1's team labels to the names our roster + UI use.
+
+    Note: Sauber rebranded as Audi for the 2026 season. We treat "audi" and
+    "sauber" as distinct canonical teams now — colour/branding diverged — so
+    historical Sauber rows stay separate from 2026 Audi rows.
+    """
     if not name:
         return ""
     s = name.lower()
@@ -33,7 +38,8 @@ def _canonicalise_team(name: Optional[str]) -> str:
     if "alpine" in s:                       return "Alpine"
     if "haas" in s:                         return "Haas"
     if "aston" in s:                        return "Aston Martin"
-    if "audi" in s or "sauber" in s:        return "Kick Sauber"
+    if "audi" in s:                         return "Audi"
+    if "sauber" in s:                       return "Kick Sauber"
     if "cadillac" in s:                     return "Cadillac"
     if "mclaren" in s:                      return "McLaren"
     if "ferrari" in s:                      return "Ferrari"
@@ -286,30 +292,104 @@ def season_results(season: int, driver_code: str) -> list[dict]:
 
 # ── Public: full current-grid roster ──────────────────────────────────────────
 
+def _grid_from_race_data(season: int) -> list[dict]:
+    """Build the season's roster directly from the aligned race-results parquet.
+
+    For seasons where we actually have race data, this is the ground truth —
+    each row tells us who raced under which team in their most recent round.
+    The curated `drivers_{season}.json` files go stale across the year as
+    seats change (TSU → out, HAD → Red Bull, Sauber → Audi for 2026); race
+    data doesn't.
+    """
+    df = _load_aligned()
+    if df is None:
+        return []
+    sub = df[df["season"] == season]
+    if sub.empty:
+        return []
+    grouped = (
+        sub.sort_values(["round"])
+        .groupby("driver_code", as_index=False)
+        .agg(last_team=("team_name", "last"),
+             driver_number=("driver_number", "first"))
+    )
+    out: list[dict] = []
+    for _, row in grouped.iterrows():
+        code = str(row["driver_code"])
+        team_raw = str(row["last_team"]) if pd.notna(row.get("last_team")) else None
+        out.append({
+            "driver_code":   code,
+            "driver_number": int(row["driver_number"]) if pd.notna(row.get("driver_number")) else None,
+            "team_name":     _canonicalise_team(team_raw) if team_raw else None,
+        })
+    return out
+
+
 def get_current_grid(season: int = 2026) -> list[dict]:
     """
-    Hand-curated roster enriched with OpenF1 photo + team colour where available.
-    Adds season standings (points + championship position) + debut/experience.
+    Roster for `season`, enriched with OpenF1 photos + standings.
 
-    When no curated `drivers_{season}.json` exists (e.g. 2018-2025), falls back
-    to building cards from the aligned dataset so the Drivers page still works
-    for historical seasons.
+    Priority order:
+      1. If race data for the season exists in the aligned dataset, that's
+         the source of truth for who is racing and which team. Curated JSON
+         supplies metadata (full name, nationality, debut year) when it
+         agrees on the driver code.
+      2. Otherwise (future seasons with no races yet), fall back to the
+         curated `drivers_{season}.json`.
+      3. If neither exists, return an empty list.
+
+    This is what makes Audi (was Sauber) appear correctly, removes TSU from
+    the 2026 grid, and surfaces HAD at Red Bull as soon as he actually races
+    there — without needing a manual JSON edit.
     """
+    race_grid = _grid_from_race_data(season)
     curated = _load_curated(season)
+    curated_by_code = {d["driver_code"]: d for d in curated}
 
+    try:
+        of1 = _openf1_enrich(season)
+    except Exception as exc:
+        log.warning("OpenF1 enrich failed: %s", exc)
+        of1 = {}
+
+    standings = compute_standings(season)
+    standings_by_code = {
+        row["driver_code"]: row for _, row in standings.iterrows()
+    } if not standings.empty else {}
+
+    if race_grid:
+        out: list[dict] = []
+        for entry in race_grid:
+            code = entry["driver_code"]
+            enrich = of1.get(code, {})
+            stand = standings_by_code.get(code)
+            curated_entry = curated_by_code.get(code, {})
+            debut = curated_entry.get("debut_year")
+            experience_years = (season - int(debut)) if debut else None
+            out.append({
+                "driver_code":          code,
+                # race data wins for driver_number when present (curated may be stale)
+                "driver_number":        entry.get("driver_number") or curated_entry.get("driver_number"),
+                "full_name":            curated_entry.get("full_name") or code,
+                "team_name":            entry["team_name"],
+                "team_colour":          enrich.get("team_colour"),
+                "headshot_url":         enrich.get("headshot_url"),
+                "nationality":          curated_entry.get("nationality"),
+                "country_name":         curated_entry.get("country_name"),
+                "season_points":        float(stand["points"]) if stand is not None else 0.0,
+                "championship_position": int(stand["championship_position"]) if stand is not None else None,
+                "debut_year":           debut,
+                "experience_years":     experience_years,
+            })
+        out.sort(key=lambda d: (
+            d["championship_position"] if d["championship_position"] is not None else 99,
+            -d["season_points"],
+        ))
+        return out
+
+    # No race data — fall through to curated-only build (future seasons).
     if curated:
-        try:
-            of1 = _openf1_enrich(season)
-        except Exception as exc:
-            log.warning("OpenF1 enrich failed: %s", exc)
-            of1 = {}
-
-        standings = compute_standings(season)
-        standings_by_code = {
-            row["driver_code"]: row for _, row in standings.iterrows()
-        } if not standings.empty else {}
-
-        out = []
+        out: list[dict] = []
         for d in curated:
             code = d["driver_code"]
             enrich = of1.get(code, {})
@@ -332,49 +412,5 @@ def get_current_grid(season: int = 2026) -> list[dict]:
             })
         return out
 
-    # ── Fallback for non-curated seasons: build from the aligned dataset ────
-    df = _load_aligned()
-    if df is None:
-        return []
-    sub = df[df["season"] == season]
-    if sub.empty:
-        return []
-
-    standings = compute_standings(season)
-    standings_by_code = {
-        row["driver_code"]: row for _, row in standings.iterrows()
-    } if not standings.empty else {}
-
-    # One row per driver in this season → derive team from their last race
-    grouped = (
-        sub.sort_values(["round"]).groupby("driver_code", as_index=False)
-        .agg(last_team=("team_name", "last"),
-             driver_number=("driver_number", "first"))
-    )
-
-    out = []
-    for _, row in grouped.iterrows():
-        code = str(row["driver_code"])
-        team = str(row["last_team"]) if pd.notna(row.get("last_team")) else None
-        stand = standings_by_code.get(code)
-        out.append({
-            "driver_code":          code,
-            "driver_number":        int(row["driver_number"]) if pd.notna(row.get("driver_number")) else None,
-            "full_name":            code,                # full name unavailable historically
-            "team_name":            team,
-            "team_colour":          None,
-            "headshot_url":         None,                # OpenF1 doesn't keep deep history
-            "nationality":          None,
-            "country_name":         None,
-            "season_points":        float(stand["points"]) if stand is not None else 0.0,
-            "championship_position": int(stand["championship_position"]) if stand is not None else None,
-            "debut_year":           None,
-            "experience_years":     None,
-        })
-
-    # Sort by championship_position if available, else season_points desc
-    out.sort(key=lambda d: (
-        d["championship_position"] if d["championship_position"] is not None else 99,
-        -d["season_points"],
-    ))
-    return out
+    # Neither race data nor a curated roster — nothing to return.
+    return []

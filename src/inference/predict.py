@@ -26,6 +26,7 @@ import logging
 import pickle
 import sys
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -62,22 +63,39 @@ ROLLING_FEATURES = [
 ]
 
 
+_CURRENT_SEASON_MIN_RACES = 3
+
+
 def _get_latest_rolling_stats(
     feature_matrix: pd.DataFrame,
     circuit_id: str,
-    season_cutoff: int = 2025,
+    season_cutoff: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     For each driver, get their rolling stats from their most recent race
-    up to and including season_cutoff.
+    up to and including `season_cutoff` (defaults to the latest season the
+    feature matrix has).
 
-    For driver_circuit_avg_finish, use the most recent value at this
-    specific circuit (or overall avg if never raced there).
+    Regulation-change weighting: once a driver has at least
+    `_CURRENT_SEASON_MIN_RACES` races in the latest season, we override
+    their rolling stats with the latest-season-only row instead of the
+    cross-season historical row. This stops the model from blending pre-
+    regulation form (e.g. 2025 stats) with post-regulation team pairings
+    (e.g. ANT at Mercedes in 2026). Drivers below the threshold (rookies,
+    returnees) keep the historical row so their entry to the model isn't a
+    one-race extrapolation.
+
+    For `driver_circuit_avg_finish`, prefer the same-circuit current-season
+    visit when available; else fall back to the cross-season mean.
     """
+    if season_cutoff is None:
+        season_cutoff = int(feature_matrix["season"].max())
+
     hist = feature_matrix[feature_matrix["season"] <= season_cutoff].copy()
     hist = hist.sort_values(["driver_code", "season", "round"])
 
-    # Latest overall rolling stats per driver
+    # Historical baseline — latest overall rolling stats per driver across
+    # all seasons up to and including the cutoff.
     latest = (
         hist.groupby("driver_code")
         .last()
@@ -85,11 +103,41 @@ def _get_latest_rolling_stats(
         [["driver_code", "team_name"] + ROLLING_FEATURES]
     )
 
-    # Override driver_circuit_avg_finish with circuit-specific history
+    # Current-season override. For each driver with ≥ N races in the latest
+    # season, take their latest-season-only row's rolling features and swap
+    # those values in. (Rolling features are computed per-row in the matrix,
+    # so the last row of the latest season already reflects the current-
+    # season-only window once N races are in.)
+    current_season = hist[hist["season"] == season_cutoff]
+    if not current_season.empty:
+        counts = current_season.groupby("driver_code").size()
+        eligible = counts[counts >= _CURRENT_SEASON_MIN_RACES].index.tolist()
+        if eligible:
+            current_latest = (
+                current_season[current_season["driver_code"].isin(eligible)]
+                .groupby("driver_code")
+                .last()
+                .reset_index()
+                [["driver_code", "team_name"] + ROLLING_FEATURES]
+            )
+            # Merge — current-season row wins for the rolling columns + team_name.
+            cs_indexed = current_latest.set_index("driver_code")
+            for col in ["team_name"] + ROLLING_FEATURES:
+                if col in cs_indexed.columns:
+                    latest.loc[
+                        latest["driver_code"].isin(eligible), col
+                    ] = latest.loc[
+                        latest["driver_code"].isin(eligible), "driver_code"
+                    ].map(cs_indexed[col])
+
+    # Override driver_circuit_avg_finish with circuit-specific history.
+    # Prefer current-season visit to this circuit when available.
     circuit_hist = hist[hist["circuit_id"].str.lower() == circuit_id.lower()]
     if not circuit_hist.empty:
+        current_circuit = circuit_hist[circuit_hist["season"] == season_cutoff]
+        source = current_circuit if not current_circuit.empty else circuit_hist
         circuit_avg = (
-            circuit_hist.groupby("driver_code")["finish_position_clean"]
+            source.groupby("driver_code")["finish_position_clean"]
             .mean()
             .reset_index()
             .rename(columns={"finish_position_clean": "_circuit_avg"})

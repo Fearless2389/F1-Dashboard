@@ -14,6 +14,8 @@ const TEAM_COLORS: Array<[string, string]> = [
   ["racing bulls",   "#6692FF"],
   ["rb ",            "#6692FF"],
   ["williams",       "#64C4FF"],
+  ["audi",           "#00B7E5"],
+  ["cadillac",       "#7A1E1E"],
   ["kick sauber",    "#52E252"],
   ["sauber",         "#52E252"],
   ["alfa romeo",     "#900000"],

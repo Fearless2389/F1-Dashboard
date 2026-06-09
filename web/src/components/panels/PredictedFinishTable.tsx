@@ -1,4 +1,4 @@
-import { ListOrdered } from "lucide-react";
+import { Info, ListOrdered } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { teamColorFallback } from "@/lib/teams";
@@ -8,9 +8,23 @@ interface Props {
   rows: FinishRow[];
 }
 
+const CONFIDENCE_HINT =
+  "Confidence = the model's probability the driver finishes in the top 10. " +
+  "A row is flagged 'Race at Risk' when DNF probability is above 18% or " +
+  "the top-10 probability falls below 40%.";
+
+const GAP_HINT =
+  "Estimated gap is a positional heuristic — 3.2 seconds × (position − 1). " +
+  "It's a rough illustration of the cumulative gap to the leader, not a " +
+  "per-driver pace estimate. (A real per-lap pace model would replace this.)";
+
 /**
  * P4–P10 prediction table. Each row has a confidence bar — coral for high
  * confidence rows, cyan for "race at risk" rows (high DNF or low top-10 prob).
+ *
+ * The header chips include "?" affordances that surface the underlying
+ * formulas on hover, so users aren't left guessing what "High Confidence"
+ * actually means.
  */
 export function PredictedFinishTable({ rows }: Props) {
   return (
@@ -23,11 +37,13 @@ export function PredictedFinishTable({ rows }: Props) {
           </span>
         </div>
         <div className="flex items-center gap-3 text-[9px] uppercase tracking-widest text-f1-muted">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1" title={CONFIDENCE_HINT}>
             <span className="inline-block h-2 w-2 rounded-full bg-paddock-coral" /> High Confidence
+            <Info size={9} className="ml-0.5 text-f1-muted/70" />
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1" title={CONFIDENCE_HINT}>
             <span className="inline-block h-2 w-2 rounded-full bg-paddock-cyan" /> Race at Risk
+            <Info size={9} className="ml-0.5 text-f1-muted/70" />
           </span>
         </div>
       </div>
@@ -36,8 +52,14 @@ export function PredictedFinishTable({ rows }: Props) {
       <div className="grid grid-cols-[28px_1fr_72px_1fr_44px] gap-x-3 text-[9px] uppercase tracking-widest text-f1-muted px-1 pb-2 border-b border-f1-edge">
         <div>Pos</div>
         <div>Driver / Constructor</div>
-        <div className="text-right">Est. Gap</div>
-        <div>Confidence Score</div>
+        <div className="text-right flex items-center justify-end gap-1" title={GAP_HINT}>
+          Est. Gap
+          <Info size={9} className="text-f1-muted/70" />
+        </div>
+        <div className="flex items-center gap-1" title={CONFIDENCE_HINT}>
+          Confidence Score
+          <Info size={9} className="text-f1-muted/70" />
+        </div>
         <div className="text-right">%</div>
       </div>
 
