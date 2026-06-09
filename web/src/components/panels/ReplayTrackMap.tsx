@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useMemo } from "react";
 import { Flag } from "lucide-react";
 
+import { useCircuitPath } from "@/hooks/useCircuitPath";
 import { teamColorFallback } from "@/lib/teams";
 import type { OvertakeEvent, ReplayDriver } from "@/lib/types";
 
 interface Props {
   drivers: ReplayDriver[];
   circuitId?: string | null;
-  currentLap?: number;
+  /** Current playback session-time (seconds from race start). Drives the
+   *  on-track overtake flash — events glow only inside a ~2.5 s window
+   *  starting at their actual time, not for the whole lap. */
+  sessionTime?: number;
   /** "AllClear" | "Yellow" | "SC" | "VSC" | "Red" — controls track tint */
   trackStatus?: string | null;
-  /** Overtakes — used to render a brief gold pulse on the track when the
-   *  current playback lap matches one or more events.
-   */
+  /** Overtakes — used to render a brief gold pulse on the track at the
+   *  moment the playhead crosses each event's session-time. */
   overtakes?: OvertakeEvent[];
   onSelectDriver?: (code: string) => void;
   selected?: string | null;
@@ -42,92 +44,11 @@ function statusTint(status?: string | null): { stroke: string; pulse: boolean } 
  * line via `SVGPathElement.getPointAtLength`. Designed to fill its container.
  */
 export function ReplayTrackMap({
-  drivers, circuitId, currentLap, trackStatus, overtakes = [], onSelectDriver, selected, safetyCar, showLabels = false,
+  drivers, circuitId, sessionTime, trackStatus, overtakes = [], onSelectDriver, selected, safetyCar, showLabels = false,
   sectorMarks = [],
 }: Props) {
   const tint = statusTint(trackStatus);
-  const [pathData, setPathData] = useState<{ d: string; viewBox: string } | null>(null);
-  const [pathError, setPathError] = useState(false);
-  const measurePathRef = useRef<SVGPathElement | null>(null);
-
-  // Fetch + parse SVG to extract the racing-line path
-  useEffect(() => {
-    if (!circuitId) { setPathError(true); setPathData(null); return; }
-    let cancelled = false;
-    setPathError(false);
-    setPathData(null);
-    fetch(`/circuits/${circuitId}.svg`)
-      .then(r => r.ok ? r.text() : Promise.reject(r.status))
-      .then(txt => {
-        if (cancelled) return;
-        const viewMatch = txt.match(/viewBox\s*=\s*"([^"]+)"/i);
-        const paths = Array.from(txt.matchAll(/<path[^>]*\bd\s*=\s*"([^"]+)"/gi))
-          .map(m => m[1])
-          .filter(d => d.includes("Z") || d.length > 20);
-        const d = paths[paths.length - 1] ?? paths[0];
-        if (d && viewMatch) {
-          setPathData({ d, viewBox: viewMatch[1] });
-        } else {
-          setPathError(true);
-        }
-      })
-      .catch(() => { if (!cancelled) setPathError(true); });
-    return () => { cancelled = true; };
-  }, [circuitId]);
-
-  // Path length + start point + tangent for the start/finish arrow.
-  // We also keep ONE persistent offscreen SVG + path alive so `sample()` can
-  // call getPointAtLength() at 60 Hz without creating / removing DOM nodes.
-  const [pathInfo, setPathInfo] = useState<{
-    total: number;
-    start: { x: number; y: number };
-    tangent: { x: number; y: number };
-  } | null>(null);
-
-  useEffect(() => {
-    if (!pathData) { setPathInfo(null); return; }
-    const svgNS = "http://www.w3.org/2000/svg";
-    const probe = document.createElementNS(svgNS, "svg");
-    probe.setAttribute("style", "position:absolute;width:0;height:0;visibility:hidden;");
-    const path = document.createElementNS(svgNS, "path");
-    path.setAttribute("d", pathData.d);
-    probe.appendChild(path);
-    document.body.appendChild(probe);
-    try {
-      const total = path.getTotalLength();
-      const start = path.getPointAtLength(0);
-      const tan = path.getPointAtLength(Math.min(20, total / 50));
-      setPathInfo({
-        total,
-        start: { x: start.x, y: start.y },
-        tangent: { x: tan.x - start.x, y: tan.y - start.y },
-      });
-      measurePathRef.current = path;
-    } catch {
-      setPathInfo(null);
-    }
-    return () => {
-      // Cleanup when path data changes / component unmounts
-      if (document.body.contains(probe)) document.body.removeChild(probe);
-      measurePathRef.current = null;
-    };
-  }, [pathData]);
-
-  // Sample a point on the path for a given progress in [0, 1] — reuses the
-  // measurement path created once above. Cheap enough to call per-dot per-frame.
-  const sample = useCallback(
-    (progress: number): { x: number; y: number } | null => {
-      const path = measurePathRef.current;
-      if (!path || !pathInfo) return null;
-      try {
-        const p = path.getPointAtLength(((progress % 1) + 1) % 1 * pathInfo.total);
-        return { x: p.x, y: p.y };
-      } catch {
-        return null;
-      }
-    },
-    [pathInfo],
-  );
+  const { pathData, pathInfo, sample, pathError } = useCircuitPath(circuitId);
 
   // Compute the (x, y) and tangent at each sector-end mark so we can draw
   // small perpendicular ticks across the racing line. Kept light (low
@@ -135,24 +56,21 @@ export function ReplayTrackMap({
   // foreground graphics.
   const sectorTicks = useMemo(() => {
     if (!pathInfo || sectorMarks.length === 0) return [];
-    const measure = measurePathRef.current;
-    if (!measure) return [];
     const total = pathInfo.total;
+    const epsilon = Math.min(8, total / 400) / total;
     const out: Array<{ x: number; y: number; nx: number; ny: number; label: string }> = [];
     sectorMarks.forEach((m, i) => {
-      try {
-        const at = ((m % 1) + 1) % 1 * total;
-        const p = measure.getPointAtLength(at);
-        const ahead = measure.getPointAtLength(Math.min(total - 1, at + Math.min(8, total / 400)));
-        const tx = ahead.x - p.x;
-        const ty = ahead.y - p.y;
-        const len = Math.hypot(tx, ty) || 1;
-        // Perpendicular = rotate tangent 90°
-        out.push({ x: p.x, y: p.y, nx: -ty / len, ny: tx / len, label: `S${i + 1}` });
-      } catch { /* ignore */ }
+      const p = sample(m);
+      const ahead = sample(Math.min(0.9999, m + epsilon));
+      if (!p || !ahead) return;
+      const tx = ahead.x - p.x;
+      const ty = ahead.y - p.y;
+      const len = Math.hypot(tx, ty) || 1;
+      // Perpendicular = rotate tangent 90°
+      out.push({ x: p.x, y: p.y, nx: -ty / len, ny: tx / len, label: `S${i + 1}` });
     });
     return out;
-  }, [pathInfo, sectorMarks]);
+  }, [pathInfo, sectorMarks, sample]);
 
   // Compute driver dot positions on each render — strictly on the racing line.
   // Retired drivers are filtered out so DNF'd cars don't appear to keep racing.
@@ -168,11 +86,13 @@ export function ReplayTrackMap({
       }).filter(Boolean) as Array<{ d: ReplayDriver; x: number; y: number }>;
   }, [drivers, pathInfo, sample]);
 
-  // Overtakes happening on/near the current playback lap → on-track flashes
+  // On-track flashes — show the gold pulse for the ~2.5 s window starting at
+  // each overtake's session-time, NOT for the whole lap the event lives on.
+  // (Earlier version filtered by `lap`, which left cars glowing for ~80 s.)
   const activeOvertakes = useMemo(() => {
-    if (currentLap == null) return [];
-    return overtakes.filter(o => Math.abs(o.lap - currentLap) <= 0.5);
-  }, [overtakes, currentLap]);
+    if (sessionTime == null) return [];
+    return overtakes.filter(o => sessionTime >= o.time && sessionTime <= o.time + 2.5);
+  }, [overtakes, sessionTime]);
 
   const arrowDeg = pathInfo
     ? (Math.atan2(pathInfo.tangent.y, pathInfo.tangent.x) * 180) / Math.PI

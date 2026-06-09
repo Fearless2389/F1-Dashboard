@@ -149,7 +149,7 @@ export default function ReplayRoute() {
           <ReplayTrackMap
             drivers={drivers}
             circuitId={replay.meta?.circuit_id ?? null}
-            currentLap={replay.lap}
+            sessionTime={replay.sessionTime}
             trackStatus={(replay.snapshot as any)?.track_status ?? null}
             overtakes={overtakesData?.events ?? []}
             onSelectDriver={setSelected}
@@ -250,19 +250,7 @@ export default function ReplayRoute() {
             lapMarks={replay.lapMarks}
             sectorMarks={replay.sectorMarks}
             raceStartT={replay.raceStartT}
-            onSeek={(t) => {
-              // Seek to ~3s before the event. We don't have a direct
-              // setSessionTime, but setLap(N) jumps to lap N's start —
-              // find the closest lap by binary-search on lap_marks.
-              const lm = replay.lapMarks;
-              if (!lm.length) return;
-              let idx = 0;
-              for (let i = 0; i < lm.length; i++) {
-                if (lm[i] <= t) idx = i + 1;
-                else break;
-              }
-              replay.setLap(Math.max(1, idx));
-            }}
+            circuitId={replay.meta?.circuit_id ?? null}
           />
         </div>
 
