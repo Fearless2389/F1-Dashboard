@@ -15,6 +15,13 @@ interface RadarValues {
 interface Props {
   driverCode: string;
   values?: RadarValues | null;
+  /** Optional overlay (compare-mode). Renders a second shape behind the
+   *  primary as an outline so two seasons can be eyeballed at once. */
+  compareValues?: RadarValues | null;
+  /** Label shown next to the primary series — usually the primary season. */
+  primaryLabel?: string;
+  /** Label shown next to the overlay — usually the comparison season. */
+  compareLabel?: string;
 }
 
 /**
@@ -38,21 +45,34 @@ const METRIC_HINTS: Record<keyof RadarValues, string> = {
   overtaking:  "Median positions gained per race (grid − finish)",
 };
 
-export function PerformanceRadar({ driverCode, values }: Props) {
-  const data = useMemo(() => {
-    const v = values ?? {
-      qualifying: 50, race_pace: 50, tyre_mgmt: 50, consistency: 50, overtaking: 50,
-    };
-    return [
-      { axis: "Qualifying",  value: v.qualifying  },
-      { axis: "Race Pace",   value: v.race_pace   },
-      { axis: "Tyre Mgmt",   value: v.tyre_mgmt   },
-      { axis: "Consistency", value: v.consistency },
-      { axis: "Overtaking",  value: v.overtaking  },
-    ];
-  }, [values]);
+function asAxisRows(v?: RadarValues | null) {
+  const f = v ?? { qualifying: 50, race_pace: 50, tyre_mgmt: 50, consistency: 50, overtaking: 50 };
+  return [
+    { axis: "Qualifying",  value: f.qualifying  },
+    { axis: "Race Pace",   value: f.race_pace   },
+    { axis: "Tyre Mgmt",   value: f.tyre_mgmt   },
+    { axis: "Consistency", value: f.consistency },
+    { axis: "Overtaking",  value: f.overtaking  },
+  ];
+}
 
-  const avg = (data.reduce((a, d) => a + d.value, 0) / data.length).toFixed(1);
+export function PerformanceRadar({
+  driverCode, values, compareValues, primaryLabel, compareLabel,
+}: Props) {
+  const data = useMemo(() => {
+    const primary = asAxisRows(values);
+    const compare = compareValues ? asAxisRows(compareValues) : null;
+    return primary.map((p, i) => ({
+      axis:    p.axis,
+      primary: p.value,
+      compare: compare ? compare[i].value : undefined,
+    }));
+  }, [values, compareValues]);
+
+  const primaryAvg = (data.reduce((a, d) => a + d.primary, 0) / data.length).toFixed(1);
+  const compareAvg = compareValues
+    ? (data.reduce((a, d) => a + (d.compare ?? 0), 0) / data.length).toFixed(1)
+    : null;
 
   return (
     <div className="rounded-xl border border-f1-edge bg-f1-panel/50 p-5">
@@ -79,7 +99,12 @@ export function PerformanceRadar({ driverCode, values }: Props) {
         </div>
         <div className="text-right">
           <div className="text-[10px] uppercase tracking-widest text-f1-muted">Avg</div>
-          <div className="font-display font-bold text-paddock-coral text-xl tabular-nums">{avg}</div>
+          <div className="font-display font-bold text-paddock-coral text-xl tabular-nums">{primaryAvg}</div>
+          {compareAvg != null && (
+            <div className="text-[10px] text-paddock-cyan font-mono tabular-nums">
+              vs <span className="font-semibold">{compareAvg}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -100,18 +125,44 @@ export function PerformanceRadar({ driverCode, values }: Props) {
               )}
               tickLine={false}
             />
+            {/* Comparison underlay — outlined, faint fill */}
+            {compareValues && (
+              <Radar
+                dataKey="compare"
+                stroke="var(--color-paddock-cyan)"
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                fill="var(--color-paddock-cyan)"
+                fillOpacity={0.12}
+                isAnimationActive={false}
+              />
+            )}
+            {/* Primary — solid coral */}
             <Radar
-              dataKey="value"
+              dataKey="primary"
               stroke="var(--color-paddock-coral)"
               strokeWidth={1.5}
               fill="var(--color-paddock-coral)"
-              fillOpacity={0.32}
+              fillOpacity={compareValues ? 0.24 : 0.32}
               isAnimationActive={false}
             />
           </RadarChart>
         </ResponsiveContainer>
       </div>
 
+      {compareValues && (
+        <div className="mt-2 flex items-center justify-center gap-4 text-[10px] font-mono">
+          <span className="inline-flex items-center gap-1.5 text-paddock-coral">
+            <span className="inline-block w-3 h-0.5 rounded-sm bg-paddock-coral" />
+            {primaryLabel ?? "Primary"}
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-paddock-cyan">
+            <svg width="14" height="3"><line x1="0" y1="1.5" x2="14" y2="1.5"
+              stroke="var(--color-paddock-cyan)" strokeWidth="2" strokeDasharray="4 3" /></svg>
+            {compareLabel ?? "Compare"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
