@@ -1,17 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import Shell from "@/components/Shell";
-
-vi.mock("@/hooks/useApi", async () => {
-  const actual = await vi.importActual<typeof import("@/hooks/useApi")>("@/hooks/useApi");
-  return {
-    ...actual,
-    useLiveSnapshot: () => ({ data: null, isLoading: false }),
-  };
-});
 
 function Wrap({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient();
@@ -23,22 +15,29 @@ function Wrap({ children }: { children: React.ReactNode }) {
 }
 
 describe("Shell", () => {
-  it("renders the Paddock brand wordmark + top + rail navigation", () => {
+  it("renders the brand wordmark + top nav, with no sidebar or search chrome", () => {
     render(<Wrap><Shell><div>child</div></Shell></Wrap>);
+
     expect(screen.getByText("PADDOCK DASHBOARD")).toBeInTheDocument();
-    // Top nav
+
+    // Top nav — all six entries, including the promoted Models link.
     expect(screen.getByText("Live Race")).toBeInTheDocument();
+    expect(screen.getByText("Apex")).toBeInTheDocument();
     expect(screen.getByText("Standings")).toBeInTheDocument();
     expect(screen.getByText("Schedule")).toBeInTheDocument();
     expect(screen.getByText("Drivers")).toBeInTheDocument();
-    // Left rail header
-    expect(screen.getByText("RACE CONTROL")).toBeInTheDocument();
-    expect(screen.getByText("Sector 1: GREEN")).toBeInTheDocument();
-    expect(screen.getByText("child")).toBeInTheDocument();
-  });
+    expect(screen.getByText("Models")).toBeInTheDocument();
 
-  it("falls back to OFFLINE pill when no live session", () => {
-    render(<Wrap><Shell><div>child</div></Shell></Wrap>);
-    expect(screen.getByText("OFFLINE")).toBeInTheDocument();
+    // Sidebar gone.
+    expect(screen.queryByText("RACE CONTROL")).toBeNull();
+    expect(screen.queryByText("Sector 1: GREEN")).toBeNull();
+
+    // Search + idle action buttons gone.
+    expect(screen.queryByPlaceholderText(/search data/i)).toBeNull();
+    expect(screen.queryByLabelText(/notifications/i)).toBeNull();
+    expect(screen.queryByLabelText(/account/i)).toBeNull();
+    expect(screen.queryByText(/^(LIVE|OFFLINE)$/)).toBeNull();
+
+    expect(screen.getByText("child")).toBeInTheDocument();
   });
 });
