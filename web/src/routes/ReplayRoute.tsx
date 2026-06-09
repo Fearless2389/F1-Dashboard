@@ -241,12 +241,28 @@ export default function ReplayRoute() {
           </button>
         )}
 
-        {/* Overtake feed — right side overlay */}
+        {/* Overtake feed — right side overlay. Live mode: events stream in
+            as the playhead crosses their session-time, newest on top. */}
         <div className="absolute right-4 top-20 bottom-20 z-10 w-[320px] rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden hidden md:flex">
           <OvertakeFeed
             overtakes={overtakesData?.events ?? []}
-            currentLap={replay.lap}
-            onSeek={replay.setLap}
+            sessionTime={replay.sessionTime}
+            lapMarks={replay.lapMarks}
+            sectorMarks={replay.sectorMarks}
+            raceStartT={replay.raceStartT}
+            onSeek={(t) => {
+              // Seek to ~3s before the event. We don't have a direct
+              // setSessionTime, but setLap(N) jumps to lap N's start —
+              // find the closest lap by binary-search on lap_marks.
+              const lm = replay.lapMarks;
+              if (!lm.length) return;
+              let idx = 0;
+              for (let i = 0; i < lm.length; i++) {
+                if (lm[i] <= t) idx = i + 1;
+                else break;
+              }
+              replay.setLap(Math.max(1, idx));
+            }}
           />
         </div>
 

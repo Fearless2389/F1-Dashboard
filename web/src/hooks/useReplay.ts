@@ -104,6 +104,10 @@ interface UseReplayReturn {
   getDriverHistory: (code: string) => { lap_times: TrajectoryLapTime[]; pit_laps: number[] } | null;
   /** Lap-progress 0..1 where sector 1 and sector 2 end. (S3 ends at 1.0.) */
   sectorMarks: number[];
+  /** Leader's lap-completion session-times — feeds overtake sector lookups. */
+  lapMarks: number[];
+  /** Session-time when the green flag dropped — anchors lap-1 sector lookups. */
+  raceStartT: number;
 }
 
 /**
@@ -479,6 +483,8 @@ export function useReplay(season: number, roundNum: number): UseReplayReturn {
     raceProgress,
     safetyCar,
     sectorMarks: traj?.sector_marks ?? [],
+    lapMarks: traj?.lap_marks ?? [],
+    raceStartT: traj?.race_start_t ?? 0,
     getDriverHistory: useCallback((code: string) => {
       const d = traj?.drivers.find(d => d.code === code);
       if (!d) return null;
