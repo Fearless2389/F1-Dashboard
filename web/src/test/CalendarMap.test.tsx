@@ -14,6 +14,7 @@ function makeEvent(round: number, lat: number, lon: number, dateOffsetDays: numb
     circuit_id: `r${round}`,
     event_date: new Date(Date.now() + dateOffsetDays * 86_400_000).toISOString(),
     session5_date: null,
+    has_sprint: false,
     circuit_meta: {
       circuit_id: `r${round}`,
       name: `Circuit ${round}`,

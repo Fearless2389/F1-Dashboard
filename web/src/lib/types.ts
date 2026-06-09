@@ -42,6 +42,7 @@ export type DriverSeasonResult   = S["DriverSeasonResult"];
 export type DriverStandingsRow   = S["DriverStandingsRow"];
 export type ConstructorStandingsRow = S["ConstructorStandingsRow"];
 export type StandingsResponse    = S["StandingsResponse"];
+export type LapRecord            = S["LapRecord"];
 export type StandingsProgressionResponse = S["StandingsProgressionResponse"];
 export type ProgressionRound     = S["ProgressionRound"];
 export type ProgressionDriver    = S["ProgressionDriver"];

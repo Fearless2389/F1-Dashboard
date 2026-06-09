@@ -3,14 +3,15 @@
 import logging
 import math
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 
+from ...live import jolpica_client as jolpica
 from ...live import weather_forecast
 from ...live.schedule import enriched_schedule, get_circuits, get_season_schedule
-from ..schemas import CircuitMeta, RaceEvent, ScheduleResponse, WeatherForecast
+from ..schemas import CircuitMeta, LapRecord, RaceEvent, ScheduleResponse, WeatherForecast
 
 log = logging.getLogger(__name__)
 
@@ -91,6 +92,11 @@ def _row_to_event(row: dict, include_weather: bool = False) -> RaceEvent:
 
     event_date = _clean(row.get("event_date"))
     session5_date = _clean(row.get("session5_date"))
+    event_format_raw = _clean(row.get("event_format"))
+    event_format = str(event_format_raw) if event_format_raw else None
+    # FastF1 sprint formats vary by year ("sprint", "sprint_shootout",
+    # "sprint_qualifying"); the substring is the only consistent signal.
+    has_sprint = bool(event_format and "sprint" in event_format.lower())
 
     return RaceEvent(
         season=int(row["season"]),
@@ -101,6 +107,8 @@ def _row_to_event(row: dict, include_weather: bool = False) -> RaceEvent:
         circuit_id=str(cid or ""),
         event_date=str(event_date) if event_date else None,
         session5_date=str(session5_date) if session5_date else None,
+        event_format=event_format,
+        has_sprint=has_sprint,
         circuit_meta=circuit_meta,
         weather_forecast=weather,
     )
@@ -116,6 +124,101 @@ def list_circuits() -> list[CircuitMeta]:
     if df.empty:
         return []
     return [CircuitMeta(**r) for r in df.to_dict("records")]
+
+
+# Per-circuit lap-record cache. Walks Jolpica race results across multiple
+# seasons to find the all-time fastest lap recorded at this circuit. Cached
+# for an hour because the data only changes when a fresh fastest lap is set.
+_lap_record_cache: dict[str, LapRecord] = {}
+
+
+def _time_to_ms(t: str) -> Optional[int]:
+    """Parse an Ergast/Jolpica lap-time string like '1:14.260' into ms.
+    Returns None for inputs that don't parse so they can be filtered out."""
+    if not t:
+        return None
+    try:
+        if ":" in t:
+            mins, rest = t.split(":", 1)
+            seconds = float(rest)
+            return int((int(mins) * 60 + seconds) * 1000)
+        return int(float(t) * 1000)
+    except (TypeError, ValueError):
+        return None
+
+
+@router.get("/circuits/{circuit_id}/lap-record", response_model=LapRecord)
+def circuit_lap_record(circuit_id: str) -> LapRecord:
+    """All-time fastest lap recorded at this circuit across the seasons we
+    can probe. Pulls Jolpica race results per season and keeps the minimum
+    `FastestLap.Time` value."""
+    if circuit_id in _lap_record_cache:
+        return _lap_record_cache[circuit_id]
+
+    best: dict | None = None
+    best_ms: Optional[int] = None
+
+    # Walk the last ~10 seasons of paginated season-wide results. Ergast/
+    # Jolpica only attached FastestLap fields from 2004 onwards and the
+    # recent-decade window covers every realistic lap-record holder; older
+    # seasons add noise + per-call latency without meaningfully improving
+    # the answer.
+    for season in range(2024, 2014, -1):
+        offset = 0
+        page_size = 100
+        while True:
+            try:
+                raw = jolpica._get(f"{season}/results", limit=page_size, offset=offset)
+            except Exception:
+                break
+            mr = raw.get("MRData", {})
+            races = mr.get("RaceTable", {}).get("Races", [])
+            if not races:
+                break
+            page_rows = 0
+            for race in races:
+                race_circuit_id = (race.get("Circuit") or {}).get("circuitId")
+                # Jolpica's circuit ids don't always match ours; compare both
+                # raw and normalised so e.g. "silverstone" matches "silverstone".
+                if race_circuit_id and race_circuit_id.lower() != circuit_id.lower():
+                    # Cheap miss path — still need to advance offset by this
+                    # race's result count so pagination doesn't loop.
+                    page_rows += len(race.get("Results", []))
+                    continue
+                race_name = str(race.get("raceName", ""))
+                for r in race.get("Results", []):
+                    page_rows += 1
+                    fl = r.get("FastestLap") or {}
+                    time_str = (fl.get("Time") or {}).get("time")
+                    if not time_str:
+                        continue
+                    ms = _time_to_ms(str(time_str))
+                    if ms is None:
+                        continue
+                    if best_ms is None or ms < best_ms:
+                        drv = r.get("Driver", {})
+                        avg = (fl.get("AverageSpeed") or {}).get("speed")
+                        best = {
+                            "circuit_id":         circuit_id,
+                            "driver_code":        drv.get("code") or (drv.get("driverId") or "").upper()[:3] or None,
+                            "driver_name":        f'{drv.get("givenName","")} {drv.get("familyName","")}'.strip() or None,
+                            "time":               str(time_str),
+                            "season":             int(race.get("season") or season),
+                            "race_name":          race_name or None,
+                            "average_speed_kph":  float(avg) if avg is not None else None,
+                        }
+                        best_ms = ms
+            try:
+                total = int(mr.get("total", 0))
+            except (TypeError, ValueError):
+                total = 0
+            offset += page_rows
+            if page_rows == 0 or offset >= total:
+                break
+
+    record = LapRecord(circuit_id=circuit_id) if best is None else LapRecord(**best)
+    _lap_record_cache[circuit_id] = record
+    return record
 
 
 @router.get("/{year}", response_model=ScheduleResponse)

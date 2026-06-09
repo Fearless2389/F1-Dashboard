@@ -11,6 +11,7 @@ from .predictions import (
 )
 from .schedule import (
     CircuitMeta,
+    LapRecord,
     RaceEvent,
     ScheduleResponse,
     WeatherForecast,

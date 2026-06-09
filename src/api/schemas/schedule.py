@@ -24,6 +24,16 @@ class WeatherForecast(BaseModel):
     wet_race_likely: bool = False
 
 
+class LapRecord(BaseModel):
+    circuit_id: str
+    driver_code: Optional[str] = None
+    driver_name: Optional[str] = None
+    time: Optional[str] = None             # e.g. "1:14.260"
+    season: Optional[int] = None
+    race_name: Optional[str] = None
+    average_speed_kph: Optional[float] = None
+
+
 class RaceEvent(BaseModel):
     season: int
     round: int
@@ -33,6 +43,11 @@ class RaceEvent(BaseModel):
     circuit_id: str
     event_date: Optional[str] = None
     session5_date: Optional[str] = None
+    # FastF1's raw event format ("conventional", "sprint_qualifying", etc.)
+    # plus a convenience boolean so the frontend doesn't have to know the
+    # naming variants per season.
+    event_format: Optional[str] = None
+    has_sprint: bool = False
     circuit_meta: Optional[CircuitMeta] = None
     weather_forecast: Optional[WeatherForecast] = None
 

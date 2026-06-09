@@ -95,6 +95,10 @@ def get_season_schedule(year: int) -> pd.DataFrame:
         "circuit_id":  sched["Location"].map(_normalize_circuit_id),
         "event_date":  pd.to_datetime(sched["EventDate"], errors="coerce", utc=True),
         "session5_date": pd.to_datetime(sched.get("Session5Date"), errors="coerce", utc=True),
+        # FastF1's EventFormat string — "conventional", "sprint_qualifying",
+        # "sprint_shootout", "sprint", etc. Anything with "sprint" in the
+        # name is a sprint weekend (the format keeps changing year-over-year).
+        "event_format": sched.get("EventFormat", pd.Series(dtype=str)).astype(str),
     })
 
     try:

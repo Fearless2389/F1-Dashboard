@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { differenceInSeconds, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cloud, CloudRain, MapPin, Sun, ThermometerSun, CheckCircle2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Cloud, CloudRain, MapPin, Sun, ThermometerSun, CheckCircle2, Zap } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -10,8 +11,9 @@ import { Button } from "@/components/ui/Button";
 import { NextRaceHero } from "@/components/panels/NextRaceHero";
 import { useSchedule } from "@/hooks/useApi";
 import { useRaceContext } from "@/store/raceContext";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import type { RaceEvent } from "@/lib/types";
+import type { LapRecord, RaceEvent } from "@/lib/types";
 
 type RaceStatus = "past" | "next" | "future";
 
@@ -78,22 +80,29 @@ function RaceCard({
               )}
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0.25"; }}
             />
-            {status === "past" && (
-              <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2 flex flex-wrap items-center gap-1.5 justify-end">
+              {ev.has_sprint && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-paddock-coral/20 border border-paddock-coral/50 text-paddock-coral text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 backdrop-blur"
+                  title="Sprint weekend"
+                >
+                  <Zap size={10} />
+                  Sprint
+                </span>
+              )}
+              {status === "past" && (
                 <Badge tone="muted" className="bg-f1-dark/70 backdrop-blur">
                   <CheckCircle2 size={10} />
                   Completed
                 </Badge>
-              </div>
-            )}
-            {status === "next" && (
-              <div className="absolute top-2 right-2">
+              )}
+              {status === "next" && (
                 <span className="paddock-pill paddock-glow">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-paddock-coral f1-pulse" />
                   NEXT
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
         <CardHeader className="pb-2">
@@ -164,6 +173,7 @@ function RaceCard({
             className="border-t border-f1-edge"
           >
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <CircuitLapRecordRow circuitId={ev.circuit_id} />
               <Detail label="Lap length" value={ev.circuit_meta?.lap_length_km ? `${ev.circuit_meta.lap_length_km.toFixed(3)} km` : "—"} />
               <Detail label="Corners" value={ev.circuit_meta?.num_corners ?? "—"} />
               <Detail label="DRS zones" value={ev.circuit_meta?.drs_zones ?? "—"} />
@@ -213,6 +223,47 @@ function Detail({ label, value, hint }: { label: string; value: any; hint?: stri
         <span className="text-f1-white">{value}</span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Lap record row — lazy-loaded when a calendar card is expanded. Shows the
+ * all-time fastest lap recorded at this circuit (driver code, time, year).
+ * Cached for an hour on both the backend and React Query side because the
+ * answer rarely changes mid-session.
+ */
+function CircuitLapRecordRow({ circuitId }: { circuitId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["lap-record", circuitId],
+    queryFn: () => api.get<LapRecord>(`/api/schedule/circuits/${circuitId}/lap-record`),
+    enabled: !!circuitId,
+    staleTime: 60 * 60_000,
+    retry: false,
+  });
+
+  const value = (() => {
+    if (isLoading) return "Loading…";
+    if (!data || !data.time) return "—";
+    return (
+      <span className="font-mono">
+        <span className="font-semibold">{data.driver_code ?? "—"}</span>
+        {" "}
+        <span className="tabular-nums">{data.time}</span>
+        {data.season != null && <span className="text-f1-muted"> ({data.season})</span>}
+      </span>
+    );
+  })();
+
+  return (
+    <Detail
+      label="Lap record"
+      value={value}
+      hint={
+        data?.driver_name
+          ? `Set by ${data.driver_name}${data.race_name ? " · " + data.race_name : ""}${data.average_speed_kph ? " · " + data.average_speed_kph.toFixed(1) + " kph avg" : ""}`
+          : "All-time fastest lap recorded at this circuit"
+      }
+    />
   );
 }
 

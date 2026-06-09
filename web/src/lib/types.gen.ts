@@ -95,6 +95,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/schedule/circuits/{circuit_id}/lap-record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Circuit Lap Record
+         * @description All-time fastest lap recorded at this circuit across the seasons we
+         *     can probe. Pulls Jolpica race results per season and keeps the minimum
+         *     `FastestLap.Time` value.
+         */
+        get: operations["circuit_lap_record_api_schedule_circuits__circuit_id__lap_record_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schedule/{year}": {
         parameters: {
             query?: never;
@@ -863,6 +885,23 @@ export interface components {
              */
             refresher_running: boolean;
         };
+        /** LapRecord */
+        LapRecord: {
+            /** Circuit Id */
+            circuit_id: string;
+            /** Driver Code */
+            driver_code?: string | null;
+            /** Driver Name */
+            driver_name?: string | null;
+            /** Time */
+            time?: string | null;
+            /** Season */
+            season?: number | null;
+            /** Race Name */
+            race_name?: string | null;
+            /** Average Speed Kph */
+            average_speed_kph?: number | null;
+        };
         /** LiveDriver */
         LiveDriver: {
             /** Driver Number */
@@ -1112,6 +1151,13 @@ export interface components {
             event_date?: string | null;
             /** Session5 Date */
             session5_date?: string | null;
+            /** Event Format */
+            event_format?: string | null;
+            /**
+             * Has Sprint
+             * @default false
+             */
+            has_sprint: boolean;
             circuit_meta?: components["schemas"]["CircuitMeta"] | null;
             weather_forecast?: components["schemas"]["WeatherForecast"] | null;
         };
@@ -1755,6 +1801,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CircuitMeta"][];
+                };
+            };
+        };
+    };
+    circuit_lap_record_api_schedule_circuits__circuit_id__lap_record_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                circuit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LapRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
