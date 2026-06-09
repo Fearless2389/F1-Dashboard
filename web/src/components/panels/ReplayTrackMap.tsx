@@ -22,10 +22,6 @@ interface Props {
   /** When true: render every driver's code label on the track (toggle via L key).
    *  When false: only the leader + selected driver are labelled. */
   showLabels?: boolean;
-  /** DRS zones — lap-progress segments to highlight as green track lines. */
-  drsZones?: { start: number; end: number }[];
-  /** When false, don't render the DRS-zone overlay (toggle via D key). */
-  showDrsZones?: boolean;
   /** Lap-progress where sectors 1 and 2 end — drives light sector-divider ticks. */
   sectorMarks?: number[];
 }
@@ -47,7 +43,7 @@ function statusTint(status?: string | null): { stroke: string; pulse: boolean } 
  */
 export function ReplayTrackMap({
   drivers, circuitId, currentLap, trackStatus, overtakes = [], onSelectDriver, selected, safetyCar, showLabels = false,
-  drsZones = [], showDrsZones = true, sectorMarks = [],
+  sectorMarks = [],
 }: Props) {
   const tint = statusTint(trackStatus);
   const [pathData, setPathData] = useState<{ d: string; viewBox: string } | null>(null);
@@ -132,32 +128,6 @@ export function ReplayTrackMap({
     },
     [pathInfo],
   );
-
-  // Build SVG path-d strings for each DRS zone by sampling 24 points along
-  // the path between zone.start and zone.end. Cheaper than animating each
-  // zone via stroke-dasharray and matches the racing-line curvature exactly.
-  const drsZonePaths = useMemo<string[]>(() => {
-    if (!pathInfo || !showDrsZones || drsZones.length === 0) return [];
-    const total = pathInfo.total;
-    const SAMPLES = 24;
-    const paths: string[] = [];
-    const measure = measurePathRef.current;
-    if (!measure) return [];
-    for (const z of drsZones) {
-      const len = z.end - z.start;
-      if (len <= 0) continue;
-      const segs: string[] = [];
-      for (let i = 0; i <= SAMPLES; i++) {
-        const frac = z.start + (len * i) / SAMPLES;
-        try {
-          const p = measure.getPointAtLength(((frac % 1) + 1) % 1 * total);
-          segs.push((i === 0 ? "M" : "L") + p.x.toFixed(2) + " " + p.y.toFixed(2));
-        } catch { /* ignore */ }
-      }
-      if (segs.length > 1) paths.push(segs.join(" "));
-    }
-    return paths;
-  }, [pathInfo, showDrsZones, drsZones]);
 
   // Compute the (x, y) and tangent at each sector-end mark so we can draw
   // small perpendicular ticks across the racing line. Kept light (low
@@ -246,21 +216,6 @@ export function ReplayTrackMap({
             </path>
             <path d={pathData.d} fill="none" stroke="#ffffff" strokeWidth="0.6"
               strokeDasharray="3 6" />
-
-            {/* DRS zones — drawn as wide, bright green segments above the
-                racing line so they're unmistakable on the track outline.
-                Two layers: an outer halo for the glow + a tighter inner
-                stroke for the line itself. */}
-            {drsZonePaths.map((d, i) => (
-              <g key={`drs-${i}`}>
-                <path d={d} fill="none" stroke="#22e8c9" strokeWidth={14}
-                  strokeLinecap="round" opacity={0.22} filter="url(#rtm-glow)" />
-                <path d={d} fill="none" stroke="#22e8c9" strokeWidth={6}
-                  strokeLinecap="round" opacity={0.95}>
-                  <animate attributeName="opacity" values="1;0.55;1" dur="2.4s" repeatCount="indefinite" />
-                </path>
-              </g>
-            ))}
 
             {/* Sector dividers — small perpendicular ticks (~24px) at the
                 two interior sector boundaries. Low opacity + thin stroke so

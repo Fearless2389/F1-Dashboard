@@ -900,17 +900,6 @@ class Replay:
             log.warning("Sector mark derivation failed for %s R%s: %s",
                         self.season, self.round, exc)
 
-        # DRS zones — derived from the leader's per-tick DRS field on a
-        # clean mid-race lap. Empty list when telemetry isn't cached
-        # (pre-2025 races) — frontend simply skips the overlay.
-        try:
-            from .telemetry_replay import compute_drs_zones
-            drs_zones = compute_drs_zones(self.season, self.round, lap_marks, race_start_t)
-        except Exception as exc:
-            log.warning("DRS zone derivation failed for %s R%s: %s",
-                        self.season, self.round, exc)
-            drs_zones = []
-
         return {
             "season":              self.season,
             "round":               self.round,
@@ -924,7 +913,6 @@ class Replay:
             "lap_marks":           lap_marks,
             "track_status_changes": status_changes,
             "overtakes":           self.overtakes(),
-            "drs_zones":           drs_zones,
             "sector_marks":        sector_marks_out,
         }
 

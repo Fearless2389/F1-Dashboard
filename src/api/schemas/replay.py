@@ -120,11 +120,6 @@ class TelemetryWindowResponse(BaseModel):
     drs:      list[int]   = []
 
 
-class DrsZone(BaseModel):
-    start: float
-    end: float
-
-
 class TrajectoryResponse(BaseModel):
     season: int
     round: int
@@ -138,5 +133,4 @@ class TrajectoryResponse(BaseModel):
     lap_marks: list[float] = []
     track_status_changes: list[TrajectoryStatusChange] = []
     overtakes: list[OvertakeEvent] = []
-    drs_zones: list[DrsZone] = []
     sector_marks: list[float] = []   # lap-progress where S1 / S2 end (S3 = 1.0)

@@ -55,11 +55,6 @@ interface TrajectoryDriver {
   final_lap: number;
 }
 
-interface DrsZone {
-  start: number;   // lap-progress 0..1
-  end: number;
-}
-
 interface TrajectoryResponse {
   season: number;
   round: number;
@@ -73,7 +68,6 @@ interface TrajectoryResponse {
   lap_marks: number[];
   track_status_changes: { t: number; status: string }[];
   overtakes: any[];
-  drs_zones: DrsZone[];
   sector_marks: number[];
 }
 
@@ -108,8 +102,6 @@ interface UseReplayReturn {
   safetyCar: SafetyCar | null;
   /** Per-driver lookup of (lap_times, pit_laps) — feeds the telemetry panel. */
   getDriverHistory: (code: string) => { lap_times: TrajectoryLapTime[]; pit_laps: number[] } | null;
-  /** DRS-zone segments (lap_progress 0..1). Empty when telemetry not cached. */
-  drsZones: DrsZone[];
   /** Lap-progress 0..1 where sector 1 and sector 2 end. (S3 ends at 1.0.) */
   sectorMarks: number[];
 }
@@ -486,7 +478,6 @@ export function useReplay(season: number, roundNum: number): UseReplayReturn {
     sessionTime,
     raceProgress,
     safetyCar,
-    drsZones: traj?.drs_zones ?? [],
     sectorMarks: traj?.sector_marks ?? [],
     getDriverHistory: useCallback((code: string) => {
       const d = traj?.drivers.find(d => d.code === code);

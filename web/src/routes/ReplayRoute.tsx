@@ -35,7 +35,6 @@ export default function ReplayRoute() {
   // Default ON — broadcast-style code labels above every dot. Press L to
   // declutter when you want a clean track view.
   const [showLabels, setShowLabels] = useState(true);
-  const [showDrsZones, setShowDrsZones] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
 
   // Keyboard shortcuts — matches Tom Shaw's reference repo so muscle memory
@@ -58,7 +57,6 @@ export default function ReplayRoute() {
           break;
         }
         case "l": case "L": setShowLabels(v => !v); break;
-        case "d": case "D": setShowDrsZones(v => !v); break;
         case "t": case "T": setTowerOpen(v => !v); break;
         case "w": case "W": setWinProbOpen(v => !v); break;
         case "h": case "H": case "?": setHelpOpen(v => !v); break;
@@ -158,8 +156,6 @@ export default function ReplayRoute() {
             selected={focusedDriver?.driver_code}
             safetyCar={replay.safetyCar}
             showLabels={showLabels}
-            drsZones={replay.drsZones}
-            showDrsZones={showDrsZones}
             sectorMarks={replay.sectorMarks}
           />
         </div>
@@ -293,7 +289,6 @@ export default function ReplayRoute() {
                   ["←  →",   "Step lap back / forward"],
                   ["1-5",    "Speed 2× · 4× · 8× · 16× · 32×"],
                   ["L",      "Toggle driver labels on track"],
-                  ["D",      "Toggle DRS-zone overlay"],
                   ["T",      "Toggle timing tower"],
                   ["W",      "Toggle win-probability chart"],
                   ["H or ?", "Show / hide this panel"],
