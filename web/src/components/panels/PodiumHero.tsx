@@ -62,10 +62,12 @@ export function PodiumHero({
             if (!d) return <div key={idx} className="h-24 w-20 rounded-md border border-dashed border-f1-edge" />;
             const isWinner = d.position === 1;
             const heights = { 1: "h-36 md:h-40", 2: "h-28 md:h-32", 3: "h-24 md:h-28" } as const;
+            // Olympic medal palette — vivid top, darker bottom for a metallic feel.
+            // The team-colour accent stripe at the base keeps the team identity readable.
             const colors = {
-              1: { bg: "linear-gradient(180deg, #ff5e6c 0%, #c43d4a 100%)", text: "#fff" },
-              2: { bg: "linear-gradient(180deg, #c7ccd7 0%, #5d6577 100%)", text: "#0e0e1a" },
-              3: { bg: "linear-gradient(180deg, #cd7f32 0%, #7a4a1a 100%)", text: "#0e0e1a" },
+              1: { bg: "linear-gradient(180deg, #ffe27a 0%, #c79321 100%)", text: "#1a1206", glow: "rgba(255,216,77,0.55)" },
+              2: { bg: "linear-gradient(180deg, #e6e9ef 0%, #7e8493 100%)", text: "#0e0e1a", glow: "rgba(220,225,234,0.35)" },
+              3: { bg: "linear-gradient(180deg, #e29a52 0%, #8a4d18 100%)", text: "#1a0e04", glow: "rgba(226,154,82,0.35)" },
             } as const;
             const c = colors[d.position as 1 | 2 | 3];
             return (
@@ -75,7 +77,7 @@ export function PodiumHero({
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.07 * idx, type: "spring", stiffness: 220, damping: 24 }}
                 className={`relative w-20 md:w-24 ${heights[d.position as 1 | 2 | 3]} rounded-md flex flex-col items-center justify-end pb-3`}
-                style={{ background: c.bg, color: c.text, boxShadow: isWinner ? "0 0 28px rgba(255,94,108,0.45)" : undefined }}
+                style={{ background: c.bg, color: c.text, boxShadow: isWinner ? `0 0 28px ${c.glow}` : `0 0 18px ${c.glow}` }}
               >
                 <div className="absolute top-2 left-0 right-0 text-center text-[10px] font-bold tracking-widest opacity-90">
                   {d.driver_code}

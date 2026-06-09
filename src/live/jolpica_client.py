@@ -182,31 +182,46 @@ def _parse_results(data: dict) -> pd.DataFrame:
 
 
 def race_results(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
-    """All races for a season, or a single race if round_num given."""
+    """All races for a season, or a single race if round_num given.
+
+    Jolpica/Ergast caps page size at 100, so a 20-driver × 24-race season
+    (~480 rows) needs ~5 pages. We page through using `offset` until
+    `MRData.total` is satisfied.
+    """
     path = f"{season}/results" if round_num is None else f"{season}/{round_num}/results"
-    data = _get(path, limit=1000)
-    races = (
-        data.get("MRData", {})
-        .get("RaceTable", {})
-        .get("Races", [])
-    )
-    rows = []
-    for race in races:
-        for r in race.get("Results", []):
-            drv = r.get("Driver", {})
-            con = r.get("Constructor", {})
-            rows.append({
-                "season":      int(race.get("season")),
-                "round":       int(race.get("round")),
-                "race_name":   race.get("raceName"),
-                "circuit_id":  (race.get("Circuit") or {}).get("circuitId"),
-                "driver_code": drv.get("code") or (drv.get("driverId") or "").upper()[:3],
-                "driver_number": int(drv.get("permanentNumber")) if drv.get("permanentNumber") else None,
-                "team_name":   con.get("name"),
-                "grid":        int(r.get("grid", 0)) if r.get("grid") else None,
-                "position":    int(r.get("position")) if r.get("position") else None,
-                "points":      float(r.get("points", 0)),
-                "status":      r.get("status"),
-                "laps":        int(r.get("laps", 0)) if r.get("laps") else None,
-            })
+    rows: list[dict] = []
+    offset = 0
+    page_size = 100
+    while True:
+        data = _get(path, limit=page_size, offset=offset)
+        mr = data.get("MRData", {})
+        races = mr.get("RaceTable", {}).get("Races", [])
+        page_rows = 0
+        for race in races:
+            for r in race.get("Results", []):
+                drv = r.get("Driver", {})
+                con = r.get("Constructor", {})
+                rows.append({
+                    "season":      int(race.get("season")),
+                    "round":       int(race.get("round")),
+                    "race_name":   race.get("raceName"),
+                    "circuit_id":  (race.get("Circuit") or {}).get("circuitId"),
+                    "driver_code": drv.get("code") or (drv.get("driverId") or "").upper()[:3],
+                    "driver_number": int(drv.get("permanentNumber")) if drv.get("permanentNumber") else None,
+                    "team_name":   con.get("name"),
+                    "grid":        int(r.get("grid", 0)) if r.get("grid") else None,
+                    "position":    int(r.get("position")) if r.get("position") else None,
+                    "points":      float(r.get("points", 0)),
+                    "status":      r.get("status"),
+                    "laps":        int(r.get("laps", 0)) if r.get("laps") else None,
+                })
+                page_rows += 1
+
+        try:
+            total = int(mr.get("total", 0))
+        except (TypeError, ValueError):
+            total = 0
+        offset += page_rows
+        if page_rows == 0 or offset >= total:
+            break
     return pd.DataFrame(rows)
