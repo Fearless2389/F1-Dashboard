@@ -27,6 +27,20 @@ class ReplayMeta(BaseModel):
     podium: list[ReplayPodium] = []
 
 
+class RaceRecapHighlight(BaseModel):
+    label: str
+    text: str
+
+
+class RaceRecapResponse(BaseModel):
+    season: int
+    round: int
+    race_name: str
+    headline: str
+    lead: str
+    highlights: list[RaceRecapHighlight] = []
+
+
 class WinProbabilityRow(BaseModel):
     driver_code: str
     prob: float

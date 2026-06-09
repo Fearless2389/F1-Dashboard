@@ -477,6 +477,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/replay/{season}/{round_num}/recap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay Recap
+         * @description Templated post-race recap — headline + lead paragraph + key highlight chips.
+         *     Generated from Jolpica results + the replay overtake feed, no LLM involved.
+         */
+        get: operations["replay_recap_api_replay__season___round_num__recap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/replay/{season}/{round_num}/win_probability": {
         parameters: {
             query?: never;
@@ -1114,6 +1135,31 @@ export interface components {
             session5_date?: string | null;
             circuit_meta?: components["schemas"]["CircuitMeta"] | null;
             weather_forecast?: components["schemas"]["WeatherForecast"] | null;
+        };
+        /** RaceRecapHighlight */
+        RaceRecapHighlight: {
+            /** Label */
+            label: string;
+            /** Text */
+            text: string;
+        };
+        /** RaceRecapResponse */
+        RaceRecapResponse: {
+            /** Season */
+            season: number;
+            /** Round */
+            round: number;
+            /** Race Name */
+            race_name: string;
+            /** Headline */
+            headline: string;
+            /** Lead */
+            lead: string;
+            /**
+             * Highlights
+             * @default []
+             */
+            highlights: components["schemas"]["RaceRecapHighlight"][];
         };
         /** RadarMetrics */
         RadarMetrics: {
@@ -2420,6 +2466,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OvertakesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_recap_api_replay__season___round_num__recap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+                round_num: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RaceRecapResponse"];
                 };
             };
             /** @description Validation Error */

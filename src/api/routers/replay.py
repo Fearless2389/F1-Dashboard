@@ -8,12 +8,15 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, Response
 
+from ...inference.race_recap import generate_recap
 from ...live.replay import load_race
 from ...live.replay_index import load_index
 from ...live.telemetry_replay import telemetry_window
 from ..schemas import (
     OvertakeEvent,
     OvertakesResponse,
+    RaceRecapHighlight,
+    RaceRecapResponse,
     ReplayMeta,
     ReplayRaceListEntry,
     TelemetryWindowResponse,
@@ -211,6 +214,23 @@ def replay_overtakes(season: int, round_num: int) -> OvertakesResponse:
         round=round_num,
         total=len(events),
         events=[OvertakeEvent(**e) for e in events],
+    )
+
+
+@router.get("/{season}/{round_num}/recap", response_model=RaceRecapResponse)
+def replay_recap(season: int, round_num: int) -> RaceRecapResponse:
+    """Templated post-race recap — headline + lead paragraph + key highlight chips.
+    Generated from Jolpica results + the replay overtake feed, no LLM involved."""
+    data = generate_recap(season, round_num)
+    if data is None:
+        raise HTTPException(404, f"No recap available for {season} R{round_num}")
+    return RaceRecapResponse(
+        season=data["season"],
+        round=data["round"],
+        race_name=data["race_name"],
+        headline=data["headline"],
+        lead=data["lead"],
+        highlights=[RaceRecapHighlight(**h) for h in data["highlights"]],
     )
 
 
