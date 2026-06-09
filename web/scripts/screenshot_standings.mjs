@@ -31,7 +31,7 @@ const errors = [];
 
   console.log("→ /standings");
   await page.goto(`http://localhost:${PORT}/standings?season=${SEASON}`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(9000);  // give recharts + Jolpica time to settle
+  await page.waitForTimeout(20000);  // give recharts + paginated Jolpica time to settle
   await page.screenshot({ path: join(OUT, "01_loaded.png"), fullPage: true });
 
   // Click the Ferrari constructors row to engage the team filter

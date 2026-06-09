@@ -203,6 +203,7 @@ export default function StandingsRoute() {
           nextRaceDate={nextRaceDate}
           leaderCode={driverRows[0]?.driver_code}
           leaderPoints={driverRows[0]?.points}
+          leaderTeam={driverRows[0]?.team_name}
           constructorLeader={constructorRows[0]?.team_name}
           constructorLeaderPoints={constructorRows[0]?.points}
         />

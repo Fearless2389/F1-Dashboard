@@ -32,8 +32,13 @@ const MUTED_STROKE = "#3a3a55";
 export function ChampionshipProgressionChart({ data, isLoading }: Props) {
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
 
-  const { chartRows, drivers, topN } = useMemo(() => {
-    const empty = { chartRows: [] as ChartRow[], drivers: [] as ProgressionDriver[], topN: new Set<string>() };
+  const { chartRows, drivers, topN, teammateStyle } = useMemo(() => {
+    const empty = {
+      chartRows: [] as ChartRow[],
+      drivers: [] as ProgressionDriver[],
+      topN: new Set<string>(),
+      teammateStyle: {} as Record<string, "solid" | "dashed" | "dotted">,
+    };
     if (!data || data.rounds.length === 0) return empty;
     const rows: ChartRow[] = data.rounds.map((r, i) => {
       const row: ChartRow = { round: r.round };
@@ -42,9 +47,30 @@ export function ChampionshipProgressionChart({ data, isLoading }: Props) {
       });
       return row;
     });
-    const topNSet = new Set(data.drivers.slice(0, HIGHLIGHT_TOP_N).map(d => d.driver_code));
-    return { chartRows: rows, drivers: data.drivers, topN: topNSet };
+
+    // Top-N teammate disambiguation. Walking the top-N in championship order,
+    // the FIRST driver from each team stays solid; their teammate (if also in
+    // the top-N and therefore sharing the same colour) renders dashed. A third
+    // would render dotted, though three top-N teammates is essentially never.
+    const top = data.drivers.slice(0, HIGHLIGHT_TOP_N);
+    const topNSet = new Set(top.map(d => d.driver_code));
+    const seenPerTeam: Record<string, number> = {};
+    const style: Record<string, "solid" | "dashed" | "dotted"> = {};
+    for (const d of top) {
+      const team = d.team_name ?? "_";
+      const seen = seenPerTeam[team] ?? 0;
+      seenPerTeam[team] = seen + 1;
+      style[d.driver_code] = seen === 0 ? "solid" : seen === 1 ? "dashed" : "dotted";
+    }
+    return { chartRows: rows, drivers: data.drivers, topN: topNSet, teammateStyle: style };
   }, [data]);
+
+  const dashArrayFor = (code: string): string | undefined => {
+    const s = teammateStyle[code];
+    if (s === "dashed") return "6 4";
+    if (s === "dotted") return "1 3";
+    return undefined;
+  };
 
   if (isLoading) {
     return (
@@ -109,6 +135,7 @@ export function ChampionshipProgressionChart({ data, isLoading }: Props) {
                     stroke={stroke}
                     strokeWidth={isHovered ? 3 : isTop ? 2 : 1}
                     strokeOpacity={isDimmedByHover ? 0.15 : isTop ? 0.95 : 0.45}
+                    strokeDasharray={isTop ? dashArrayFor(d.driver_code) : undefined}
                     dot={false}
                     activeDot={{ r: 4, onMouseEnter: () => setHoveredDriver(d.driver_code) }}
                     onMouseEnter={() => setHoveredDriver(d.driver_code)}
@@ -121,22 +148,30 @@ export function ChampionshipProgressionChart({ data, isLoading }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* Top-5 legend chip row */}
+        {/* Top-5 legend chip row — each chip's preview line mirrors the chart
+            stroke (solid for one teammate, dashed for the other). */}
         <div className="mt-3 flex flex-wrap gap-2">
-          {drivers.slice(0, HIGHLIGHT_TOP_N).map(d => (
-            <span
-              key={d.driver_code}
-              onMouseEnter={() => setHoveredDriver(d.driver_code)}
-              onMouseLeave={() => setHoveredDriver(null)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/10 px-2 py-0.5 text-[10px] font-mono text-f1-white cursor-default transition-colors hover:bg-white/[0.08]"
-            >
-              <span className="h-2 w-2 rounded-sm" style={{ background: teamColor(d.team_name) }} />
-              {d.driver_code}
-              <span className="text-f1-muted">
-                {Math.round(d.cumulative_points[d.cumulative_points.length - 1] ?? 0)} pts
+          {drivers.slice(0, HIGHLIGHT_TOP_N).map(d => {
+            const color = teamColor(d.team_name);
+            const dashArray = dashArrayFor(d.driver_code);
+            return (
+              <span
+                key={d.driver_code}
+                onMouseEnter={() => setHoveredDriver(d.driver_code)}
+                onMouseLeave={() => setHoveredDriver(null)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/10 px-2 py-0.5 text-[10px] font-mono text-f1-white cursor-default transition-colors hover:bg-white/[0.08]"
+              >
+                <svg width="14" height="6" className="shrink-0" aria-hidden="true">
+                  <line x1="0" y1="3" x2="14" y2="3" stroke={color} strokeWidth="2.5"
+                    strokeDasharray={dashArray} strokeLinecap="round" />
+                </svg>
+                {d.driver_code}
+                <span className="text-f1-muted">
+                  {Math.round(d.cumulative_points[d.cumulative_points.length - 1] ?? 0)} pts
+                </span>
               </span>
-            </span>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
