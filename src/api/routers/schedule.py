@@ -132,6 +132,52 @@ def list_circuits() -> list[CircuitMeta]:
 _lap_record_cache: dict[str, LapRecord] = {}
 
 
+# Jolpica/Ergast use their own circuit IDs that don't always match the ones
+# our schedule produces. We translate so e.g. "barcelona" matches "catalunya"
+# in the Jolpica payload and "melbourne" matches "albert_park".
+_JOLPICA_TO_PADDOCK: dict[str, str] = {
+    "albert_park":           "melbourne",
+    "catalunya":             "barcelona",
+    "rodriguez":             "mexico",
+    "americas":              "austin",
+    "yas_marina":            "yas_marina",
+    "marina_bay":            "singapore",
+    "interlagos":            "interlagos",
+    "BAK":                   "baku",
+    "baku":                  "baku",
+    "vegas":                 "vegas",
+    "losail":                "losail",
+    "imola":                 "imola",
+    "miami":                 "miami",
+    "monaco":                "monaco",
+    "monza":                 "monza",
+    "red_bull_ring":         "spielberg",
+    "silverstone":           "silverstone",
+    "spa":                   "spa",
+    "suzuka":                "suzuka",
+    "shanghai":              "shanghai",
+    "hungaroring":           "hungaroring",
+    "zandvoort":             "zandvoort",
+    "villeneuve":            "montreal",
+    "jeddah":                "jeddah",
+    "bahrain":               "bahrain",
+    "ricard":                "le_castellet",
+    "portimao":              "portimao",
+    "mugello":               "mugello",
+    "nurburgring":           "nurburgring",
+    "istanbul":              "istanbul",
+    "hockenheimring":        "hockenheim",
+    "sochi":                 "sochi",
+}
+
+
+def _jolpica_to_paddock(jolpica_id: str | None) -> str | None:
+    if not jolpica_id:
+        return None
+    j = jolpica_id.lower()
+    return _JOLPICA_TO_PADDOCK.get(j, j)
+
+
 def _time_to_ms(t: str) -> Optional[int]:
     """Parse an Ergast/Jolpica lap-time string like '1:14.260' into ms.
     Returns None for inputs that don't parse so they can be filtered out."""
@@ -178,9 +224,8 @@ def circuit_lap_record(circuit_id: str) -> LapRecord:
             page_rows = 0
             for race in races:
                 race_circuit_id = (race.get("Circuit") or {}).get("circuitId")
-                # Jolpica's circuit ids don't always match ours; compare both
-                # raw and normalised so e.g. "silverstone" matches "silverstone".
-                if race_circuit_id and race_circuit_id.lower() != circuit_id.lower():
+                paddock_id = _jolpica_to_paddock(race_circuit_id)
+                if paddock_id != circuit_id.lower():
                     # Cheap miss path — still need to advance offset by this
                     # race's result count so pagination doesn't loop.
                     page_rows += len(race.get("Results", []))

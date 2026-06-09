@@ -48,7 +48,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         persistOptions={{
           persister,
           maxAge: 24 * 60 * 60 * 1000,   // 1 day
-          buster: "v3-drs-sectors",       // bump this string to invalidate all caches
+          buster: "v4-schedule-sprint",   // bump this string to invalidate all caches
         }}
       >
         <App />
