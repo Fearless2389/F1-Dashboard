@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Trophy } from "lucide-react";
 
 import { teamColorFallback } from "@/lib/teams";
@@ -43,7 +43,7 @@ export function PredictedPodiumCard({ podium, reliability }: Props) {
           const pct = Math.round((slot.prob || 0) * 100);
           const isWinner = slot.position === 1;
           return (
-            <motion.div
+            <m.div
               key={slot.position}
               initial={{ y: 12, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -72,7 +72,7 @@ export function PredictedPodiumCard({ podium, reliability }: Props) {
                 className="absolute left-2 right-2 bottom-1 h-0.5 rounded-sm"
                 style={{ background: color }}
               />
-            </motion.div>
+            </m.div>
           );
         })}
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Flag } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -220,7 +220,7 @@ export function TrackMap({ drivers, circuitId, circuitName, onSelectDriver, sele
                 const isSel = selected === driver.driver_code;
                 const isLeader = i === 0;
                 return (
-                  <motion.g
+                  <m.g
                     key={driver.driver_code || driver.driver_number || i}
                     initial={false}
                     animate={{ x: p.x, y: p.y }}
@@ -243,7 +243,7 @@ export function TrackMap({ drivers, circuitId, circuitName, onSelectDriver, sele
                     <text y={-12} fontSize="9" fontWeight="700" fill="#f5f5f7" textAnchor="middle" pointerEvents="none">
                       {driver.driver_code}
                     </text>
-                  </motion.g>
+                  </m.g>
                 );
               })
             ) : (
@@ -254,12 +254,12 @@ export function TrackMap({ drivers, circuitId, circuitName, onSelectDriver, sele
                 const cy = fallbackH / 2 + (fallbackH / 2 - 80) * Math.sin(angle);
                 const color = teamColorFallback(d.team_colour, d.team_name);
                 return (
-                  <motion.g key={d.driver_code || d.driver_number || i}
+                  <m.g key={d.driver_code || d.driver_number || i}
                     initial={false} animate={{ x: cx, y: cy }}
                     transition={{ type: "spring", stiffness: 140, damping: 22 }}>
                     <circle r={i === 0 ? 9 : 7} fill={color} />
                     <text y={-12} fontSize="9" fontWeight="700" fill="#f5f5f7" textAnchor="middle">{d.driver_code}</text>
-                  </motion.g>
+                  </m.g>
                 );
               })
             )}

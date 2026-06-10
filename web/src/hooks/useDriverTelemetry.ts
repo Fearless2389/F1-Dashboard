@@ -39,7 +39,9 @@ export function useDriverTelemetry({
   const windowKey = Math.floor(sessionTime / 5);
   const isOn = enabled && !!driverCode && !!season && !!roundNum;
 
-  const q = useQuery({
+  // Destructure only the fields we actually read — lets TanStack Query's
+  // tracked-property optimisation skip re-renders when other fields change.
+  const { data, isLoading } = useQuery({
     queryKey: ["telemetry-window", season, roundNum, driverCode, windowKey],
     queryFn: async () => {
       const from_t = Math.max(0, sessionTime - windowSeconds);
@@ -61,11 +63,10 @@ export function useDriverTelemetry({
     placeholderData: keepPreviousData,
   });
 
-  const data = q.data;
   const notAvailable = !!(data && (data as any).__notAvailable);
   return {
     samples: notAvailable ? null : ((data as TelemetryWindow | undefined) ?? null),
-    isLoading: q.isLoading,
+    isLoading,
     notAvailable,
   };
 }

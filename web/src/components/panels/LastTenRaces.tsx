@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface RaceResult {
   round: number;
@@ -64,7 +64,7 @@ export function LastTenRaces({ results }: Props) {
         {ordered.map((r, i) => {
           const c = chipStyle(r.finish_position, r.is_dnf);
           return (
-            <motion.button
+            <m.button
               key={`${r.round}-${i}`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -79,7 +79,7 @@ export function LastTenRaces({ results }: Props) {
             >
               <span>{r.is_dnf ? "DNF" : r.finish_position ?? "—"}</span>
               <span className="text-[8px] opacity-70 mt-0.5">R{r.round}</span>
-            </motion.button>
+            </m.button>
           );
         })}
         {/* Pad to 10 if fewer races */}

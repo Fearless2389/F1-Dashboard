@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Keyboard, LineChart as LineChartIcon, X,
@@ -201,7 +201,7 @@ export default function ReplayRoute() {
         {/* Timing tower — collapsible left drawer, widened to 360px */}
         <AnimatePresence>
           {towerOpen && (
-            <motion.div
+            <m.div
               key="tower"
               initial={{ x: -380, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -226,7 +226,7 @@ export default function ReplayRoute() {
                   />
                 )}
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -271,7 +271,7 @@ export default function ReplayRoute() {
         {/* Keyboard shortcuts cheat-sheet — bottom-right popover */}
         <AnimatePresence>
           {helpOpen && (
-            <motion.div
+            <m.div
               key="help"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -309,14 +309,14 @@ export default function ReplayRoute() {
                   Click any dot or row → driver telemetry. Click <span className="font-mono">/replay/&lt;y&gt;/&lt;r&gt;</span> in the URL bar to jump races.
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
         {/* Win-probability drawer (slides up from bottom) */}
         <AnimatePresence>
           {winProbOpen && (
-            <motion.div
+            <m.div
               key="winprob"
               initial={{ y: "100%", opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -338,7 +338,7 @@ export default function ReplayRoute() {
                   podium={replay.meta?.podium}
                 />
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

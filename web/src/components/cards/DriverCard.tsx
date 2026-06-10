@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
@@ -47,7 +47,7 @@ export function DriverCard({ card, season }: Props) {
 
   return (
     <Link to={`/driver/${card.driver_code}?season=${season}`}>
-      <motion.div
+      <m.div
         whileHover={{ y: -3 }}
         transition={{ type: "spring", stiffness: 320, damping: 24 }}
         className={cn(
@@ -121,7 +121,7 @@ export function DriverCard({ card, season }: Props) {
         <Badge tone="muted" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           View →
         </Badge>
-      </motion.div>
+      </m.div>
     </Link>
   );
 }

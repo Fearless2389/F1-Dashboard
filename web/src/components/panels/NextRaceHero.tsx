@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Cloud, CloudRain, MapPin, Sun } from "lucide-react";
 
 import { Countdown } from "@/components/Countdown";
@@ -30,7 +30,7 @@ export function NextRaceHero({ next }: Props) {
     );
   }
 
-  const m = next.circuit_meta;
+  const meta = next.circuit_meta;
   const target = next.session5_date ?? next.event_date;
 
   return (
@@ -91,14 +91,14 @@ export function NextRaceHero({ next }: Props) {
           {/* Right — countdown */}
           <div className="text-right shrink-0">
             <div className="text-[10px] uppercase tracking-widest text-f1-muted">Lights out in</div>
-            <motion.div
+            <m.div
               key={target ?? "no-date"}
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               className="font-display font-bold text-paddock-coral text-3xl md:text-4xl tabular-nums leading-tight mt-1"
             >
               <Countdown target={target} />
-            </motion.div>
+            </m.div>
             {next.event_date && (
               <div className="text-[10px] text-f1-muted mt-1 font-mono">
                 {new Date(next.event_date).toUTCString().slice(0, 16)}
@@ -109,10 +109,10 @@ export function NextRaceHero({ next }: Props) {
 
         {/* Stat tiles */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-          <Stat label="Lap length" value={m?.lap_length_km ? `${m.lap_length_km.toFixed(2)} km` : "—"} />
-          <Stat label="Corners"    value={m?.num_corners ?? "—"} />
-          <Stat label="DRS zones"  value={m?.drs_zones ?? "—"} />
-          <Stat label="Downforce"  value={(m?.downforce_level ?? "—").toString().toUpperCase()} />
+          <Stat label="Lap length" value={meta?.lap_length_km ? `${meta.lap_length_km.toFixed(2)} km` : "—"} />
+          <Stat label="Corners"    value={meta?.num_corners ?? "—"} />
+          <Stat label="DRS zones"  value={meta?.drs_zones ?? "—"} />
+          <Stat label="Downforce"  value={(meta?.downforce_level ?? "—").toString().toUpperCase()} />
         </div>
       </div>
     </div>

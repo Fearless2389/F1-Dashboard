@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { teamColorFallback } from "@/lib/teams";
 import type { TopPrediction } from "@/lib/types";
@@ -73,7 +73,7 @@ export function TopPredictionCard({ top, qualiSource }: Props) {
             <div className="text-2xl text-paddock-coral leading-none">%</div>
             <div className="flex-1 ml-2">
               <div className="h-1.5 rounded-full bg-f1-edge overflow-hidden">
-                <motion.div
+                <m.div
                   className="h-full"
                   style={{ background: "linear-gradient(90deg, var(--color-paddock-coral), var(--color-paddock-coral-deep))" }}
                   initial={{ width: 0 }}

@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { Countdown } from "@/components/Countdown";
 import { teamColor } from "@/lib/teams";
@@ -54,7 +54,7 @@ export function SeasonProgressionCard({
           </div>
         </div>
         <div className="h-1 rounded-full bg-f1-edge overflow-hidden">
-          <motion.div
+          <m.div
             className="h-full"
             style={{ background: "linear-gradient(90deg, var(--color-paddock-cyan), var(--color-paddock-cyan-soft))" }}
             initial={false}

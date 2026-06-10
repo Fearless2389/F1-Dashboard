@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { AlertTriangle, OctagonAlert, ShieldAlert } from "lucide-react";
 
 type Status = "AllClear" | "Yellow" | "SC" | "VSC" | "Red";
@@ -54,7 +54,7 @@ export function TrackStatusBanner({ status }: Props) {
   return (
     <AnimatePresence>
       {spec && (
-        <motion.div
+        <m.div
           key={spec.label}
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -63,17 +63,17 @@ export function TrackStatusBanner({ status }: Props) {
           className="pointer-events-none flex items-center gap-2.5 rounded-lg backdrop-blur px-4 py-2 border shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8)]"
           style={{ background: spec.bg, color: spec.text, borderColor: spec.border }}
         >
-          <motion.span
+          <m.span
             animate={spec.flash ? { opacity: [1, 0.4, 1] } : undefined}
             transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
             className="inline-flex"
           >
             <spec.Icon size={16} />
-          </motion.span>
+          </m.span>
           <span className="font-display font-semibold text-sm uppercase tracking-wider">
             {spec.label}
           </span>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

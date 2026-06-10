@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -68,7 +68,7 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
               const isSel = selected && selected === d.driver_code;
               const compColor = compoundColor(d.compound);
               return (
-                <motion.div
+                <m.div
                   key={d.driver_code || d.driver_number || Math.random()}
                   layout
                   initial={{ opacity: 0, y: -4 }}
@@ -124,7 +124,7 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                   <div className="text-[11px] text-f1-muted text-right tabular-nums">
                     {d.pit_count ?? 0}
                   </div>
-                </motion.div>
+                </m.div>
               );
             })}
           </AnimatePresence>

@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, keepPreviousData } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import { MotionConfig } from "framer-motion";
+import { LazyMotion, MotionConfig, domAnimation } from "framer-motion";
 import { Toaster } from "sonner";
 
 import App from "./App";
@@ -52,15 +52,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           buster: "v4-schedule-sprint",   // bump this string to invalidate all caches
         }}
       >
-        {/* Honour OS-level "Reduce motion" preference globally (WCAG 2.3.3).
-            "user" mode means: if the user has prefers-reduced-motion set in
-            their OS, every framer-motion animation in the tree is muted to
-            an instant transition. We keep our motion library but stop
-            pushing animation on people who've asked us not to. */}
-        <MotionConfig reducedMotion="user">
-          <App />
-          <Toaster theme="dark" position="top-right" richColors />
-        </MotionConfig>
+        {/* LazyMotion: load animation features once (domAnimation, ~25KB
+            instead of the full motion runtime's ~55KB). Combined with the
+            `m` component everywhere, this saves ~30KB on initial bundle.
+            MotionConfig with reducedMotion="user" lives inside so the
+            preference still applies globally. */}
+        <LazyMotion features={domAnimation} strict>
+          <MotionConfig reducedMotion="user">
+            <App />
+            <Toaster theme="dark" position="top-right" richColors />
+          </MotionConfig>
+        </LazyMotion>
       </PersistQueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>,

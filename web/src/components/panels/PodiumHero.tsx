@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { teamColor } from "@/lib/teams";
 
 interface Driver {
@@ -71,7 +71,7 @@ export function PodiumHero({
             } as const;
             const c = colors[d.position as 1 | 2 | 3];
             return (
-              <motion.div
+              <m.div
                 key={d.position}
                 initial={{ y: 14, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -90,7 +90,7 @@ export function PodiumHero({
                   className="absolute left-2 right-2 bottom-1 h-0.5 rounded-sm"
                   style={{ background: teamColor(d.team_name) }}
                 />
-              </motion.div>
+              </m.div>
             );
           })}
         </div>

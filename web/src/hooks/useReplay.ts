@@ -155,14 +155,16 @@ export function useReplay(season: number, roundNum: number): UseReplayReturn {
   const [speed, setSpeed] = useState<Speed>(8);
   const [sessionTime, setSessionTime] = useState(0);
 
-  const metaQ = useQuery({
+  // Destructure only the fields used so TanStack Query's tracked-property
+  // observer skips re-renders when fields we don't read change.
+  const { data: meta, isLoading: metaLoading } = useQuery({
     queryKey: ["replay", "meta", season, roundNum],
     queryFn: () => api.get<ReplayMeta>(`/api/replay/${season}/${roundNum}`),
     enabled: !!(season && roundNum),
     staleTime: Infinity,
   });
 
-  const trajQ = useQuery({
+  const { data: traj, isLoading: trajLoading, error: trajError } = useQuery({
     queryKey: ["replay", "trajectory", season, roundNum],
     queryFn: () =>
       api.get<TrajectoryResponse>(`/api/replay/${season}/${roundNum}/trajectory`),
@@ -170,9 +172,6 @@ export function useReplay(season: number, roundNum: number): UseReplayReturn {
     staleTime: Infinity,
     gcTime: 24 * 60 * 60_000,
   });
-
-  const traj = trajQ.data;
-  const meta = metaQ.data;
 
   // Race playback window — drops the long pre-race wait (formation laps, red
   // flags, etc.) so the user lands at the actual race start.
@@ -477,8 +476,8 @@ export function useReplay(season: number, roundNum: number): UseReplayReturn {
     step,
     speed,
     setSpeed,
-    loading:      trajQ.isLoading || metaQ.isLoading,
-    error:        (trajQ.error as any)?.message ?? null,
+    loading:      trajLoading || metaLoading,
+    error:        (trajError as any)?.message ?? null,
     sessionTime,
     raceProgress,
     safetyCar,

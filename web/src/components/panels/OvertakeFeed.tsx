@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { ArrowRight, Crown, Flame, Plus, X, Zap } from "lucide-react";
 
 import { Badge } from "@/components/ui/Badge";
@@ -307,7 +307,7 @@ export function OvertakeFeed({
             const ovdChipActive = ovdChipId ? chips.has(ovdChipId) : false;
 
             return (
-              <motion.li
+              <m.li
                 key={`${o.time.toFixed(2)}-${o.overtaker_code}-${o.overtaken_code}`}
                 layout
                 initial={{ opacity: 0, y: -10, scale: 0.96 }}
@@ -395,7 +395,7 @@ export function OvertakeFeed({
                     NEW
                   </span>
                 )}
-              </motion.li>
+              </m.li>
             );
           })}
         </AnimatePresence>

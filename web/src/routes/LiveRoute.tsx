@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -143,14 +143,14 @@ export default function LiveRoute() {
 
       {/* 3-column main */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-[minmax(0,360px)_1fr_minmax(0,360px)]">
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
           <TimingTower
             drivers={drivers}
             onSelectDriver={setSelected}
             selected={focusedDriver?.driver_code}
           />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        </m.div>
+        <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <TrackMap
             drivers={drivers}
             circuitId={liveCircuitId ?? nextRace?.circuit_id ?? null}
@@ -158,10 +158,10 @@ export default function LiveRoute() {
             onSelectDriver={setSelected}
             selected={focusedDriver?.driver_code}
           />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        </m.div>
+        <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <TelemetryPanel driver={focusedDriver} sessionKey={sessionKey} />
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Bottom: race control + prediction overlay placeholder */}

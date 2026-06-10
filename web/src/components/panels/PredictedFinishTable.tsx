@@ -1,5 +1,5 @@
 import { Info, ListOrdered } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { teamColorFallback } from "@/lib/teams";
 import type { FinishRow } from "@/lib/types";
@@ -60,7 +60,7 @@ export function PredictedFinishTable({ rows }: Props) {
           const pct = Math.round((r.confidence_score || 0) * 100);
           const barColor = r.at_risk ? "var(--color-paddock-cyan)" : "var(--color-paddock-coral)";
           return (
-            <motion.div
+            <m.div
               key={r.position}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -83,7 +83,7 @@ export function PredictedFinishTable({ rows }: Props) {
                 <div className="h-full" style={{ width: `${pct}%`, background: barColor }} />
               </div>
               <div className="text-right text-xs font-mono tabular-nums text-f1-white">{pct}%</div>
-            </motion.div>
+            </m.div>
           );
         })}
         {rows.length === 0 && (

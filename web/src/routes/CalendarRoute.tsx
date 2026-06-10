@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { differenceInSeconds, parseISO } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Cloud, CloudRain, MapPin, Sun, ThermometerSun, CheckCircle2, Zap } from "lucide-react";
 
@@ -165,7 +165,7 @@ function RaceCard({
 
       <AnimatePresence initial={false}>
         {expanded && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -207,7 +207,7 @@ function RaceCard({
             <div className="flex justify-end px-5 pb-5">
               <Button size="sm" variant="secondary">Predict this race →</Button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </Card>

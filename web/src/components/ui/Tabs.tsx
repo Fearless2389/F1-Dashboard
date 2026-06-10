@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext, useState } from "react";
+import { ReactNode, createContext, useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 
 interface Ctx {
@@ -17,16 +17,15 @@ interface TabsProps {
 export function Tabs({ value, defaultValue, onValueChange, children, className }: TabsProps) {
   const [internal, setInternal] = useState(defaultValue);
   const v = value ?? internal;
+  // Memoise so every consumer doesn't re-render when the parent renders for
+  // unrelated reasons. The setValue identity is stabilised separately.
+  const setValue = useCallback((next: string) => {
+    setInternal(next);
+    onValueChange?.(next);
+  }, [onValueChange]);
+  const ctx = useMemo<Ctx>(() => ({ value: v, setValue }), [v, setValue]);
   return (
-    <TabsCtx.Provider
-      value={{
-        value: v,
-        setValue: (next) => {
-          setInternal(next);
-          onValueChange?.(next);
-        },
-      }}
-    >
+    <TabsCtx.Provider value={ctx}>
       <div className={className}>{children}</div>
     </TabsCtx.Provider>
   );

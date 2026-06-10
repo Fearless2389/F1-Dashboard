@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface Props {
   currentLap: number;
@@ -15,7 +15,7 @@ interface Props {
  */
 export function ReplayLapTicker({ currentLap, totalLaps, raceName }: Props) {
   return (
-    <motion.div
+    <m.div
       initial={{ y: -8, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       title={raceName}
@@ -26,6 +26,6 @@ export function ReplayLapTicker({ currentLap, totalLaps, raceName }: Props) {
         <span className="font-display text-2xl font-semibold leading-none">{currentLap}</span>
         <span className="text-sm text-f1-muted leading-none">/ {totalLaps}</span>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

@@ -25,8 +25,11 @@ export function RaceControlFeed({ messages }: Props) {
           <div className="text-xs text-f1-muted">No messages yet.</div>
         ) : (
           <ul className="space-y-2">
-            {messages.map((m, i) => (
-              <li key={i} className="rounded-md border border-f1-edge bg-f1-panel/40 px-3 py-2 text-xs">
+            {messages.map((m) => (
+              <li
+                key={`${m.date ?? "no-ts"}-${m.lap_number ?? ""}-${m.message ?? ""}`}
+                className="rounded-md border border-f1-edge bg-f1-panel/40 px-3 py-2 text-xs"
+              >
                 <div className="flex items-center justify-between mb-1">
                   <Badge color={flagTone(m.flag)}>
                     {m.flag || m.category || "INFO"}

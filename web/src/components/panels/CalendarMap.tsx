@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -159,7 +159,7 @@ export function CalendarMap({ events }: Props) {
                   style={{ cursor: "pointer" }}
                 >
                   {d.status === "next" && (
-                    <motion.circle
+                    <m.circle
                       cx={d.x} cy={d.y} r={r * 2.4}
                       fill={c.fill}
                       filter="url(#dotGlow)"
@@ -195,7 +195,7 @@ export function CalendarMap({ events }: Props) {
           {/* Hover tooltip overlay */}
           <AnimatePresence>
             {hovered && hovered.circuit_meta?.lat != null && hovered.circuit_meta?.lon != null && (
-              <motion.div
+              <m.div
                 key={hovered.round}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -223,7 +223,7 @@ export function CalendarMap({ events }: Props) {
                     {new Date(hovered.event_date).toUTCString().slice(0, 16)}
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

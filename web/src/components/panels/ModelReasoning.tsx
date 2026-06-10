@@ -72,7 +72,7 @@ function PodiumGroup({ group }: { group: PodiumReasoning }) {
             const Icon = SECTION_ICONS[i % SECTION_ICONS.length];
             const style = IMPACT_STYLES[b.impact] ?? IMPACT_STYLES.LOW;
             return (
-              <div key={`${group.driver_code}-${i}`}>
+              <div key={`${group.driver_code}-${b.feature}`}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-semibold text-f1-white">
                     <Icon size={11} className="text-f1-muted" />
