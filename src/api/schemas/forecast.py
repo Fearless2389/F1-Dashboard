@@ -19,7 +19,7 @@ class ForecastDriver(BaseModel):
     win_prob: float                          # 0..1 — unconditional P(P1)
     podium_prob: float                       # 0..1 — unconditional P(top-3)
     dnf_prob: float                          # 0..1 — share of sims retiring
-    position_distribution: list[float]       # length 20 (P1..P20); sums to 1 - dnf_prob
+    position_distribution: list[float]       # length = field size; sums to 1 - dnf_prob
 
 
 class ForecastRaceMeta(BaseModel):

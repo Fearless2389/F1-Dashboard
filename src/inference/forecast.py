@@ -143,6 +143,7 @@ def race_forecast(season: Optional[int] = None,
     # 6) Curate drivers — sort by expected_position so the matrix reads
     # top-of-grid → tail.
     drivers_out = []
+    field_size = len(drivers_input)
     for d in drivers_input:
         code = d["driver_code"]
         team = d["team_name"]
@@ -151,11 +152,11 @@ def race_forecast(season: Optional[int] = None,
             "full_name":            _full_name_for(code, grid) or code,
             "team_name":            team,
             "team_colour":          _team_colour_for(team, grid),
-            "expected_position":    float(expected_pos.get(code, 20.0)),
+            "expected_position":    float(expected_pos.get(code, float(field_size))),
             "win_prob":             float(win_dist.get(code, 0.0)),
             "podium_prob":          float(podium_dist.get(code, 0.0)),
             "dnf_prob":             float(dnf_dist.get(code, 0.0)),
-            "position_distribution": position_dist.get(code, [0.0] * 20),
+            "position_distribution": position_dist.get(code, [0.0] * field_size),
         })
     drivers_out.sort(key=lambda d: d["expected_position"])
 

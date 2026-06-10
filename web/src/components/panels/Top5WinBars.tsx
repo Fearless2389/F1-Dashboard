@@ -39,22 +39,20 @@ export function Top5WinBars({ drivers, nSimulations }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span
-                    className="font-display font-bold text-base md:text-lg italic truncate"
-                    style={{
-                      background: `linear-gradient(110deg, #f5f5f7 0%, ${color} 90%)`,
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
+                  {/* Solid white driver name — the gradient text-fill used
+                      here previously faded names like "Charles Leclerc" into
+                      the dark background, leaving the team subtitle as the
+                      only legible identifier. */}
+                  <span className="font-display font-bold text-base md:text-lg italic truncate text-f1-white">
                     {d.full_name ?? d.driver_code}
                   </span>
                   <span className="text-sm font-semibold text-f1-white tabular-nums">
                     {pct.toFixed(1)}%
                   </span>
                 </div>
-                <div className="text-[10px] uppercase tracking-widest text-f1-muted mt-0.5">
-                  {d.team_name ?? "—"} · EXP P{(d.expected_position ?? 0).toFixed(1)}
+                <div className="text-[10px] uppercase tracking-widest text-f1-muted mt-0.5 flex items-center gap-1.5">
+                  <span style={{ color }} className="font-semibold">{d.driver_code}</span>
+                  <span>· {d.team_name ?? "—"} · EXP P{(d.expected_position ?? 0).toFixed(1)}</span>
                 </div>
                 <div className="h-1 rounded-full bg-f1-edge mt-1.5 overflow-hidden">
                   <div

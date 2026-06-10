@@ -86,11 +86,12 @@ def monte_carlo_race(
     podium_combos = Counter()
     # Full position-distribution tracking. position_counts[driver_idx, k] is
     # the number of simulations in which that driver finished at P(k+1).
-    # DNFs are tracked in `dnf_counts` instead of being folded into P20 — the
-    # old "DNF → P20" convention skewed every driver's expected position to
-    # the right and made the matrix's P20 column read as "everyone finishes
-    # last" when really it was just the reliability risk piling up there.
-    position_counts = np.zeros((n_drivers, 20), dtype=np.int64)
+    # Columns = n_drivers, not a hardcoded 20: 2026 added Cadillac so the
+    # grid is 22 cars, and clipping P21/P22 into "P20" inflated the right
+    # tail of the matrix and broke the column header alignment downstream.
+    # DNFs are tracked separately in `dnf_counts` so a fragile car doesn't
+    # pile mass into the "last position" cell.
+    position_counts = np.zeros((n_drivers, n_drivers), dtype=np.int64)
     dnf_counts = np.zeros(n_drivers, dtype=np.int64)
 
     for _ in range(n_iterations):
@@ -126,7 +127,9 @@ def monte_carlo_race(
 
         # Position-distribution tally for surviving drivers
         for pos, idx in enumerate(ordered_indices, start=1):
-            slot = min(pos - 1, 19)  # cap at column 19 (P20)
+            # pos is 1..len(survivors), so slot is always within bounds —
+            # but cap defensively so a future change can't write OOB.
+            slot = min(pos - 1, n_drivers - 1)
             position_counts[idx, slot] += 1
             pts = POINTS_TABLE.get(pos, 0)
             if idx == fl_idx and pos <= 10:
@@ -153,7 +156,7 @@ def monte_carlo_race(
     position_distribution: dict[str, list[float]] = {}
     expected_position: dict[str, float] = {}
     dnf_distribution: dict[str, float] = {}
-    weights = np.arange(1, 21, dtype=float)
+    weights = np.arange(1, n_drivers + 1, dtype=float)
     for i, code in enumerate(codes):
         probs = position_counts[i] / n_iterations
         position_distribution[code] = probs.tolist()
@@ -162,7 +165,7 @@ def monte_carlo_race(
         if finished_mass > 0:
             expected_position[code] = float((probs * weights).sum() / finished_mass)
         else:
-            expected_position[code] = 20.0
+            expected_position[code] = float(n_drivers)
 
     return {
         "win_distribution":     _norm(win_counts),

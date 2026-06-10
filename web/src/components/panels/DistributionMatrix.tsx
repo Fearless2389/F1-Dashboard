@@ -6,7 +6,6 @@ interface Props {
   drivers: ForecastDriver[];     // already ordered by expected_position
 }
 
-const N_POSITIONS = 20;
 const BLANK_THRESHOLD = 0.05;     // hide cells with probability < 5%
 
 /**
@@ -33,11 +32,16 @@ export function DistributionMatrix({ drivers }: Props) {
     );
   }
 
+  // Column count adapts to the field — 22 in 2026 (Cadillac entry), 20 in
+  // prior seasons. Reading the length from the API response means the matrix
+  // never silently clips P21/P22 into the rightmost column.
+  const nPositions = drivers[0]?.position_distribution?.length ?? 20;
+
   return (
     <div className="rounded-xl border border-f1-edge bg-paddock-panel/60 p-5">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <span className="text-[10px] uppercase tracking-widest text-f1-muted font-semibold">
-          Full Distribution Matrix · 20 positions + DNF
+          Full Distribution Matrix · {nPositions} positions + DNF
         </span>
       </div>
 
@@ -48,7 +52,7 @@ export function DistributionMatrix({ drivers }: Props) {
               <th className="sticky left-0 z-10 bg-paddock-panel/95 text-left text-[9px] uppercase tracking-widest text-f1-muted px-2 py-2">
                 Driver
               </th>
-              {Array.from({ length: N_POSITIONS }, (_, i) => (
+              {Array.from({ length: nPositions }, (_, i) => (
                 <th
                   key={i}
                   className="text-[9px] uppercase tracking-widest text-f1-muted text-center px-1.5 py-2 min-w-[28px]"
@@ -82,7 +86,7 @@ export function DistributionMatrix({ drivers }: Props) {
                       </span>
                     </div>
                   </td>
-                  {Array.from({ length: N_POSITIONS }, (_, i) => {
+                  {Array.from({ length: nPositions }, (_, i) => {
                     const p = d.position_distribution?.[i] ?? 0;
                     const showCell = p >= BLANK_THRESHOLD;
                     const value = Math.round(p * 100);

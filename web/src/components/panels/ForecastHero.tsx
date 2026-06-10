@@ -53,20 +53,18 @@ function HeroCard({
         {kicker}
       </div>
 
-      <h2
-        className="font-display font-black italic text-3xl md:text-5xl tracking-tight leading-[0.95] mt-3"
-        style={{
-          background: `linear-gradient(110deg, #f5f5f7 0%, ${color} 90%)`,
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
+      {/* Solid driver name — the previous gradient text-fill (white →
+          team-colour) faded into invisibility against the dark-tinted panel
+          for several drivers, making the team subtitle below read as the
+          headline identifier. */}
+      <h2 className="font-display font-black italic text-3xl md:text-5xl tracking-tight leading-[0.95] mt-3 text-f1-white">
         {pick.full_name ?? pick.driver_code}
       </h2>
 
       <div className="text-[11px] uppercase tracking-widest text-f1-muted mt-2 flex items-center gap-1.5">
         <span className="h-2 w-1 rounded-sm" style={{ background: color }} />
-        {pick.team_name ?? "—"} · {pick.driver_code}
+        <span style={{ color }} className="font-semibold">{pick.driver_code}</span>
+        <span className="text-f1-muted">· {pick.team_name ?? "—"}</span>
       </div>
 
       <div className="flex items-baseline justify-between mt-6 border-t border-f1-edge/60 pt-3">
