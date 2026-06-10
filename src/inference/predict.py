@@ -72,21 +72,36 @@ def _get_latest_rolling_stats(
     season_cutoff: Optional[int] = None,
 ) -> pd.DataFrame:
     """
-    For each driver, get their rolling stats from their most recent race
-    up to and including `season_cutoff` (defaults to the latest season the
-    feature matrix has).
+    For each driver, return rolling stats reflecting their form **after**
+    the most recent race in the feature matrix — i.e. ready to feed the
+    model when predicting the *next* race.
+
+    Why this isn't just `feature_matrix.groupby('driver_code').last()`:
+    The rolling columns in the matrix are built with `shift(1)` to keep
+    training leakage-free — at row N they show the L5/L10 over races
+    [N-5, N-1], excluding race N itself. That's correct for training,
+    but at inference time we want "form going INTO the next race", which
+    means the window must INCLUDE the latest race in the matrix.
+
+    We therefore recompute the L5/L10/DNF/points stats here from the raw
+    `finish_position_clean`/`is_dnf`/`points` columns, taking the most
+    recent N races per driver inclusive of the latest. (Old code copied
+    the shifted L5 from the latest row and was effectively predicting
+    "next race" using "two races ago" form.)
 
     Regulation-change weighting: once a driver has at least
-    `_CURRENT_SEASON_MIN_RACES` races in the latest season, we override
-    their rolling stats with the latest-season-only row instead of the
-    cross-season historical row. This stops the model from blending pre-
-    regulation form (e.g. 2025 stats) with post-regulation team pairings
-    (e.g. ANT at Mercedes in 2026). Drivers below the threshold (rookies,
-    returnees) keep the historical row so their entry to the model isn't a
-    one-race extrapolation.
+    `_CURRENT_SEASON_MIN_RACES` races in the latest season, the raw-stat
+    window is restricted to the current season only. This keeps pre-
+    regulation form from polluting post-regulation team pairings
+    (e.g. ANT-at-Mercedes in 2026). Drivers below the threshold keep the
+    cross-season window so rookies aren't a single-race extrapolation.
 
     For `driver_circuit_avg_finish`, prefer the same-circuit current-season
     visit when available; else fall back to the cross-season mean.
+
+    Other features (`driver_experience`, `team_avg_pit_time_ms`) that don't
+    have a clean inference-time recomputation are still pulled from the
+    matrix's latest row.
     """
     if season_cutoff is None:
         season_cutoff = int(feature_matrix["season"].max())
@@ -94,44 +109,78 @@ def _get_latest_rolling_stats(
     hist = feature_matrix[feature_matrix["season"] <= season_cutoff].copy()
     hist = hist.sort_values(["driver_code", "season", "round"])
 
-    # Historical baseline — latest overall rolling stats per driver across
-    # all seasons up to and including the cutoff.
+    # Pull non-rolling fields (team_name, driver_experience, pit time) from
+    # the latest row per driver — these don't suffer from the shift problem.
     latest = (
         hist.groupby("driver_code")
         .last()
         .reset_index()
-        [["driver_code", "team_name"] + ROLLING_FEATURES]
+        [["driver_code", "team_name", "driver_experience",
+          "team_avg_pit_time_ms"]]
     )
 
-    # Current-season override. For each driver with ≥ N races in the latest
-    # season, take their latest-season-only row's rolling features and swap
-    # those values in. (Rolling features are computed per-row in the matrix,
-    # so the last row of the latest season already reflects the current-
-    # season-only window once N races are in.)
-    current_season = hist[hist["season"] == season_cutoff]
-    if not current_season.empty:
-        counts = current_season.groupby("driver_code").size()
-        eligible = counts[counts >= _CURRENT_SEASON_MIN_RACES].index.tolist()
-        if eligible:
-            current_latest = (
-                current_season[current_season["driver_code"].isin(eligible)]
-                .groupby("driver_code")
-                .last()
-                .reset_index()
-                [["driver_code", "team_name"] + ROLLING_FEATURES]
-            )
-            # Merge — current-season row wins for the rolling columns + team_name.
-            cs_indexed = current_latest.set_index("driver_code")
-            for col in ["team_name"] + ROLLING_FEATURES:
-                if col in cs_indexed.columns:
-                    latest.loc[
-                        latest["driver_code"].isin(eligible), col
-                    ] = latest.loc[
-                        latest["driver_code"].isin(eligible), "driver_code"
-                    ].map(cs_indexed[col])
+    # Recompute the inclusive-of-latest rolling stats per driver.
+    # Default window source: full driver history. Override with current-
+    # season-only history once the driver has ≥ N races this season.
+    current_counts = (
+        hist[hist["season"] == season_cutoff]
+        .groupby("driver_code")
+        .size()
+    )
 
-    # Override driver_circuit_avg_finish with circuit-specific history.
-    # Prefer current-season visit to this circuit when available.
+    rolled_rows: list[dict] = []
+    for code, df_driver in hist.groupby("driver_code"):
+        use_current_only = current_counts.get(code, 0) >= _CURRENT_SEASON_MIN_RACES
+        if use_current_only:
+            df_driver = df_driver[df_driver["season"] == season_cutoff]
+        finishes = df_driver["finish_position_clean"].dropna().tolist()
+        dnfs = df_driver["is_dnf"].fillna(False).astype(int).tolist()
+        points = df_driver["points"].fillna(0.0).tolist()
+        l5 = finishes[-5:]
+        l10 = finishes[-10:]
+        dnf10 = dnfs[-10:]
+        pts5 = points[-5:]
+        rolled_rows.append({
+            "driver_code": code,
+            "driver_avg_finish_L5":  float(np.mean(l5)) if l5 else np.nan,
+            "driver_avg_finish_L10": float(np.mean(l10)) if l10 else np.nan,
+            "driver_dnf_rate_L10":   float(np.mean(dnf10)) if dnf10 else np.nan,
+            "driver_points_L5":      float(sum(pts5)),
+        })
+    rolled = pd.DataFrame(rolled_rows)
+    latest = latest.merge(rolled, on="driver_code", how="left")
+
+    # ── Team rolling stats — recompute inclusive-of-latest per team ──────────
+    # Each driver-row's team rolling features should reflect their CURRENT
+    # team's form, not the team they happen to be at right now joined to a
+    # stale shifted column.
+    team_hist = hist.dropna(subset=["team_name"]).sort_values(
+        ["team_name", "season", "round"]
+    )
+
+    team_rolled_rows: list[dict] = []
+    for team, df_team in team_hist.groupby("team_name"):
+        if _CURRENT_SEASON_MIN_RACES <= len(df_team[df_team["season"] == season_cutoff]):
+            df_team = df_team[df_team["season"] == season_cutoff]
+        finishes = df_team["finish_position_clean"].dropna().tolist()
+        dnfs = df_team["is_dnf"].fillna(False).astype(int).tolist()
+        points = df_team["points"].fillna(0.0).tolist()
+        l5 = finishes[-5:]
+        l10 = finishes[-10:]
+        dnf10 = dnfs[-10:]
+        pts5 = points[-5:]
+        team_rolled_rows.append({
+            "team_name": team,
+            "team_avg_finish_L5":  float(np.mean(l5)) if l5 else np.nan,
+            "team_dnf_rate_L10":   float(np.mean(dnf10)) if dnf10 else np.nan,
+            "team_points_L5":      float(sum(pts5)),
+        })
+    team_rolled = pd.DataFrame(team_rolled_rows)
+    latest = latest.merge(team_rolled, on="team_name", how="left")
+
+    # ── Circuit-specific historical average ──────────────────────────────────
+    # Same logic as before — prefer current-season visit to this circuit when
+    # available, else fall back to the cross-season mean.
     circuit_hist = hist[hist["circuit_id"].str.lower() == circuit_id.lower()]
     if not circuit_hist.empty:
         current_circuit = circuit_hist[circuit_hist["season"] == season_cutoff]
@@ -140,14 +189,17 @@ def _get_latest_rolling_stats(
             source.groupby("driver_code")["finish_position_clean"]
             .mean()
             .reset_index()
-            .rename(columns={"finish_position_clean": "_circuit_avg"})
+            .rename(columns={"finish_position_clean": "driver_circuit_avg_finish"})
         )
         latest = latest.merge(circuit_avg, on="driver_code", how="left")
-        mask = latest["_circuit_avg"].notna()
-        latest.loc[mask, "driver_circuit_avg_finish"] = latest.loc[mask, "_circuit_avg"]
-        latest.drop(columns=["_circuit_avg"], inplace=True)
+    else:
+        latest["driver_circuit_avg_finish"] = latest["driver_avg_finish_L10"]
+    # Fill any remaining NaN circuit-avg with the driver's L10 average.
+    latest["driver_circuit_avg_finish"] = latest["driver_circuit_avg_finish"].fillna(
+        latest["driver_avg_finish_L10"]
+    )
 
-    return latest
+    return latest[["driver_code", "team_name"] + ROLLING_FEATURES]
 
 
 # ── Qualifying feature construction ──────────────────────────────────────────

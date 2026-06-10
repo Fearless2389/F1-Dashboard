@@ -17,9 +17,13 @@ DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Training window ──────────────────────────────────────────────────────────
-TRAIN_SEASONS   = list(range(2018, 2024))   # 2018–2023
-VAL_SEASONS     = [2024]
-TEST_SEASONS    = [2025]
+# Pushed forward to include 2026 (post-regulation-change era). The 2026
+# season has only 5 rounds in the dataset right now, so we use it as the
+# test set — the model still trains on a healthy 7-season span and gets
+# validated on a full 2025 season.
+TRAIN_SEASONS   = list(range(2018, 2025))   # 2018–2024
+VAL_SEASONS     = [2025]
+TEST_SEASONS    = [2026]
 PREDICT_SEASON  = 2026
 
 ALL_SEASONS = TRAIN_SEASONS + VAL_SEASONS + TEST_SEASONS
