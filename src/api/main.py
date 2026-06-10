@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..live.refresher import start_scheduler
-from .routers import apex, historical, live, meta, model, predict, recent, replay, schedule
+from .routers import apex, forecast, historical, live, meta, model, predict, recent, replay, schedule
 from .websocket import manager
 
 logging.basicConfig(
@@ -116,6 +116,7 @@ app.include_router(predict.router)
 app.include_router(model.router)
 app.include_router(replay.router)
 app.include_router(apex.router)
+app.include_router(forecast.router)
 app.include_router(recent.router)
 
 

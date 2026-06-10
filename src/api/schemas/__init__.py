@@ -65,6 +65,12 @@ from .apex import (
     ReliabilityScore,
     TopPrediction,
 )
+from .forecast import (
+    ForecastDriver,
+    ForecastRaceMeta,
+    ForecastResponse,
+    ForecastTopPick,
+)
 
 __all__ = [
     "HealthResponse",

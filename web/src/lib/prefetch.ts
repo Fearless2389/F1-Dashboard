@@ -30,6 +30,10 @@ export function prefetchForRoute(qc: QueryClient, route: string, season = 2026):
     pf(["apex", "next"], "/api/apex/next", MIN_5);
     return;
   }
+  if (route === "/forecast") {
+    pf(["forecast", "next"], "/api/forecast/next", MIN_5);
+    return;
+  }
   if (route === "/standings") {
     pf(["standings", season], `/api/standings/${season}`, MIN_5);
     pf(["recent-race", season], `/api/recent-race/${season}`, MIN_5);

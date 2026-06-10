@@ -598,6 +598,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/forecast/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Forecast Next
+         * @description Run the 10K Monte Carlo for the next upcoming race.
+         */
+        get: operations["forecast_next_api_forecast_next_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forecast/{season}/{round_num}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Forecast Race
+         * @description Run the 10K Monte Carlo for a specific race.
+         */
+        get: operations["forecast_race_api_forecast__season___round_num__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recent-race/{season}": {
         parameters: {
             query?: never;
@@ -959,6 +999,65 @@ export interface components {
             confidence_score: number;
             /** At Risk */
             at_risk: boolean;
+        };
+        /** ForecastDriver */
+        ForecastDriver: {
+            /** Driver Code */
+            driver_code: string;
+            /** Full Name */
+            full_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Team Colour */
+            team_colour?: string | null;
+            /** Expected Position */
+            expected_position: number;
+            /** Win Prob */
+            win_prob: number;
+            /** Podium Prob */
+            podium_prob: number;
+            /** Position Distribution */
+            position_distribution: number[];
+        };
+        /** ForecastRaceMeta */
+        ForecastRaceMeta: {
+            /** Season */
+            season: number;
+            /** Round */
+            round: number;
+            /** Race Name */
+            race_name: string;
+            /** Circuit Id */
+            circuit_id?: string | null;
+            /** Event Date */
+            event_date?: string | null;
+        };
+        /** ForecastResponse */
+        ForecastResponse: {
+            race_meta: components["schemas"]["ForecastRaceMeta"];
+            pole_pick: components["schemas"]["ForecastTopPick"];
+            winner_pick: components["schemas"]["ForecastTopPick"];
+            /** Drivers */
+            drivers: components["schemas"]["ForecastDriver"][];
+            /** N Simulations */
+            n_simulations: number;
+            /** Generated At */
+            generated_at: string;
+            /** Quali Source */
+            quali_source: string;
+        };
+        /** ForecastTopPick */
+        ForecastTopPick: {
+            /** Driver Code */
+            driver_code: string;
+            /** Full Name */
+            full_name?: string | null;
+            /** Team Name */
+            team_name?: string | null;
+            /** Team Colour */
+            team_colour?: string | null;
+            /** Prob */
+            prob: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2797,6 +2896,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LapByLapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forecast_next_api_forecast_next_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastResponse"];
+                };
+            };
+        };
+    };
+    forecast_race_api_forecast__season___round_num__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+                round_num: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastResponse"];
                 };
             };
             /** @description Validation Error */

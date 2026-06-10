@@ -12,6 +12,7 @@ interface Props { children: ReactNode; }
 const TOP_NAV = [
   { to: "/live",      label: "Live Race" },
   { to: "/apex",      label: "Apex"      },
+  { to: "/forecast",  label: "Forecast"  },
   { to: "/standings", label: "Standings" },
   { to: "/calendar",  label: "Schedule"  },
   { to: "/driver",    label: "Drivers"   },

@@ -84,6 +84,11 @@ def monte_carlo_race(
     podium_counts = Counter()
     points_totals = {code: 0.0 for code in codes}
     podium_combos = Counter()
+    # Full position-distribution tracking. position_counts[driver_idx, k] is
+    # the number of simulations in which that driver finished at P(k+1).
+    # DNFs are bucketed into P20 (the last column) — see plan; v2 may move
+    # them to a dedicated "DNF" column.
+    position_counts = np.zeros((n_drivers, 20), dtype=np.int64)
 
     for _ in range(n_iterations):
         # 1) DNFs
@@ -112,11 +117,18 @@ def monte_carlo_race(
             podium_counts[codes[idx]] += 1
         podium_combos[tuple(sorted(codes[i] for i in podium_idx))] += 1
 
+        # Position-distribution tally for surviving drivers
         for pos, idx in enumerate(ordered_indices, start=1):
+            slot = min(pos - 1, 19)  # cap at column 19 (P20)
+            position_counts[idx, slot] += 1
             pts = POINTS_TABLE.get(pos, 0)
             if idx == fl_idx and pos <= 10:
                 pts += FASTEST_LAP_BONUS
             points_totals[codes[idx]] += pts
+
+        # DNFs land in the final column so the matrix sums to 1.0 per driver.
+        for idx in np.where(dnf_mask)[0]:
+            position_counts[idx, 19] += 1
 
     # Normalise
     def _norm(c: Counter) -> dict[str, float]:
@@ -130,9 +142,24 @@ def monte_carlo_race(
         for trio, cnt in top_combos
     ]
 
+    # Position distribution per driver — normalised over iterations.
+    position_distribution: dict[str, list[float]] = {}
+    expected_position: dict[str, float] = {}
+    weights = np.arange(1, 21, dtype=float)
+    for i, code in enumerate(codes):
+        probs = position_counts[i] / n_iterations
+        position_distribution[code] = probs.tolist()
+        total = probs.sum()
+        if total > 0:
+            expected_position[code] = float((probs * weights).sum() / total)
+        else:
+            expected_position[code] = 20.0
+
     return {
-        "win_distribution":    _norm(win_counts),
-        "podium_distribution": _norm(podium_counts),
-        "expected_points":     expected_points,
-        "podium_combinations": podium_combinations,
+        "win_distribution":     _norm(win_counts),
+        "podium_distribution":  _norm(podium_counts),
+        "expected_points":      expected_points,
+        "podium_combinations":  podium_combinations,
+        "position_distribution": position_distribution,
+        "expected_position":     expected_position,
     }

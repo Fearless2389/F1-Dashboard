@@ -8,6 +8,7 @@ import ModelRoute from "@/routes/ModelRoute";
 import ReplayRoute from "@/routes/ReplayRoute";
 import StandingsRoute from "@/routes/StandingsRoute";
 import ApexRoute from "@/routes/ApexRoute";
+import ForecastRoute from "@/routes/ForecastRoute";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/live" element={<LiveRoute />} />
         <Route path="/calendar" element={<CalendarRoute />} />
         <Route path="/apex" element={<ApexRoute />} />
+        <Route path="/forecast" element={<ForecastRoute />} />
         <Route path="/standings" element={<StandingsRoute />} />
         <Route path="/driver/:code" element={<DriverRoute />} />
         <Route path="/driver" element={<DriverRoute />} />
