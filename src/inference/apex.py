@@ -153,24 +153,26 @@ def _shap_for(driver_code: str,
                      quali_df: pd.DataFrame,
                      circuit_id: str,
                      round_num: int,
-                     season: int) -> tuple[list[str], list[float], list[float]]:
+                     season: int) -> tuple[list[str], list[float], list[float], dict]:
     """
     Compute SHAP for the `xgb_top10` model on the winner's feature row.
     We use xgb_top10 (not the ranker) because SHAP TreeExplainer doesn't
     support LGBMRanker out-of-the-box and high prob_top10 strongly correlates
     with high win probability — semantically close enough.
 
-    Returns (feature_names, shap_values, feature_values) aligned.
+    Returns (feature_names, shap_values, feature_values, context) where
+    `context` carries per-feature comparison stats (field median, driver
+    baseline) the reasoning templates can splice into their text.
     """
     try:
         import shap  # local import — keeps cold-start light when unused
     except ImportError:
         log.warning("SHAP not installed; reasoning blocks will be empty")
-        return [], [], []
+        return [], [], [], {}
 
     artifact = load_model("xgb_top10.pkl")
     if artifact is None:
-        return [], [], []
+        return [], [], [], {}
 
     # Re-create the feature row using the same plumbing as predict_race().
     # Easiest: call the helper functions in predict.py directly to get the
@@ -181,7 +183,7 @@ def _shap_for(driver_code: str,
     )
     feature_matrix = pd.read_parquet(FEATURE_MATRIX) if FEATURE_MATRIX.exists() else pd.DataFrame()
     if feature_matrix.empty:
-        return [], [], []
+        return [], [], [], {}
 
     rolling = _get_latest_rolling_stats(feature_matrix, circuit_id)
     quali = _build_quali_features(quali_df)
@@ -194,7 +196,7 @@ def _shap_for(driver_code: str,
 
     row = features[features["driver_code"] == driver_code]
     if row.empty:
-        return [], [], []
+        return [], [], [], {}
 
     model_cols = artifact["features"]
     X = row.reindex(columns=model_cols).fillna(0)
@@ -209,12 +211,38 @@ def _shap_for(driver_code: str,
         shap_vals = sv[0] if isinstance(sv, np.ndarray) else np.array(sv[0])
     except Exception as exc:
         log.warning("SHAP compute failed: %s", exc)
-        return [], [], []
+        return [], [], [], {}
 
     features_list = list(model_cols)
     shap_list = [float(v) for v in shap_vals]
     value_list = [float(v) for v in X_imp.iloc[0].tolist()]
-    return features_list, shap_list, value_list
+
+    # ── Context for the reasoning templates ──────────────────────────────────
+    # Two comparison anchors per feature:
+    #   field_median   — median across this race's predicted grid (so the text
+    #                    can say "best on the grid" / "below the field median")
+    #   driver_baseline — this driver's cross-season mean (so the text can say
+    #                    "below his own career baseline" or "career-best form")
+    field_median: dict[str, float] = {}
+    for col in features_list:
+        if col in features.columns:
+            v = features[col].astype(float).median(skipna=True)
+            if pd.notna(v):
+                field_median[col] = float(v)
+
+    driver_baseline: dict[str, float] = {}
+    driver_hist = feature_matrix[feature_matrix["driver_code"] == driver_code]
+    for col in features_list:
+        if col in driver_hist.columns and not driver_hist.empty:
+            v = driver_hist[col].astype(float).mean(skipna=True)
+            if pd.notna(v):
+                driver_baseline[col] = float(v)
+
+    context = {
+        "field_median":    field_median,
+        "driver_baseline": driver_baseline,
+    }
+    return features_list, shap_list, value_list, context
 
 
 # ── Estimated gap (heuristic) ────────────────────────────────────────────────
@@ -351,10 +379,10 @@ def predict_apex(season: Optional[int] = None,
     reasoning_out: list[dict] = []
     winner_blocks: list = []
     for pos_idx, code in enumerate(podium_codes, start=1):
-        feats, shap_vals, feat_vals = _shap_for(
+        feats, shap_vals, feat_vals, ctx = _shap_for(
             code, quali_df, circuit_id, round_num, season,
         )
-        blocks = reasoning_blocks(feats, shap_vals, feat_vals, top_n=3)
+        blocks = reasoning_blocks(feats, shap_vals, feat_vals, top_n=3, context=ctx)
         reasoning_out.append({
             "position":    pos_idx,
             "driver_code": code,
@@ -448,6 +476,91 @@ def predict_apex(season: Optional[int] = None,
         "reliability":    reliability,
         "generated_at":   datetime.now(timezone.utc).isoformat(),
         "quali_source":   quali_source,
+    }
+
+
+# ── Race-level predicted vs actual accuracy ──────────────────────────────────
+
+def race_accuracy(season: int, round_num: int) -> Optional[dict]:
+    """Predicted P1-P10 vs the actual P1-P10 for a finished race, plus a
+    hit-rate metrics block. Used by the Apex page's "did the model get it
+    right?" surface.
+
+    Returns None when the race results aren't available yet (future race).
+    """
+    actual_results = jolpica.race_results(season, round_num)
+    if actual_results.empty:
+        return None
+
+    # Sort actual finishers by classified position; DNFs go to the tail.
+    actual_sorted = actual_results.copy()
+    actual_sorted["_pos"] = actual_sorted["position"].fillna(99)
+    actual_sorted = actual_sorted.sort_values("_pos")
+    actual_top10 = actual_sorted.head(10).to_dict("records")
+    race_name = str(actual_sorted["race_name"].iloc[0])
+
+    # Predicted ranking — reuse the existing apex orchestrator.
+    try:
+        apex = predict_apex(season=season, round_num=round_num)
+    except Exception as exc:
+        log.warning("predict_apex failed for accuracy %s R%s: %s", season, round_num, exc)
+        return None
+
+    # Podium uses the winner ranker; finish_p4_p10 ranks the field by the
+    # top-10 classifier. They're different rankings, so the same driver can
+    # appear in both lists. We take the podium order for P1-P3 (it's the
+    # "headline" prediction the UI shows) and fill P4-P10 from the next
+    # finish_p4_p10 entries that aren't already on the podium.
+    seen: set[str] = set()
+    predicted_top10: list[dict] = []
+    for slot in apex.get("podium", [])[:3]:
+        code = slot.get("driver_code")
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        predicted_top10.append({"driver_code": code, "team_name": slot.get("team_name")})
+    for row in apex.get("finish_p4_p10", []):
+        code = row.get("driver_code")
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        predicted_top10.append({"driver_code": code, "team_name": row.get("team_name")})
+        if len(predicted_top10) >= 10:
+            break
+
+    rows = []
+    for i in range(10):
+        pos = i + 1
+        pred = predicted_top10[i] if i < len(predicted_top10) else {}
+        actual = actual_top10[i] if i < len(actual_top10) else {}
+        pred_code = pred.get("driver_code")
+        actual_code = actual.get("driver_code")
+        rows.append({
+            "position":         pos,
+            "predicted_driver": pred_code,
+            "predicted_team":   pred.get("team_name"),
+            "actual_driver":    actual_code,
+            "actual_team":      str(actual.get("team_name")) if actual.get("team_name") else None,
+            "is_hit":           bool(pred_code and pred_code == actual_code),
+        })
+
+    predicted_podium = {r["predicted_driver"] for r in rows[:3] if r["predicted_driver"]}
+    actual_podium    = {r["actual_driver"]    for r in rows[:3] if r["actual_driver"]}
+
+    metrics = {
+        "p1_hit":         rows[0]["is_hit"],
+        "podium_hits":    sum(1 for r in rows[:3] if r["is_hit"]),
+        "podium_overlap": len(predicted_podium & actual_podium),
+        "top5_hits":      sum(1 for r in rows[:5] if r["is_hit"]),
+        "top10_hits":     sum(1 for r in rows[:10] if r["is_hit"]),
+    }
+
+    return {
+        "season":    int(season),
+        "round":     int(round_num),
+        "race_name": race_name,
+        "rows":      rows,
+        "metrics":   metrics,
     }
 
 

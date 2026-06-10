@@ -556,6 +556,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apex/{season}/{round_num}/accuracy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Apex Accuracy
+         * @description Predicted P1-P10 vs the actual P1-P10 finishing order for a race
+         *     that has results published. Used by the Apex page's accuracy panel.
+         */
+        get: operations["apex_accuracy_api_apex__season___round_num__accuracy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/apex/{season}/{round_num}/lap-by-lap": {
         parameters: {
             query?: never;
@@ -619,6 +640,57 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccuracyMetrics
+         * @description Hit-rate summary across the top 10.
+         */
+        AccuracyMetrics: {
+            /** P1 Hit */
+            p1_hit: boolean;
+            /** Podium Hits */
+            podium_hits: number;
+            /** Podium Overlap */
+            podium_overlap: number;
+            /** Top5 Hits */
+            top5_hits: number;
+            /** Top10 Hits */
+            top10_hits: number;
+        };
+        /** AccuracyResponse */
+        AccuracyResponse: {
+            /** Season */
+            season: number;
+            /** Round */
+            round: number;
+            /** Race Name */
+            race_name: string;
+            /** Rows */
+            rows: components["schemas"]["AccuracyRow"][];
+            metrics: components["schemas"]["AccuracyMetrics"];
+        };
+        /**
+         * AccuracyRow
+         * @description One position slot (P1..P10) with the model's pick and what actually
+         *     happened. `is_hit` is true when the same driver fills the same slot in
+         *     both columns.
+         */
+        AccuracyRow: {
+            /** Position */
+            position: number;
+            /** Predicted Driver */
+            predicted_driver?: string | null;
+            /** Predicted Team */
+            predicted_team?: string | null;
+            /** Actual Driver */
+            actual_driver?: string | null;
+            /** Actual Team */
+            actual_team?: string | null;
+            /**
+             * Is Hit
+             * @default false
+             */
+            is_hit: boolean;
+        };
         /** ApexRaceMeta */
         ApexRaceMeta: {
             /** Season */
@@ -2661,6 +2733,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apex_accuracy_api_apex__season___round_num__accuracy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+                round_num: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccuracyResponse"];
                 };
             };
             /** @description Validation Error */

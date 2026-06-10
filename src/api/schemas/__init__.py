@@ -49,6 +49,9 @@ from .replay import (
     WinProbabilityRow,
 )
 from .apex import (
+    AccuracyMetrics,
+    AccuracyResponse,
+    AccuracyRow,
     ApexRaceMeta,
     ApexResponse,
     FinishRow,

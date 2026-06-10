@@ -70,6 +70,9 @@ export type LapByLapResponse     = S["LapByLapResponse"];
 export type LapByLapFrame        = S["LapByLapFrame"];
 export type LapByLapRow          = S["LapByLapRow"];
 export type LapByLapDriverMeta   = S["LapByLapDriverMeta"];
+export type AccuracyResponse     = S["AccuracyResponse"];
+export type AccuracyRow          = S["AccuracyRow"];
+export type AccuracyMetrics      = S["AccuracyMetrics"];
 
 // LiveDriver with replay extensions (lap_progress, lap_time, top_speed)
 export interface ReplayDriver {

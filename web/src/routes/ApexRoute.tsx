@@ -9,9 +9,9 @@ import { TopPredictionCard } from "@/components/panels/TopPredictionCard";
 import { PredictedPodiumCard } from "@/components/panels/PredictedPodiumCard";
 import { ModelReasoning } from "@/components/panels/ModelReasoning";
 import { PredictedFinishTable } from "@/components/panels/PredictedFinishTable";
-import { LapByLapChart } from "@/components/panels/LapByLapChart";
+import { PredictedVsActualTable } from "@/components/panels/PredictedVsActualTable";
 import { api } from "@/lib/api";
-import type { ApexResponse, LapByLapResponse, ScheduleResponse } from "@/lib/types";
+import type { AccuracyResponse, ApexResponse, ScheduleResponse } from "@/lib/types";
 
 const SEASONS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018];
 
@@ -49,10 +49,10 @@ export default function ApexRoute() {
     return new Date(eventDate).getTime() < Date.now();
   }, [eventDate]);
 
-  const { data: lapByLap, isLoading: lblLoading, error: lblError } = useQuery({
-    queryKey: ["apex-lap-by-lap", data?.race_meta.season, data?.race_meta.round],
-    queryFn: () => api.get<LapByLapResponse>(
-      `/api/apex/${data!.race_meta.season}/${data!.race_meta.round}/lap-by-lap`,
+  const { data: accuracy, isLoading: accLoading, error: accError } = useQuery({
+    queryKey: ["apex-accuracy", data?.race_meta.season, data?.race_meta.round],
+    queryFn: () => api.get<AccuracyResponse>(
+      `/api/apex/${data!.race_meta.season}/${data!.race_meta.round}/accuracy`,
     ),
     enabled: !!data && isPastRace,
     retry: false,
@@ -143,7 +143,6 @@ export default function ApexRoute() {
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-[3fr_2fr]">
             <TopPredictionCard
               top={data.top_prediction}
-              stochasticMean={data.top_prediction.stochastic_mean}
               qualiSource={data.quali_source}
             />
             <PredictedPodiumCard
@@ -158,17 +157,17 @@ export default function ApexRoute() {
             <PredictedFinishTable rows={data.finish_p4_p10} />
           </div>
 
-          {/* Lap-by-lap predicted vs actual — only for past races we have replay data for. */}
-          {isPastRace && lapByLap && <LapByLapChart data={lapByLap} />}
-          {isPastRace && lblLoading && <Skeleton className="h-[320px] w-full" />}
-          {isPastRace && lblError && (
+          {/* Predicted vs actual top-10 — only for past races with results published. */}
+          {isPastRace && accuracy && <PredictedVsActualTable data={accuracy} />}
+          {isPastRace && accLoading && <Skeleton className="h-72 w-full" />}
+          {isPastRace && accError && (
             <div className="rounded-md border border-dashed border-f1-edge p-4 text-center text-xs text-f1-muted">
-              Lap-by-lap replay data isn't cached for this race yet.
+              Final results haven't been published for this race yet.
             </div>
           )}
           {!isPastRace && explicitMode && (
             <div className="rounded-md border border-dashed border-f1-edge p-4 text-center text-xs text-f1-muted">
-              Lap-by-lap comparison will appear here once this race has run.
+              Predicted vs actual will appear here once this race has run.
             </div>
           )}
         </>

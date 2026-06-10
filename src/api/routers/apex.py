@@ -4,8 +4,8 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from ...inference.apex import lap_by_lap_comparison, predict_apex
-from ..schemas import ApexResponse, LapByLapResponse
+from ...inference.apex import lap_by_lap_comparison, predict_apex, race_accuracy
+from ..schemas import AccuracyResponse, ApexResponse, LapByLapResponse
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +36,16 @@ def apex_race(season: int, round_num: int) -> ApexResponse:
         log.exception("Apex prediction failed for %s R%s", season, round_num)
         raise HTTPException(500, f"Apex prediction failed: {exc}") from exc
     return ApexResponse(**result)
+
+
+@router.get("/{season}/{round_num}/accuracy", response_model=AccuracyResponse)
+def apex_accuracy(season: int, round_num: int) -> AccuracyResponse:
+    """Predicted P1-P10 vs the actual P1-P10 finishing order for a race
+    that has results published. Used by the Apex page's accuracy panel."""
+    result = race_accuracy(season, round_num)
+    if result is None:
+        raise HTTPException(404, f"No actual results yet for {season} R{round_num}")
+    return AccuracyResponse(**result)
 
 
 @router.get("/{season}/{round_num}/lap-by-lap", response_model=LapByLapResponse)

@@ -103,3 +103,32 @@ class LapByLapResponse(BaseModel):
     n_laps: int
     drivers: list[LapByLapDriverMeta]
     frames: list[LapByLapFrame]
+
+
+class AccuracyRow(BaseModel):
+    """One position slot (P1..P10) with the model's pick and what actually
+    happened. `is_hit` is true when the same driver fills the same slot in
+    both columns."""
+    position: int
+    predicted_driver: Optional[str] = None
+    predicted_team: Optional[str] = None
+    actual_driver: Optional[str] = None
+    actual_team: Optional[str] = None
+    is_hit: bool = False
+
+
+class AccuracyMetrics(BaseModel):
+    """Hit-rate summary across the top 10."""
+    p1_hit: bool
+    podium_hits: int        # exact-position hits in P1..P3 (0..3)
+    podium_overlap: int     # P1..P3 set intersection regardless of order (0..3)
+    top5_hits: int          # 0..5
+    top10_hits: int         # 0..10
+
+
+class AccuracyResponse(BaseModel):
+    season: int
+    round: int
+    race_name: str
+    rows: list[AccuracyRow]
+    metrics: AccuracyMetrics

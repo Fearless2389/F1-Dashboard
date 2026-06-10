@@ -5,7 +5,6 @@ import type { TopPrediction } from "@/lib/types";
 
 interface Props {
   top: TopPrediction;
-  stochasticMean?: number | null;
   qualiSource?: string;       // "actual" | "predicted"
 }
 
@@ -13,16 +12,22 @@ interface Props {
  * Editorial hero card — italic Playfair driver name on team-gradient backdrop,
  * Top Prediction pill, reasoning paragraph, big win-prob % + progress bar.
  *
- * The headshot bleed used to sit on the right; removed since the OpenF1
- * portrait URLs aren't always reliable for the next-season grid (especially
- * for rookies and drivers who just switched teams).
+ * Two small affordances under the headline win-prob:
+ *   1. Conformal range when present (win_low / win_high from the trained
+ *      artifact's calibration). Real uncertainty bound, not a placeholder.
+ *   2. The "predicted grid" pill at the top — flagged when qualifying isn't
+ *      yet published so we had to use the model's own grid forecast.
+ *
+ * (The old "stochastic mean / vs prior" line was placeholder vapor —
+ * `stochastic_mean` was always exactly `win_prob` because Monte Carlo was
+ * never wired up. Removed to stop misleading the reader.)
  */
-export function TopPredictionCard({ top, stochasticMean, qualiSource }: Props) {
+export function TopPredictionCard({ top, qualiSource }: Props) {
   const color = teamColorFallback(top.team_colour, top.team_name);
   const pct = Math.round((top.win_prob || 0) * 100);
-  const deltaVsMean = stochasticMean != null
-    ? ((top.win_prob - stochasticMean) * 100).toFixed(1)
-    : null;
+  const lowPct = top.win_low != null ? Math.round(top.win_low * 100) : null;
+  const highPct = top.win_high != null ? Math.round(top.win_high * 100) : null;
+  const hasRange = lowPct != null && highPct != null && highPct > lowPct;
 
   return (
     <div
@@ -76,18 +81,16 @@ export function TopPredictionCard({ top, stochasticMean, qualiSource }: Props) {
                   transition={{ type: "spring", stiffness: 110, damping: 22 }}
                 />
               </div>
-              <div className="mt-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-f1-muted">
-                <span>Stochastic Mean</span>
-                {deltaVsMean != null && (
-                  <span
-                    className={
-                      Number(deltaVsMean) >= 0 ? "text-paddock-cyan" : "text-paddock-coral"
-                    }
-                  >
-                    {Number(deltaVsMean) >= 0 ? "+" : ""}{deltaVsMean}% vs prior
-                  </span>
-                )}
-              </div>
+              {hasRange && (
+                <div
+                  className="mt-1 text-[10px] uppercase tracking-widest text-f1-muted"
+                  title="Conformal interval — calibrated prediction range, not a placeholder"
+                >
+                  Range <span className="text-paddock-cyan font-semibold tabular-nums">{lowPct}%</span>
+                  {" – "}
+                  <span className="text-paddock-cyan font-semibold tabular-nums">{highPct}%</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
