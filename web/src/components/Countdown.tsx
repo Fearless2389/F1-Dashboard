@@ -11,6 +11,9 @@ interface Props {
   className?: string;
 }
 
+// Hoisted out of the component so we don't re-create it every tick.
+const pad = (n: number) => n.toString().padStart(2, "0");
+
 /**
  * Live-ticking countdown. Re-renders every second.
  * Displays as `2d 14h 12m 03s` (or `14h 12m 03s` once under a day).
@@ -42,8 +45,6 @@ export function Countdown({ target, pastLabel = "Live now", compact = false, cla
   const h = Math.floor((secs % 86400) / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
-
-  const pad = (n: number) => n.toString().padStart(2, "0");
 
   // Show only the two largest units when compact
   const parts: string[] = [];

@@ -187,27 +187,31 @@ interface ComparisonTooltipProps extends TooltipProps<number, string> {
   primarySeason: number;
   compareSeason: number;
 }
+
+// Pure helper hoisted outside the component — no closure deps, doesn't need
+// to be recreated each render.
+const fmtPosition = (val: number | undefined, isDnf?: boolean) => {
+  if (val == null) return "—";
+  if (isDnf) return "DNF";
+  return `P${val}`;
+};
+
 function ComparisonTooltip({ active, payload, label, primarySeason, compareSeason }: ComparisonTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const row = payload[0].payload as ChartRow;
-  const fmt = (val: number | undefined, isDnf?: boolean) => {
-    if (val == null) return "—";
-    if (isDnf) return "DNF";
-    return `P${val}`;
-  };
   return (
     <div className="rounded-md border border-f1-edge bg-f1-dark/95 backdrop-blur p-2 text-xs shadow-2xl space-y-0.5">
       <div className="text-[10px] uppercase tracking-widest text-f1-muted">Round {label}</div>
       <div className="flex items-center gap-2 font-mono">
         <span className="text-f1-muted w-12">{primarySeason}</span>
         <span className={row.primaryIsDnf ? "text-f1-red" : "text-f1-white"}>
-          {fmt(row.primary, row.primaryIsDnf)}
+          {fmtPosition(row.primary, row.primaryIsDnf)}
         </span>
       </div>
       <div className="flex items-center gap-2 font-mono">
         <span className="text-f1-muted w-12">{compareSeason}</span>
         <span className={row.compareIsDnf ? "text-f1-red" : "text-f1-white"}>
-          {fmt(row.compare, row.compareIsDnf)}
+          {fmtPosition(row.compare, row.compareIsDnf)}
         </span>
       </div>
     </div>

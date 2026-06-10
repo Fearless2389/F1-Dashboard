@@ -9,6 +9,12 @@ interface Props {
   reliability?: ReliabilityScore | null;
 }
 
+// Hoisted: pure function, no component-scope dependencies. Stops React from
+// creating a fresh copy each render and breaking React.memo on any child that
+// receives this as a prop.
+const tileHeight = (pos: number) =>
+  pos === 1 ? "h-40 md:h-44" : pos === 2 ? "h-32 md:h-36" : "h-28 md:h-32";
+
 /**
  * Stepped podium card with WIN probability percentages inside each tile.
  * Reliability score line under the podium.
@@ -16,9 +22,6 @@ interface Props {
 export function PredictedPodiumCard({ podium, reliability }: Props) {
   const by = Object.fromEntries(podium.map(p => [p.position, p]));
   const order = [by[2], by[1], by[3]];
-
-  const tileHeight = (pos: number) =>
-    pos === 1 ? "h-40 md:h-44" : pos === 2 ? "h-32 md:h-36" : "h-28 md:h-32";
 
   return (
     <div className="rounded-xl border border-f1-edge bg-paddock-panel/80 p-5">
