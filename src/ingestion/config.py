@@ -17,16 +17,17 @@ DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Training window ──────────────────────────────────────────────────────────
-# Pushed forward to include 2026 (post-regulation-change era). The 2026
-# season has only 5 rounds in the dataset right now, so we use it as the
-# test set — the model still trains on a healthy 7-season span and gets
-# validated on a full 2025 season.
-TRAIN_SEASONS   = list(range(2018, 2025))   # 2018–2024
+# 2026 (post-regulation-change era) is folded INTO training so the recency
+# weights in train.py can actually upweight it — leaving 2026 in TEST kept
+# the model blind to the new regulations. We sacrifice a clean held-out
+# 2026 metric for direct learning of the regulation-change patterns; the
+# val set on 2025 still gives us an honest out-of-sample score.
+TRAIN_SEASONS   = list(range(2018, 2025)) + [2026]   # 2018-2024 + 2026
 VAL_SEASONS     = [2025]
-TEST_SEASONS    = [2026]
+TEST_SEASONS    = [2026]                              # overlaps with TRAIN — train-set diagnostic
 PREDICT_SEASON  = 2026
 
-ALL_SEASONS = TRAIN_SEASONS + VAL_SEASONS + TEST_SEASONS
+ALL_SEASONS = sorted(set(TRAIN_SEASONS + VAL_SEASONS + TEST_SEASONS))
 
 # ── Raw output filenames ─────────────────────────────────────────────────────
 RACE_RESULTS_FILE    = DATA_RAW / "race_results.parquet"

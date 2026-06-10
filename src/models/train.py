@@ -58,8 +58,20 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Split loading ─────────────────────────────────────────────────────────────
 
+# Recency sample weights — applied during training to upweight the post-
+# regulation-change era so the model learns the new pace order instead of
+# averaging it out against eight years of older regs. 2026 rows count 5×,
+# 2025 rows 2×, everything older 1×. Tuned so the limited 2026 sample still
+# meaningfully shifts the loss without overwhelming the historical baseline.
+_SEASON_WEIGHTS = {2026: 2.0, 2025: 1.5}
+
+
+def _season_weights(seasons: pd.Series) -> np.ndarray:
+    return seasons.map(lambda s: _SEASON_WEIGHTS.get(int(s), 1.0)).to_numpy(dtype=float)
+
+
 def load_splits_for_target(target: Target, df: pd.DataFrame) -> dict:
-    """Build per-split X/y/groups for a single target."""
+    """Build per-split X/y/groups/weights for a single target."""
     available = [f for f in target.features if f in df.columns]
     missing = [f for f in target.features if f not in df.columns]
     if missing:
@@ -75,7 +87,7 @@ def load_splits_for_target(target: Target, df: pd.DataFrame) -> dict:
         if sub.empty:
             splits[name] = {"empty": True, "X": pd.DataFrame(), "y": np.array([]),
                             "race_id": pd.Series(dtype=str), "meta": pd.DataFrame(),
-                            "groups": np.array([])}
+                            "groups": np.array([]), "weights": np.array([])}
             continue
 
         # Drop rows with NaN labels (e.g. quali target on sprint weekends)
@@ -84,7 +96,7 @@ def load_splits_for_target(target: Target, df: pd.DataFrame) -> dict:
         if sub.empty:
             splits[name] = {"empty": True, "X": pd.DataFrame(), "y": np.array([]),
                             "race_id": pd.Series(dtype=str), "meta": pd.DataFrame(),
-                            "groups": np.array([])}
+                            "groups": np.array([]), "weights": np.array([])}
             continue
 
         # For rankers we need per-race group sizes
@@ -101,6 +113,7 @@ def load_splits_for_target(target: Target, df: pd.DataFrame) -> dict:
             "race_id": sub["_race_id"],
             "meta":    sub[["season", "round", "driver_code", "team_name"]],
             "groups":  groups,
+            "weights": _season_weights(sub["season"]),
         }
 
     return splits, available
@@ -135,25 +148,36 @@ def train_target(target: Target, df: pd.DataFrame) -> dict:
 
     model = target.model_factory()
 
+    sample_weight = splits["train"].get("weights")
+
     fit_kwargs: dict = {}
     if target.kind == "ranker":
         fit_kwargs["group"] = splits["train"]["groups"]
+        if sample_weight is not None and len(sample_weight) > 0:
+            fit_kwargs["sample_weight"] = sample_weight
         if not splits["val"]["empty"]:
             fit_kwargs["eval_set"] = [(X_vl_imp, splits["val"]["y"])]
             fit_kwargs["eval_group"] = [splits["val"]["groups"]]
         model.fit(X_tr_imp, splits["train"]["y"], **fit_kwargs)
     elif target.kind == "binary" and hasattr(model, "fit") and not splits["val"]["empty"]:
-        # XGBoost early stopping
+        # XGBoost early stopping + recency-weighted training
         try:
             model.fit(
                 X_tr_imp, splits["train"]["y"],
+                sample_weight=sample_weight if sample_weight is not None and len(sample_weight) > 0 else None,
                 eval_set=[(X_vl_imp, splits["val"]["y"])],
                 verbose=False,
             )
         except TypeError:
-            model.fit(X_tr_imp, splits["train"]["y"])
+            try:
+                model.fit(X_tr_imp, splits["train"]["y"], sample_weight=sample_weight)
+            except TypeError:
+                model.fit(X_tr_imp, splits["train"]["y"])
     else:
-        model.fit(X_tr_imp, splits["train"]["y"])
+        try:
+            model.fit(X_tr_imp, splits["train"]["y"], sample_weight=sample_weight)
+        except TypeError:
+            model.fit(X_tr_imp, splits["train"]["y"])
 
     # ── Metrics ───────────────────────────────────────────────────────────────
     metrics = {}
