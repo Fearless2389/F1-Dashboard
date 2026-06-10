@@ -1016,6 +1016,8 @@ export interface components {
             win_prob: number;
             /** Podium Prob */
             podium_prob: number;
+            /** Dnf Prob */
+            dnf_prob: number;
             /** Position Distribution */
             position_distribution: number[];
         };

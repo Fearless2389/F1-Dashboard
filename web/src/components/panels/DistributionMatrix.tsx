@@ -10,16 +10,19 @@ const N_POSITIONS = 20;
 const BLANK_THRESHOLD = 0.05;     // hide cells with probability < 5%
 
 /**
- * Full 20-driver × 20-position distribution matrix. Row N column K means
- * "in our 10K simulations, driver N finished at position K this often".
+ * Full 20-driver × 20-position distribution matrix + a separate DNF column.
+ * Row N column K means "in our 10K simulations, driver N finished at
+ * position K this often". The DNF column carries the share of simulations
+ * where the car retired, kept distinct from finishing positions so a
+ * fragile driver doesn't bleed mass into P20 (the old "DNF → P20" hack
+ * skewed every row toward the right edge).
  *
- * Cell value: round(P × 100). Cells below the BLANK_THRESHOLD are left empty
- * so the eye reads only the meaningful mass; colour intensity is
- * sqrt-gamma-corrected so tails still register at lower opacities. Each row
- * gets a small team-colour stripe on the leftmost column for fast scanning.
- *
- * DNFs are bucketed into the rightmost column (P20) in the simulator — that
- * column will look "hotter" than the others for low-reliability drivers.
+ * Cell value: round(P × 100). Cells below the BLANK_THRESHOLD are left
+ * empty so the eye reads only the meaningful mass; colour intensity is
+ * sqrt-gamma-corrected so tails still register at lower opacities. Each
+ * row gets a small team-colour stripe on the leftmost column for fast
+ * scanning, and the DNF column uses a cyan tint so it can't be mistaken
+ * for a P20 finish.
  */
 export function DistributionMatrix({ drivers }: Props) {
   if (!drivers || drivers.length === 0) {
@@ -34,7 +37,7 @@ export function DistributionMatrix({ drivers }: Props) {
     <div className="rounded-xl border border-f1-edge bg-paddock-panel/60 p-5">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <span className="text-[10px] uppercase tracking-widest text-f1-muted font-semibold">
-          Full Distribution Matrix · 20 × 20
+          Full Distribution Matrix · 20 positions + DNF
         </span>
       </div>
 
@@ -53,11 +56,21 @@ export function DistributionMatrix({ drivers }: Props) {
                   P{i + 1}
                 </th>
               ))}
+              <th
+                className="text-[9px] uppercase tracking-widest text-paddock-cyan text-center px-1.5 py-2 min-w-[32px] border-l border-f1-edge/60"
+                title="Share of simulations in which the car retired"
+              >
+                DNF
+              </th>
             </tr>
           </thead>
           <tbody>
             {drivers.map(d => {
               const color = teamColorFallback(d.team_colour, d.team_name);
+              const dnf = d.dnf_prob ?? 0;
+              const showDnf = dnf >= BLANK_THRESHOLD;
+              const dnfValue = Math.round(dnf * 100);
+              const dnfIntensity = Math.min(1, Math.sqrt(dnf / 0.4));
               return (
                 <tr key={d.driver_code} className="border-t border-f1-edge/30">
                   <td className="sticky left-0 z-10 bg-paddock-panel/95 text-left px-2 py-1.5 border-t border-f1-edge/30">
@@ -92,6 +105,20 @@ export function DistributionMatrix({ drivers }: Props) {
                       </td>
                     );
                   })}
+                  <td
+                    className={cn(
+                      "border-t border-f1-edge/30 border-l border-f1-edge/60 text-center tabular-nums px-1 py-1.5",
+                      showDnf ? "text-paddock-cyan font-semibold" : "text-f1-muted/0",
+                    )}
+                    style={{
+                      background: showDnf
+                        ? `rgba(34, 232, 201, ${0.10 + dnfIntensity * 0.5})`
+                        : "transparent",
+                    }}
+                    title={`${dnfValue}% of simulations retire`}
+                  >
+                    {showDnf ? dnfValue : ""}
+                  </td>
                 </tr>
               );
             })}
@@ -100,7 +127,7 @@ export function DistributionMatrix({ drivers }: Props) {
       </div>
 
       <div className="mt-3 text-[10px] text-f1-muted/80">
-        Cell value = round(P × 100). Cells below 5% are blank; colour scale is gamma-corrected so sub-threshold tails still register. DNF probability lands in the rightmost column (P20).
+        Cell value = round(P × 100). Each finishing row sums to (100 − DNF%); the cyan DNF column on the right is the share of simulations where the car retired. Cells below 5% are blank; the coral scale is gamma-corrected so sub-threshold tails still register.
       </div>
     </div>
   );

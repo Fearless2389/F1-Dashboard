@@ -138,6 +138,7 @@ def race_forecast(season: Optional[int] = None,
     expected_pos = mc["expected_position"]
     win_dist = mc["win_distribution"]
     podium_dist = mc["podium_distribution"]
+    dnf_dist = mc.get("dnf_distribution") or {}
 
     # 6) Curate drivers — sort by expected_position so the matrix reads
     # top-of-grid → tail.
@@ -153,6 +154,7 @@ def race_forecast(season: Optional[int] = None,
             "expected_position":    float(expected_pos.get(code, 20.0)),
             "win_prob":             float(win_dist.get(code, 0.0)),
             "podium_prob":          float(podium_dist.get(code, 0.0)),
+            "dnf_prob":             float(dnf_dist.get(code, 0.0)),
             "position_distribution": position_dist.get(code, [0.0] * 20),
         })
     drivers_out.sort(key=lambda d: d["expected_position"])

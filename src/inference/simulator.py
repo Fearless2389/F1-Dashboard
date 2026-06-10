@@ -86,14 +86,21 @@ def monte_carlo_race(
     podium_combos = Counter()
     # Full position-distribution tracking. position_counts[driver_idx, k] is
     # the number of simulations in which that driver finished at P(k+1).
-    # DNFs are bucketed into P20 (the last column) — see plan; v2 may move
-    # them to a dedicated "DNF" column.
+    # DNFs are tracked in `dnf_counts` instead of being folded into P20 — the
+    # old "DNF → P20" convention skewed every driver's expected position to
+    # the right and made the matrix's P20 column read as "everyone finishes
+    # last" when really it was just the reliability risk piling up there.
     position_counts = np.zeros((n_drivers, 20), dtype=np.int64)
+    dnf_counts = np.zeros(n_drivers, dtype=np.int64)
 
     for _ in range(n_iterations):
         # 1) DNFs
         dnf_mask = rng.random(n_drivers) < dnf_probs
         survivor_idx = np.where(~dnf_mask)[0]
+        # Tally DNFs into their own bucket so the position matrix only ever
+        # describes finishing positions (no double-counting at P20).
+        for idx in np.where(dnf_mask)[0]:
+            dnf_counts[idx] += 1
         if len(survivor_idx) == 0:
             continue
 
@@ -126,10 +133,6 @@ def monte_carlo_race(
                 pts += FASTEST_LAP_BONUS
             points_totals[codes[idx]] += pts
 
-        # DNFs land in the final column so the matrix sums to 1.0 per driver.
-        for idx in np.where(dnf_mask)[0]:
-            position_counts[idx, 19] += 1
-
     # Normalise
     def _norm(c: Counter) -> dict[str, float]:
         return {code: c[code] / n_iterations for code in codes}
@@ -142,16 +145,22 @@ def monte_carlo_race(
         for trio, cnt in top_combos
     ]
 
-    # Position distribution per driver — normalised over iterations.
+    # Position distribution per driver — normalised over iterations. Each row
+    # sums to (1 - dnf_prob) rather than 1.0 because DNFs are reported
+    # separately. `expected_position` is the conditional-on-finishing mean —
+    # "if they survive, where do we expect them to finish?" — so a fragile
+    # car no longer drags everyone's mean toward P20.
     position_distribution: dict[str, list[float]] = {}
     expected_position: dict[str, float] = {}
+    dnf_distribution: dict[str, float] = {}
     weights = np.arange(1, 21, dtype=float)
     for i, code in enumerate(codes):
         probs = position_counts[i] / n_iterations
         position_distribution[code] = probs.tolist()
-        total = probs.sum()
-        if total > 0:
-            expected_position[code] = float((probs * weights).sum() / total)
+        dnf_distribution[code] = float(dnf_counts[i] / n_iterations)
+        finished_mass = probs.sum()
+        if finished_mass > 0:
+            expected_position[code] = float((probs * weights).sum() / finished_mass)
         else:
             expected_position[code] = 20.0
 
@@ -162,4 +171,5 @@ def monte_carlo_race(
         "podium_combinations":  podium_combinations,
         "position_distribution": position_distribution,
         "expected_position":     expected_position,
+        "dnf_distribution":      dnf_distribution,
     }
