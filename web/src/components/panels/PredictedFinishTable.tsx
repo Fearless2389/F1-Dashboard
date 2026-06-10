@@ -13,11 +13,6 @@ const CONFIDENCE_HINT =
   "A row is flagged 'Race at Risk' when DNF probability is above 18% or " +
   "the top-10 probability falls below 40%.";
 
-const GAP_HINT =
-  "Estimated gap is a positional heuristic — 3.2 seconds × (position − 1). " +
-  "It's a rough illustration of the cumulative gap to the leader, not a " +
-  "per-driver pace estimate. (A real per-lap pace model would replace this.)";
-
 /**
  * P4–P10 prediction table. Each row has a confidence bar — coral for high
  * confidence rows, cyan for "race at risk" rows (high DNF or low top-10 prob).
@@ -49,13 +44,9 @@ export function PredictedFinishTable({ rows }: Props) {
       </div>
 
       {/* Header row */}
-      <div className="grid grid-cols-[28px_1fr_72px_1fr_44px] gap-x-3 text-[9px] uppercase tracking-widest text-f1-muted px-1 pb-2 border-b border-f1-edge">
+      <div className="grid grid-cols-[28px_1fr_1fr_44px] gap-x-3 text-[9px] uppercase tracking-widest text-f1-muted px-1 pb-2 border-b border-f1-edge">
         <div>Pos</div>
         <div>Driver / Constructor</div>
-        <div className="text-right flex items-center justify-end gap-1" title={GAP_HINT}>
-          Est. Gap
-          <Info size={9} className="text-f1-muted/70" />
-        </div>
         <div className="flex items-center gap-1" title={CONFIDENCE_HINT}>
           Confidence Score
           <Info size={9} className="text-f1-muted/70" />
@@ -74,7 +65,7 @@ export function PredictedFinishTable({ rows }: Props) {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.03 }}
-              className="grid grid-cols-[28px_1fr_72px_1fr_44px] gap-x-3 items-center border-b border-f1-edge/60 py-2.5 last:border-b-0"
+              className="grid grid-cols-[28px_1fr_1fr_44px] gap-x-3 items-center border-b border-f1-edge/60 py-2.5 last:border-b-0"
             >
               <div className="font-mono font-semibold tabular-nums text-f1-white text-sm">
                 {String(r.position).padStart(2, "0")}
@@ -87,9 +78,6 @@ export function PredictedFinishTable({ rows }: Props) {
                     {r.team_name}
                   </div>
                 </div>
-              </div>
-              <div className="text-right text-xs text-f1-muted tabular-nums font-mono">
-                +{r.est_gap_s.toFixed(2)}s
               </div>
               <div className="h-1.5 rounded-full bg-f1-edge overflow-hidden">
                 <div className="h-full" style={{ width: `${pct}%`, background: barColor }} />

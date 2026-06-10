@@ -556,6 +556,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apex/{season}/{round_num}/lap-by-lap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Apex Lap By Lap
+         * @description Predicted vs actual finishing position across the race, sampled every
+         *     5 laps. Only available for races whose replay data has been ingested.
+         */
+        get: operations["apex_lap_by_lap_api_apex__season___round_num__lap_by_lap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recent-race/{season}": {
         parameters: {
             query?: never;
@@ -618,7 +639,7 @@ export interface components {
             /** Podium */
             podium: components["schemas"]["PodiumSlot"][];
             /** Reasoning */
-            reasoning: components["schemas"]["ReasoningBlockOut"][];
+            reasoning: components["schemas"]["PodiumReasoning"][];
             /** Finish P4 P10 */
             finish_p4_p10: components["schemas"]["FinishRow"][];
             reliability: components["schemas"]["ReliabilityScore"];
@@ -885,6 +906,44 @@ export interface components {
              */
             refresher_running: boolean;
         };
+        /** LapByLapDriverMeta */
+        LapByLapDriverMeta: {
+            /** Driver Code */
+            driver_code: string;
+            /** Team Name */
+            team_name?: string | null;
+            /** Final Position */
+            final_position?: number | null;
+        };
+        /** LapByLapFrame */
+        LapByLapFrame: {
+            /** Lap */
+            lap: number;
+            /** Rows */
+            rows: components["schemas"]["LapByLapRow"][];
+        };
+        /** LapByLapResponse */
+        LapByLapResponse: {
+            /** Season */
+            season: number;
+            /** Round */
+            round: number;
+            /** N Laps */
+            n_laps: number;
+            /** Drivers */
+            drivers: components["schemas"]["LapByLapDriverMeta"][];
+            /** Frames */
+            frames: components["schemas"]["LapByLapFrame"][];
+        };
+        /** LapByLapRow */
+        LapByLapRow: {
+            /** Driver Code */
+            driver_code: string;
+            /** Predicted Position */
+            predicted_position?: number | null;
+            /** Actual Position */
+            actual_position?: number | null;
+        };
         /** LapRecord */
         LapRecord: {
             /** Circuit Id */
@@ -1030,6 +1089,27 @@ export interface components {
             drivers: string[];
             /** Probability */
             probability: number;
+        };
+        /**
+         * PodiumReasoning
+         * @description SHAP-templated reasoning blocks for one of the predicted podium
+         *     drivers — P1, P2, or P3. Lets the UI surface 'why this whole podium'
+         *     instead of just 'why the winner'.
+         */
+        PodiumReasoning: {
+            /** Position */
+            position: number;
+            /** Driver Code */
+            driver_code: string;
+            /** Team Name */
+            team_name?: string | null;
+            /** Team Colour */
+            team_colour?: string | null;
+            /**
+             * Blocks
+             * @default []
+             */
+            blocks: components["schemas"]["ReasoningBlockOut"][];
         };
         /** PodiumSlot */
         PodiumSlot: {
@@ -2581,6 +2661,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apex_lap_by_lap_api_apex__season___round_num__lap_by_lap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+                round_num: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LapByLapResponse"];
                 };
             };
             /** @description Validation Error */

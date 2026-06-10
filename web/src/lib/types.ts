@@ -63,8 +63,13 @@ export type ApexRaceMeta         = S["ApexRaceMeta"];
 export type TopPrediction        = S["TopPrediction"];
 export type PodiumSlot           = S["PodiumSlot"];
 export type ReasoningBlockOut    = S["ReasoningBlockOut"];
+export type PodiumReasoning      = S["PodiumReasoning"];
 export type FinishRow            = S["FinishRow"];
 export type ReliabilityScore     = S["ReliabilityScore"];
+export type LapByLapResponse     = S["LapByLapResponse"];
+export type LapByLapFrame        = S["LapByLapFrame"];
+export type LapByLapRow          = S["LapByLapRow"];
+export type LapByLapDriverMeta   = S["LapByLapDriverMeta"];
 
 // LiveDriver with replay extensions (lap_progress, lap_time, top_speed)
 export interface ReplayDriver {

@@ -4,8 +4,8 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from ...inference.apex import predict_apex
-from ..schemas import ApexResponse
+from ...inference.apex import lap_by_lap_comparison, predict_apex
+from ..schemas import ApexResponse, LapByLapResponse
 
 log = logging.getLogger(__name__)
 
@@ -36,3 +36,13 @@ def apex_race(season: int, round_num: int) -> ApexResponse:
         log.exception("Apex prediction failed for %s R%s", season, round_num)
         raise HTTPException(500, f"Apex prediction failed: {exc}") from exc
     return ApexResponse(**result)
+
+
+@router.get("/{season}/{round_num}/lap-by-lap", response_model=LapByLapResponse)
+def apex_lap_by_lap(season: int, round_num: int) -> LapByLapResponse:
+    """Predicted vs actual finishing position across the race, sampled every
+    5 laps. Only available for races whose replay data has been ingested."""
+    result = lap_by_lap_comparison(season, round_num)
+    if result is None:
+        raise HTTPException(404, f"No replay data cached for {season} R{round_num}")
+    return LapByLapResponse(**result)

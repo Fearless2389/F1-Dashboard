@@ -29,6 +29,7 @@ from ..api.deps import get_manifest, load_model
 from ..ingestion.config import DATA_PROCESSED
 from ..live import jolpica_client as jolpica
 from ..live.current_grid import get_current_grid
+from ..live.replay import load_race
 from ..live.schedule import enriched_schedule, get_season_schedule, next_race
 from ..models.config import PRE_RACE_FEATURES
 from .predict import predict_race
@@ -148,7 +149,7 @@ def _resolve_quali(season: int, round_num: int) -> tuple[pd.DataFrame, str]:
 
 # ── SHAP for winner row ──────────────────────────────────────────────────────
 
-def _winner_shap_for(driver_code: str,
+def _shap_for(driver_code: str,
                      quali_df: pd.DataFrame,
                      circuit_id: str,
                      round_num: int,
@@ -344,21 +345,43 @@ def predict_apex(season: Optional[int] = None,
             "at_risk":          bool(at_risk),
         })
 
-    # 8) Reasoning (SHAP for the top driver)
-    feats, shap_vals, feat_vals = _winner_shap_for(
-        top_code, quali_df, circuit_id, round_num, season,
-    )
-    blocks = reasoning_blocks(feats, shap_vals, feat_vals, top_n=3)
-    reasoning_out = [
-        {"label": b.label, "impact": b.impact, "text": b.text, "feature": b.feature}
-        for b in blocks
-    ]
+    # 8) Reasoning (SHAP for each of the top-3 podium drivers).
+    # We surface "why P1, why P2, why P3" so readers can see the model's
+    # reasoning across the whole podium, not only the winner.
+    reasoning_out: list[dict] = []
+    winner_blocks: list = []
+    for pos_idx, code in enumerate(podium_codes, start=1):
+        feats, shap_vals, feat_vals = _shap_for(
+            code, quali_df, circuit_id, round_num, season,
+        )
+        blocks = reasoning_blocks(feats, shap_vals, feat_vals, top_n=3)
+        reasoning_out.append({
+            "position":    pos_idx,
+            "driver_code": code,
+            "team_name":   next(
+                (r["team_name"] for r in quali_df.to_dict("records") if r["driver_code"] == code),
+                None,
+            ),
+            "team_colour": _team_colour_for(
+                next(
+                    (r["team_name"] for r in quali_df.to_dict("records") if r["driver_code"] == code),
+                    None,
+                ),
+                grid,
+            ),
+            "blocks":      [
+                {"label": b.label, "impact": b.impact, "text": b.text, "feature": b.feature}
+                for b in blocks
+            ],
+        })
+        if pos_idx == 1:
+            winner_blocks = blocks
 
-    # 9) Description for the hero card — assembled from top reasoning block
-    if reasoning_out:
+    # 9) Description for the hero card — assembled from the winner's top block
+    if winner_blocks:
         description = (
             f"{top_code} leads our projections at {win_prob*100:.0f}%. "
-            f"{reasoning_out[0]['text']}"
+            f"{winner_blocks[0].text}"
         )
     else:
         description = f"{top_code} leads our projections at {win_prob*100:.0f}%."
@@ -425,4 +448,115 @@ def predict_apex(season: Optional[int] = None,
         "reliability":    reliability,
         "generated_at":   datetime.now(timezone.utc).isoformat(),
         "quali_source":   quali_source,
+    }
+
+
+# ── Lap-by-lap predicted vs actual ───────────────────────────────────────────
+
+def lap_by_lap_comparison(season: int, round_num: int) -> Optional[dict]:
+    """Walk a finished race in 5-lap samples; at each sample lap, re-run the
+    winner ranker against the field's current order to get the model's
+    predicted finishing order, and pair it with the actual finishing order
+    pulled from the snapshot.
+
+    Mirrors `_win_prob_arc` in `src/api/routers/replay.py` — same sampling
+    + same predict_race plumbing — just emits position rankings instead of
+    normalised win-probability shares.
+
+    Returns None when the race isn't cached (no replay data on disk).
+    """
+    race = load_race(season, round_num)
+    if race is None:
+        return None
+
+    sample_laps = list(range(1, race.n_laps + 1, 5))
+    if sample_laps[-1] != race.n_laps:
+        sample_laps.append(race.n_laps)
+
+    # Stable column-major list of drivers ordered by final finish (DNFs last).
+    ordered_codes = [
+        meta["driver_code"]
+        for _, meta in sorted(
+            race.drivers_meta.items(),
+            key=lambda kv: kv[1].get("finish_position") or 99,
+        )
+        if meta.get("driver_code")
+    ]
+
+    frames: list[dict] = []
+    for lap in sample_laps:
+        snap = race.snapshot(lap)
+        drivers = snap.get("drivers") or []
+        if not drivers:
+            continue
+
+        # Build a quali-input frame from the field's current order at this lap.
+        quali_df = pd.DataFrame([
+            {
+                "driver_code":    d["driver_code"],
+                "team_name":      d["team_name"] or "Unknown",
+                "quali_position": d["position"],
+            }
+            for d in drivers[:20]
+        ])
+        try:
+            out = predict_race(
+                quali_input=quali_df,
+                circuit_id=race.circuit_id or "",
+                round_num=race.round,
+                season=race.season,
+                weather=None,
+                model_name="lgbm_winner.pkl",
+            )
+        except Exception as exc:
+            log.warning("predict_race failed at %s R%s lap %s: %s",
+                        race.season, race.round, lap, exc)
+            continue
+        if out.empty:
+            continue
+
+        # Rank by the ranker's prob_top10 score → predicted finishing positions
+        predicted_order = (
+            out.sort_values("prob_top10", ascending=False)["driver_code"].tolist()
+        )
+        predicted_pos = {code: i + 1 for i, code in enumerate(predicted_order)}
+        actual_pos = {d["driver_code"]: d["position"] for d in drivers}
+
+        rows = []
+        for code in ordered_codes:
+            if code not in predicted_pos and code not in actual_pos:
+                continue
+            rows.append({
+                "driver_code":        code,
+                "predicted_position": predicted_pos.get(code),
+                "actual_position":    actual_pos.get(code),
+            })
+        frames.append({"lap": int(lap), "rows": rows})
+
+    # Per-driver metadata so the frontend can colour lines correctly without
+    # re-fetching the grid. `race.drivers_meta` is keyed by driver number, so
+    # we build a code-indexed view first.
+    meta_by_code: dict[str, dict] = {}
+    for meta in race.drivers_meta.values():
+        if not isinstance(meta, dict):
+            continue
+        code = meta.get("driver_code")
+        if code:
+            meta_by_code[code] = meta
+
+    drivers_meta = [
+        {
+            "driver_code":    code,
+            "team_name":      meta_by_code.get(code, {}).get("team_name"),
+            "final_position": meta_by_code.get(code, {}).get("finish_position"),
+        }
+        for code in ordered_codes
+    ]
+
+    return {
+        "season":  race.season,
+        "round":   race.round,
+        "n_laps":  race.n_laps,
+        "drivers": drivers_meta,
+        "frames":  frames,
     }
