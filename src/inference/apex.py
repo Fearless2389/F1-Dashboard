@@ -118,7 +118,12 @@ def _quali_from_jolpica(season: int, round_num: int) -> Optional[pd.DataFrame]:
 
 
 def _quali_from_predicted_grid(season: int, round_num: int) -> Optional[pd.DataFrame]:
-    """Use lgbm_quali.pkl to predict the grid using current driver/team form."""
+    """Use lgbm_quali.pkl to predict the grid using current driver/team form.
+
+    Returns the per-driver quali score as `quali_score` so downstream code
+    can derive a proper pole probability (Plackett-Luce share) rather than
+    misreading the race-simulator's P(finish-P1) as pole confidence.
+    """
     artifact = load_model("lgbm_quali.pkl")
     if artifact is None:
         return None
@@ -140,11 +145,14 @@ def _quali_from_predicted_grid(season: int, round_num: int) -> Optional[pd.DataF
             weather=None,
             model_name="lgbm_quali.pkl",
         )
-        # `prob_top10` here is actually a normalised score from the quali model.
-        # Re-rank to get predicted starting positions.
+        # `prob_top10` here is actually a normalised score from the quali
+        # model. Keep it as `quali_score` so race_forecast can softmax-share
+        # it into a real P(this driver is pole). Re-rank to get predicted
+        # starting positions.
         out = out.sort_values("prob_top10", ascending=False).reset_index(drop=True)
         out["quali_position"] = range(1, len(out) + 1)
-        return out[["driver_code", "team_name", "quali_position"]]
+        out["quali_score"] = out["prob_top10"].astype(float)
+        return out[["driver_code", "team_name", "quali_position", "quali_score"]]
     except Exception as exc:
         log.warning("Predicted-grid fallback failed: %s", exc)
         return None

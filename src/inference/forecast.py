@@ -163,9 +163,20 @@ def race_forecast(season: Optional[int] = None,
     # 7) Pole pick = highest predicted quali (lowest quali_position in input)
     pole_row = min(drivers_input, key=lambda d: int(d["quali_position"]) if d["quali_position"] else 99)
     pole_code = pole_row["driver_code"]
-    # "Confidence" for pole — use that driver's P1 mass from the matrix as a
-    # rough proxy (no separate pole simulation today).
-    pole_prob = float(position_dist.get(pole_code, [0.0])[0]) if position_dist.get(pole_code) else 0.0
+    # Pole confidence:
+    #   - actual quali (already on file)   → 1.0, we know who's on pole
+    #   - predicted via lgbm_quali         → Plackett-Luce share over the
+    #     quali scores. The old code used position_dist[pole][0] (the race
+    #     simulator's P(finish-P1)), which is win probability — that's why
+    #     ANT showed up at 6% pole "confidence" for BCN even though he was
+    #     comfortably the model's top quali pick.
+    if quali_source == "actual" or "quali_score" not in quali_df.columns:
+        pole_prob = 1.0 if quali_source == "actual" else 0.0
+    else:
+        scores = quali_df["quali_score"].astype(float).clip(lower=1e-9)
+        codes = quali_df["driver_code"].astype(str)
+        total = float(scores.sum())
+        pole_prob = float(scores[codes == pole_code].iloc[0] / total) if total > 0 else 0.0
     pole_pick = {
         "driver_code":  pole_code,
         "full_name":    _full_name_for(pole_code, grid) or pole_code,
