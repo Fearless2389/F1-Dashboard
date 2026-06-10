@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from ..api.deps import get_manifest, load_model
-from ..ingestion.config import DATA_PROCESSED
+from ..ingestion.config import DATA_PROCESSED, QUALI_RESULTS_FILE
 from ..live import jolpica_client as jolpica
 from ..live.current_grid import get_current_grid
 from ..live.replay import load_race
@@ -74,6 +74,30 @@ def _driver_number_for(driver_code: str, grid: list[dict]) -> Optional[int]:
 
 
 # ── Qualifying resolution ────────────────────────────────────────────────────
+
+def _quali_from_parquet(season: int, round_num: int) -> Optional[pd.DataFrame]:
+    """Read full qualifying results (positions + Q1/Q2/Q3 times) from the
+    locally-cached `qualifying_results.parquet`. Preferred over the Jolpica
+    fallback because it carries the raw lap times that
+    `_build_quali_features` needs to compute `quali_gap_to_pole_ms` — without
+    them every driver's gap collapses to 0 ms (NaN→imputer→0) and the
+    reasoning prose claims everyone "stuck to the pole-sitter, 0.000s off"."""
+    if not QUALI_RESULTS_FILE.exists():
+        return None
+    try:
+        df = pd.read_parquet(QUALI_RESULTS_FILE)
+    except Exception as exc:
+        log.warning("Could not read quali parquet: %s", exc)
+        return None
+    sub = df[(df["season"] == season) & (df["round"] == round_num)].copy()
+    if sub.empty:
+        return None
+    cols = ["driver_code", "team_name", "quali_position"]
+    for c in ("q1_time_ms", "q2_time_ms", "q3_time_ms"):
+        if c in sub.columns:
+            cols.append(c)
+    return sub[cols].dropna(subset=["quali_position"]).reset_index(drop=True)
+
 
 def _quali_from_jolpica(season: int, round_num: int) -> Optional[pd.DataFrame]:
     """Race results table is post-race; for upcoming races try the qualifying-
@@ -137,7 +161,15 @@ def _circuit_for_round(season: int, round_num: int) -> Optional[str]:
 
 
 def _resolve_quali(season: int, round_num: int) -> tuple[pd.DataFrame, str]:
-    """Return (quali_df, source) where source ∈ {"actual","predicted"}."""
+    """Return (quali_df, source) where source ∈ {"actual","predicted"}.
+
+    Order is parquet → Jolpica → predicted-grid. Parquet is preferred when
+    available because it carries Q1/Q2/Q3 times the feature pipeline relies
+    on; Jolpica only returns starting-grid positions.
+    """
+    pq = _quali_from_parquet(season, round_num)
+    if pq is not None and not pq.empty:
+        return pq, "actual"
     j = _quali_from_jolpica(season, round_num)
     if j is not None and not j.empty:
         return j, "actual"
@@ -351,13 +383,20 @@ def predict_apex(season: Optional[int] = None,
             "prob":         float(podium_source.get(code, 0.0)),
         })
 
-    # 7) Estimated gap + P4–P10 finish table — rank by top10_probs (fallback winner)
+    # 7) Estimated gap + P4–P10 finish table — rank by top10_probs (fallback
+    # winner). Skip anyone already in the podium so the same driver never
+    # appears in both lists (the podium uses winner-ranker order while this
+    # uses the top10 classifier — different rankings, same field).
     rank_source = top10_probs if top10_probs else winner_probs
     rank_sorted = sorted(rank_source.items(), key=lambda kv: -kv[1])
+    podium_code_set = set(podium_codes)
     finish_p4_p10 = []
-    for pos, (code, prob) in enumerate(rank_sorted, start=1):
-        if pos < 4 or pos > 10:
+    pos = 4
+    for code, prob in rank_sorted:
+        if code in podium_code_set:
             continue
+        if pos > 10:
+            break
         team = next(
             (r["team_name"] for r in quali_df.to_dict("records") if r["driver_code"] == code),
             None,
@@ -372,6 +411,7 @@ def predict_apex(season: Optional[int] = None,
             "confidence_score": float(prob),
             "at_risk":          bool(at_risk),
         })
+        pos += 1
 
     # 8) Reasoning (SHAP for each of the top-3 podium drivers).
     # We surface "why P1, why P2, why P3" so readers can see the model's

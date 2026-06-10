@@ -12,22 +12,16 @@ interface Props {
  * Editorial hero card — italic Playfair driver name on team-gradient backdrop,
  * Top Prediction pill, reasoning paragraph, big win-prob % + progress bar.
  *
- * Two small affordances under the headline win-prob:
- *   1. Conformal range when present (win_low / win_high from the trained
- *      artifact's calibration). Real uncertainty bound, not a placeholder.
- *   2. The "predicted grid" pill at the top — flagged when qualifying isn't
- *      yet published so we had to use the model's own grid forecast.
+ * "Predicted grid" pill flags races where qualifying hasn't been published,
+ * so the win-prob is conditioned on the model's own grid forecast.
  *
- * (The old "stochastic mean / vs prior" line was placeholder vapor —
- * `stochastic_mean` was always exactly `win_prob` because Monte Carlo was
- * never wired up. Removed to stop misleading the reader.)
+ * (The old conformal "Range X% – Y%" strip was removed at the user's request:
+ * the calibrated interval here is much wider than the win-prob itself for
+ * most races, so it read as noise rather than a useful confidence cue.)
  */
 export function TopPredictionCard({ top, qualiSource }: Props) {
   const color = teamColorFallback(top.team_colour, top.team_name);
   const pct = Math.round((top.win_prob || 0) * 100);
-  const lowPct = top.win_low != null ? Math.round(top.win_low * 100) : null;
-  const highPct = top.win_high != null ? Math.round(top.win_high * 100) : null;
-  const hasRange = lowPct != null && highPct != null && highPct > lowPct;
 
   return (
     <div
@@ -81,16 +75,6 @@ export function TopPredictionCard({ top, qualiSource }: Props) {
                   transition={{ type: "spring", stiffness: 110, damping: 22 }}
                 />
               </div>
-              {hasRange && (
-                <div
-                  className="mt-1 text-[10px] uppercase tracking-widest text-f1-muted"
-                  title="Conformal interval — calibrated prediction range, not a placeholder"
-                >
-                  Range <span className="text-paddock-cyan font-semibold tabular-nums">{lowPct}%</span>
-                  {" – "}
-                  <span className="text-paddock-cyan font-semibold tabular-nums">{highPct}%</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

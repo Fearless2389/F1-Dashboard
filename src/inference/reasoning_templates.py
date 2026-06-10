@@ -7,10 +7,13 @@ to a small spec:
     fmt(v, sgn, ctx)  — turns the feature value + comparison context into a
                        single sentence
 
-Impact tier is computed dynamically from |SHAP value|:
-    >= 0.5   → HIGH
-    0.2-0.5  → MEDIUM
-    < 0.2    → LOW
+Impact tiers are assigned RELATIVE to the blocks we actually surface:
+    rank 1 (largest |SHAP|) → HIGH
+    rank 2                  → MEDIUM
+    rank 3+                 → LOW
+Absolute SHAP thresholds were rejected because the xgb_top10 model's
+top-feature SHAP magnitudes rarely exceed 0.2 in practice — under absolute
+tiering every block degraded to "LOW", making the tier badge useless.
 
 Context (`ctx`) carries per-feature comparison anchors so the prose can
 move beyond "Recent form averaging P10.0." into:
@@ -49,13 +52,17 @@ def _safe(v) -> Optional[float]:
         return None
 
 
-def _tier(shap_value: float) -> str:
-    a = abs(shap_value)
-    if a >= 0.5:
-        return "HIGH"
-    if a >= 0.2:
-        return "MEDIUM"
-    return "LOW"
+_TIER_BY_RANK = ("HIGH", "MEDIUM", "LOW")
+
+
+def _tier_for_rank(rank: int) -> str:
+    """Top SHAP block = HIGH, next = MEDIUM, the rest = LOW.
+
+    Relative tiering keeps the badge meaningful regardless of the model's
+    absolute SHAP scale (xgb_top10's top-feature |SHAP| usually sits under
+    0.2, which would put everything in LOW under the old absolute thresholds).
+    """
+    return _TIER_BY_RANK[min(rank, len(_TIER_BY_RANK) - 1)]
 
 
 # ── Per-feature template fmt callbacks ──────────────────────────────────────
@@ -70,7 +77,9 @@ def _fmt_quali_gap(v: Optional[float], sgn: float, ctx: dict) -> str:
     base = ctx.get("driver_baseline")
     field = ctx.get("field_median")
     parts: list[str] = []
-    if secs < 0.05:
+    if secs < 0.001:
+        parts.append("On pole position")
+    elif secs < 0.05:
         parts.append(f"Stuck to pole-sitter — {secs:.3f}s off")
     elif secs < 0.4:
         parts.append(f"Strong qualifying lap — {secs:.3f}s off pole")
@@ -231,11 +240,11 @@ REASONING_TEMPLATES: dict[str, dict] = {
         "fmt": _fmt_quali_gap,
     },
     "driver_avg_finish_L5": {
-        "label": "DRIVER FORM",
+        "label": "RECENT FORM",
         "fmt": _fmt_avg_finish("Recent form"),
     },
     "driver_avg_finish_L10": {
-        "label": "DRIVER FORM",
+        "label": "LONG-RUN FORM",
         "fmt": _fmt_avg_finish("Long-run form"),
     },
     "team_avg_pit_time_ms": {
@@ -299,12 +308,18 @@ def reasoning_blocks(
         reverse=True,
     )
 
+    # Dedupe by label so the panel never shows two "RECENT FORM" / "DRIVER
+    # FORM" blocks back-to-back. The higher-|SHAP| candidate wins because the
+    # triples list is already sorted that way.
+    used_labels: set[str] = set()
     blocks: list[ReasoningBlock] = []
     for feat, shap_val, feat_val in triples:
         if len(blocks) >= top_n:
             break
         tpl = REASONING_TEMPLATES.get(feat)
         if tpl is None:
+            continue
+        if tpl["label"] in used_labels:
             continue
         per_feature_ctx = {
             "field_median":    ctx_field.get(feat),
@@ -313,8 +328,9 @@ def reasoning_blocks(
         text = tpl["fmt"](_safe(feat_val), float(shap_val), per_feature_ctx)
         blocks.append(ReasoningBlock(
             label=tpl["label"],
-            impact=_tier(shap_val),
+            impact=_tier_for_rank(len(blocks)),
             text=text,
             feature=feat,
         ))
+        used_labels.add(tpl["label"])
     return blocks
