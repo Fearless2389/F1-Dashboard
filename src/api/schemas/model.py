@@ -16,3 +16,9 @@ class TargetMetrics(BaseModel):
 class ModelManifest(BaseModel):
     generated_at: str
     targets: list[TargetMetrics]
+    # Season splits are sourced from src/ingestion/config.py so the Models
+    # page always shows the *actual* train/val/test split rather than a
+    # docstring that goes stale every time the split is changed.
+    train_seasons: list[int] = []
+    val_seasons: list[int] = []
+    test_seasons: list[int] = []

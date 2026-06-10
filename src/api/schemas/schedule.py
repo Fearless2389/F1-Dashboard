@@ -55,3 +55,22 @@ class RaceEvent(BaseModel):
 class ScheduleResponse(BaseModel):
     season: int
     events: list[RaceEvent]
+
+
+class ResultRow(BaseModel):
+    position: Optional[int] = None
+    driver_code: str
+    driver_number: Optional[int] = None
+    team_name: Optional[str] = None
+    grid: Optional[int] = None
+    points: float = 0.0
+    status: Optional[str] = None
+    laps: Optional[int] = None
+
+
+class ResultsResponse(BaseModel):
+    season: int
+    round: int
+    race_name: Optional[str] = None
+    kind: str                 # "race" | "sprint"
+    rows: list[ResultRow]

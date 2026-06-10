@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 
+from ...ingestion.config import TEST_SEASONS, TRAIN_SEASONS, VAL_SEASONS
 from ..deps import get_manifest, load_model
 from ..schemas import ModelManifest, TargetMetrics
 
@@ -20,6 +21,9 @@ def list_models() -> ModelManifest:
     return ModelManifest(
         generated_at=raw.get("generated_at") or datetime.now(timezone.utc).isoformat(),
         targets=targets,
+        train_seasons=sorted(TRAIN_SEASONS),
+        val_seasons=sorted(VAL_SEASONS),
+        test_seasons=sorted(TEST_SEASONS),
     )
 
 

@@ -20,9 +20,10 @@ describe("Shell", () => {
 
     expect(screen.getByText("PADDOCK DASHBOARD")).toBeInTheDocument();
 
-    // Top nav — all six entries, including the promoted Models link.
+    // Top nav — six entries after the apex+forecast merge ("Predictor" hosts
+    // the combined surface; /forecast still redirects so old links work).
     expect(screen.getByText("Live Race")).toBeInTheDocument();
-    expect(screen.getByText("Apex")).toBeInTheDocument();
+    expect(screen.getByText("Predictor")).toBeInTheDocument();
     expect(screen.getByText("Standings")).toBeInTheDocument();
     expect(screen.getByText("Schedule")).toBeInTheDocument();
     expect(screen.getByText("Drivers")).toBeInTheDocument();

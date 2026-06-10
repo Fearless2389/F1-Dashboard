@@ -27,11 +27,10 @@ export function prefetchForRoute(qc: QueryClient, route: string, season = 2026):
     return;
   }
   if (route === "/apex") {
-    pf(["apex", "next"], "/api/apex/next", MIN_5);
-    return;
-  }
-  if (route === "/forecast") {
-    pf(["forecast", "next"], "/api/forecast/next", MIN_5);
+    // /apex now hosts the merged predictor (was /apex + /forecast). Prefetch
+    // both bundles so the unified page paints instantly on click.
+    pf(["apex", "next", "next"], "/api/apex/next", MIN_5);
+    pf(["forecast", "next", "next"], "/api/forecast/next", MIN_5);
     return;
   }
   if (route === "/standings") {

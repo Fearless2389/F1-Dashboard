@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import Shell from "@/components/Shell";
 import LiveRoute from "@/routes/LiveRoute";
@@ -8,7 +8,17 @@ import ModelRoute from "@/routes/ModelRoute";
 import ReplayRoute from "@/routes/ReplayRoute";
 import StandingsRoute from "@/routes/StandingsRoute";
 import ApexRoute from "@/routes/ApexRoute";
-import ForecastRoute from "@/routes/ForecastRoute";
+
+/**
+ * /forecast was merged into /apex so the entire race-prediction surface
+ * lives on one page. Preserve any `?season=…&round=…` query params from
+ * old bookmarks or external links — the search string drops through to
+ * the new route which reads the same params.
+ */
+function ForecastRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/apex${search}`} replace />;
+}
 
 export default function App() {
   return (
@@ -18,7 +28,7 @@ export default function App() {
         <Route path="/live" element={<LiveRoute />} />
         <Route path="/calendar" element={<CalendarRoute />} />
         <Route path="/apex" element={<ApexRoute />} />
-        <Route path="/forecast" element={<ForecastRoute />} />
+        <Route path="/forecast" element={<ForecastRedirect />} />
         <Route path="/standings" element={<StandingsRoute />} />
         <Route path="/driver/:code" element={<DriverRoute />} />
         <Route path="/driver" element={<DriverRoute />} />

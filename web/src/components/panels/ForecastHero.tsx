@@ -17,12 +17,12 @@ interface Props {
 export function ForecastHero({ pole, winner }: Props) {
   return (
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-      <HeroCard
+      <ForecastHeroCard
         kicker="PREDICTED POLE"
         label="CONFIDENCE"
         pick={pole}
       />
-      <HeroCard
+      <ForecastHeroCard
         kicker="PREDICTED WINNER"
         label="WIN PROBABILITY"
         pick={winner}
@@ -31,7 +31,7 @@ export function ForecastHero({ pole, winner }: Props) {
   );
 }
 
-function HeroCard({
+export function ForecastHeroCard({
   kicker, label, pick,
 }: {
   kicker: string;

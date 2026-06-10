@@ -11,8 +11,7 @@ interface Props { children: ReactNode; }
 // strip in the topbar; no sidebar, no auxiliary chrome.
 const TOP_NAV = [
   { to: "/live",      label: "Live Race" },
-  { to: "/apex",      label: "Apex"      },
-  { to: "/forecast",  label: "Forecast"  },
+  { to: "/apex",      label: "Predictor" },
   { to: "/standings", label: "Standings" },
   { to: "/calendar",  label: "Schedule"  },
   { to: "/driver",    label: "Drivers"   },

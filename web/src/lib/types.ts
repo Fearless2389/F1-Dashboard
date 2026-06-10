@@ -35,6 +35,8 @@ export type TeamTrendRow         = S["TeamTrendRow"];
 export type CompareResponse      = S["CompareResponse"];
 export type TargetMetrics        = S["TargetMetrics"];
 export type ModelManifest        = S["ModelManifest"];
+export type ResultsResponse      = S["ResultsResponse"];
+export type ResultRow            = S["ResultRow"];
 
 // Phase 9 additions
 export type DriverCard           = S["DriverCard"];

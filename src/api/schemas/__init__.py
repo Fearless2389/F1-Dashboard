@@ -13,6 +13,8 @@ from .schedule import (
     CircuitMeta,
     LapRecord,
     RaceEvent,
+    ResultRow,
+    ResultsResponse,
     ScheduleResponse,
     WeatherForecast,
 )

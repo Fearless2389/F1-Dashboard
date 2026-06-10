@@ -11,7 +11,15 @@ from fastapi import APIRouter, HTTPException
 from ...live import jolpica_client as jolpica
 from ...live import weather_forecast
 from ...live.schedule import enriched_schedule, get_circuits, get_season_schedule
-from ..schemas import CircuitMeta, LapRecord, RaceEvent, ScheduleResponse, WeatherForecast
+from ..schemas import (
+    CircuitMeta,
+    LapRecord,
+    RaceEvent,
+    ResultRow,
+    ResultsResponse,
+    ScheduleResponse,
+    WeatherForecast,
+)
 
 log = logging.getLogger(__name__)
 
@@ -285,3 +293,69 @@ def get_round(year: int, round_num: int, include_weather: bool = True) -> RaceEv
     if row.empty:
         raise HTTPException(404, f"Round {round_num} not found in {year}")
     return _row_to_event(row.iloc[0].to_dict(), include_weather=include_weather)
+
+
+def _df_to_result_rows(df: pd.DataFrame) -> list[ResultRow]:
+    rows: list[ResultRow] = []
+    if df.empty:
+        return rows
+    # Position-first sort so the response is already in the right order for
+    # the UI; NaN positions (DNFs / DNQs) land at the tail.
+    df = df.copy()
+    df["_sort_pos"] = df["position"].fillna(99)
+    for r in df.sort_values("_sort_pos").to_dict("records"):
+        rows.append(ResultRow(
+            position=_clean(r.get("position")),
+            driver_code=str(r.get("driver_code") or ""),
+            driver_number=_clean(r.get("driver_number")),
+            team_name=_clean(r.get("team_name")),
+            grid=_clean(r.get("grid")),
+            points=float(r.get("points") or 0.0),
+            status=_clean(r.get("status")),
+            laps=_clean(r.get("laps")),
+        ))
+    return rows
+
+
+@router.get("/{year}/{round_num}/results", response_model=ResultsResponse)
+def get_race_results(year: int, round_num: int) -> ResultsResponse:
+    """Race results for a single (year, round) — sourced from Jolpica/Ergast.
+    Returns an empty list for races that haven't run yet (the UI hides the
+    panel when rows is empty)."""
+    try:
+        df = jolpica.race_results(year, round_num)
+    except Exception as exc:
+        log.warning("Jolpica race_results failed for %s R%s: %s", year, round_num, exc)
+        df = pd.DataFrame()
+    race_name = None
+    if not df.empty and "race_name" in df.columns:
+        race_name = str(df["race_name"].iloc[0])
+    return ResultsResponse(
+        season=year,
+        round=round_num,
+        race_name=race_name,
+        kind="race",
+        rows=_df_to_result_rows(df),
+    )
+
+
+@router.get("/{year}/{round_num}/sprint", response_model=ResultsResponse)
+def get_sprint_results(year: int, round_num: int) -> ResultsResponse:
+    """Sprint race results for a single (year, round). Returns an empty list
+    for weekends without a sprint (the UI uses that to hide the sprint
+    panel)."""
+    try:
+        df = jolpica.sprint_results(year, round_num)
+    except Exception as exc:
+        log.warning("Jolpica sprint_results failed for %s R%s: %s", year, round_num, exc)
+        df = pd.DataFrame()
+    race_name = None
+    if not df.empty and "race_name" in df.columns:
+        race_name = str(df["race_name"].iloc[0])
+    return ResultsResponse(
+        season=year,
+        round=round_num,
+        race_name=race_name,
+        kind="sprint",
+        rows=_df_to_result_rows(df),
+    )

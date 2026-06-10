@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { differenceInSeconds, parseISO } from "date-fns";
 import { m, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Cloud, CloudRain, MapPin, Sun, ThermometerSun, CheckCircle2, Zap } from "lucide-react";
+import {
+  Cloud, CloudRain, MapPin, Sun, ThermometerSun, CheckCircle2, Zap,
+  LineChart as LineChartIcon, Trophy, Flag,
+} from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -12,8 +16,9 @@ import { NextRaceHero } from "@/components/panels/NextRaceHero";
 import { useSchedule } from "@/hooks/useApi";
 import { useRaceContext } from "@/store/raceContext";
 import { api } from "@/lib/api";
+import { teamColor } from "@/lib/teams";
 import { cn } from "@/lib/cn";
-import type { LapRecord, RaceEvent } from "@/lib/types";
+import type { LapRecord, RaceEvent, ResultsResponse } from "@/lib/types";
 
 type RaceStatus = "past" | "next" | "future";
 
@@ -204,13 +209,146 @@ function RaceCard({
                 hint="Live forecast (Open-Meteo); only meaningful for races within ~5 days"
               />
             </div>
-            <div className="flex justify-end px-5 pb-5">
-              <Button size="sm" variant="secondary">Predict this race →</Button>
+            {/* Results & sprint results — both are lazy-fetched only when
+                a card is expanded so the calendar grid stays light. The
+                ResultsTable hides itself for races that haven't run yet
+                (Jolpica returns an empty rows array). */}
+            {status === "past" && (
+              <div className="px-5 pb-3 grid gap-3 grid-cols-1">
+                <ResultsTable season={ev.season} round={ev.round} kind="race" />
+                {ev.has_sprint && (
+                  <ResultsTable season={ev.season} round={ev.round} kind="sprint" />
+                )}
+              </div>
+            )}
+
+            {/* Action row — predict link routes to the merged Predictor
+                page with this race pre-selected. Past-race cards also get
+                a quick link into the replay surface. */}
+            <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-5">
+              {status === "past" && (
+                <Link to={`/replay/${ev.season}/${ev.round}`}>
+                  <Button size="sm" variant="ghost">
+                    <Flag size={14} /> Watch replay
+                  </Button>
+                </Link>
+              )}
+              <Link to={`/apex?season=${ev.season}&round=${ev.round}`}>
+                <Button size="sm" variant="secondary">
+                  <LineChartIcon size={14} /> Predict this race →
+                </Button>
+              </Link>
             </div>
           </m.div>
         )}
       </AnimatePresence>
     </Card>
+  );
+}
+
+/**
+ * Inline race/sprint results table — lazy-fetched per expanded card.
+ *
+ * Hidden silently when the upstream returns an empty rows list (race hasn't
+ * run yet, or the weekend had no sprint). Each row shows position, code,
+ * team-colour stripe, points and finish status — DNF / DSQ statuses are
+ * surfaced as small badges so they don't read as a finishing classification.
+ */
+function ResultsTable({
+  season, round, kind,
+}: {
+  season: number;
+  round: number;
+  kind: "race" | "sprint";
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["results", kind, season, round],
+    queryFn: () => api.get<ResultsResponse>(`/api/schedule/${season}/${round}/${kind === "race" ? "results" : "sprint"}`),
+    staleTime: 60 * 60_000,
+    retry: false,
+  });
+
+  const rows = data?.rows ?? [];
+
+  // Sprint section just hides when there's no data — that's the signal that
+  // the weekend doesn't have a sprint, not an error.
+  if (!isLoading && rows.length === 0) {
+    if (kind === "sprint") return null;
+    return (
+      <div className="text-[11px] text-f1-muted italic px-1">
+        Race results not yet published.
+      </div>
+    );
+  }
+
+  const title = kind === "race" ? "Race results" : "Sprint results";
+  const icon = kind === "race"
+    ? <Trophy size={12} className="text-paddock-coral" />
+    : <Zap size={12} className="text-paddock-coral" />;
+
+  return (
+    <div className="rounded-md border border-f1-edge bg-f1-panel/30 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-f1-edge/60 bg-f1-panel/50">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold text-f1-white">
+          {icon} {title}
+        </div>
+        <span className="text-[9px] uppercase tracking-widest text-f1-muted">
+          {rows.length ? `${rows.length} cars` : ""}
+        </span>
+      </div>
+      {isLoading ? (
+        <div className="p-3"><Skeleton className="h-32 w-full" /></div>
+      ) : (
+        <div className="max-h-64 overflow-y-auto">
+          <table className="w-full text-[11px]">
+            <thead className="text-[9px] uppercase text-f1-muted tracking-wider">
+              <tr>
+                <th className="text-left px-3 py-1.5 w-8">Pos</th>
+                <th className="text-left px-2 py-1.5">Driver</th>
+                <th className="text-left px-2 py-1.5">Team</th>
+                <th className="text-right px-2 py-1.5">Grid</th>
+                <th className="text-right px-2 py-1.5">Pts</th>
+                <th className="text-left px-3 py-1.5">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const color = teamColor(r.team_name);
+                const finished = r.position != null;
+                const statusBadge = (() => {
+                  const s = (r.status || "").toLowerCase();
+                  if (!finished) return <Badge tone="muted">DNF</Badge>;
+                  if (s.includes("disqualified")) return <Badge tone="muted">DSQ</Badge>;
+                  if (s.startsWith("+")) return <span className="text-f1-muted">{r.status}</span>;
+                  return <span className="text-f1-muted">{r.status}</span>;
+                })();
+                return (
+                  <tr key={r.driver_code} className="border-t border-f1-edge/40">
+                    <td className="px-3 py-1.5 font-mono tabular-nums">
+                      {r.position ?? "—"}
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-1 rounded-sm shrink-0" style={{ background: color }} />
+                        <span className="font-mono font-semibold text-f1-white">{r.driver_code}</span>
+                      </div>
+                    </td>
+                    <td className="px-2 py-1.5 text-f1-muted">{r.team_name ?? "—"}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums text-f1-muted">
+                      {r.grid ?? "—"}
+                    </td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">
+                      {r.points > 0 ? <span className="text-f1-white">{r.points}</span> : <span className="text-f1-muted">0</span>}
+                    </td>
+                    <td className="px-3 py-1.5">{statusBadge}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 

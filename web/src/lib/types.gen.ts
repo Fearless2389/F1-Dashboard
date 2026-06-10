@@ -1227,6 +1227,34 @@ export interface components {
             generated_at: string;
             /** Targets */
             targets: components["schemas"]["TargetMetrics"][];
+            /** Train Seasons */
+            train_seasons?: number[];
+            /** Val Seasons */
+            val_seasons?: number[];
+            /** Test Seasons */
+            test_seasons?: number[];
+        };
+        /** ResultRow */
+        ResultRow: {
+            position?: number | null;
+            driver_code: string;
+            driver_number?: number | null;
+            team_name?: string | null;
+            grid?: number | null;
+            /** Points */
+            points: number;
+            status?: string | null;
+            laps?: number | null;
+        };
+        /** ResultsResponse */
+        ResultsResponse: {
+            season: number;
+            round: number;
+            race_name?: string | null;
+            /** Kind */
+            kind: string;
+            /** Rows */
+            rows: components["schemas"]["ResultRow"][];
         };
         /** OvertakeEvent */
         OvertakeEvent: {

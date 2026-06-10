@@ -181,6 +181,40 @@ def _parse_results(data: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def sprint_results(season: int, round_num: int) -> pd.DataFrame:
+    """Sprint race results for a single (season, round). Returns an empty
+    DataFrame for weekends without a sprint or seasons before 2021
+    (sprint format introduced mid-2021)."""
+    try:
+        data = _get(f"{season}/{round_num}/sprint")
+    except Exception:
+        return pd.DataFrame()
+    races = (
+        data.get("MRData", {})
+        .get("RaceTable", {})
+        .get("Races", [])
+    )
+    rows = []
+    for race in races:
+        for r in race.get("SprintResults", []):
+            drv = r.get("Driver", {})
+            con = r.get("Constructor", {})
+            rows.append({
+                "season":        int(race.get("season")),
+                "round":         int(race.get("round")),
+                "race_name":     race.get("raceName"),
+                "driver_code":   drv.get("code") or (drv.get("driverId") or "").upper()[:3],
+                "driver_number": int(drv.get("permanentNumber")) if drv.get("permanentNumber") else None,
+                "team_name":     con.get("name"),
+                "grid":          int(r.get("grid", 0)) if r.get("grid") else None,
+                "position":      int(r.get("position")) if r.get("position") else None,
+                "points":        float(r.get("points", 0)),
+                "status":        r.get("status"),
+                "laps":          int(r.get("laps", 0)) if r.get("laps") else None,
+            })
+    return pd.DataFrame(rows)
+
+
 def race_results(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
     """All races for a season, or a single race if round_num given.
 
