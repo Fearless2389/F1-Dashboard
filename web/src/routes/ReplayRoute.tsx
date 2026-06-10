@@ -249,12 +249,14 @@ export default function ReplayRoute() {
           </button>
         )}
 
-        {/* Right rail — overtake feed on top, driver telemetry beneath it.
+        {/* Right rail — overtake feed top-half, driver telemetry bottom-half.
+            Both panels share the column 50/50 so neither obscures the other.
             Telemetry defaults to the race leader; clicking any driver (track
-            dot or tower row) swaps the trace. Close (X or D) collapses it
-            into a pill that re-opens on click. */}
+            dot or tower row) swaps the trace. Close (X or D) collapses the
+            telemetry slot into a thin pill so the overtake feed expands to
+            fill the column. */}
         <div className="absolute right-4 top-20 bottom-20 z-10 w-[320px] hidden md:flex flex-col gap-2">
-          {/* Overtake feed — takes remaining vertical space */}
+          {/* Overtake feed — top half (or full column when telemetry collapsed) */}
           <div className="flex-1 min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex">
             <OvertakeFeed
               overtakes={overtakesData?.events ?? []}
@@ -266,9 +268,11 @@ export default function ReplayRoute() {
             />
           </div>
 
-          {/* Telemetry — fixed-height (auto) bottom slot */}
+          {/* Telemetry — bottom half. flex-1 + min-h-0 + overflow-y-auto so
+              the panel never grows past its allotted half-column; if the
+              charts don't fit on a short viewport, the panel scrolls inside. */}
           {telemetryOpen && focusedDriver && (
-            <div className="shrink-0">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <DriverTelemetry
                 driver={focusedDriver}
                 season={season}
@@ -279,7 +283,8 @@ export default function ReplayRoute() {
             </div>
           )}
 
-          {/* Re-open telemetry pill when collapsed */}
+          {/* Re-open telemetry pill when collapsed (sits below the now-full
+              overtake feed) */}
           {!telemetryOpen && focusedDriver && (
             <button
               onClick={() => setTelemetryOpen(true)}
