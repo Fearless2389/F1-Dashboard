@@ -1,0 +1,49 @@
+# React Doctor — automated React quality scanner for the web/ workspace.
+#
+# Runs on every PR and on push-to-main; posts a sticky summary comment on
+# PRs listing only the new issues introduced relative to the merge base.
+#
+# Configured in ADVISORY MODE (blocking: none). The scanner posts findings
+# but does not gate merges, so we can ship while incrementally paying down
+# the existing ~129 issues. Once the count drops below ~20, flip
+# `blocking` to "warning" or "error" to start gating.
+#
+# Docs: https://www.react.doctor/ci
+# Source: https://github.com/millionco/react-doctor
+
+name: React Doctor
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+# Cancel any in-flight scan for the same PR/branch when a new commit lands.
+concurrency:
+  group: react-doctor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  react-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: millionco/react-doctor@v2
+        with:
+          # Advisory mode while we drain the existing backlog. Scanner
+          # comments with findings but does not fail the PR check.
+          blocking: none
+          # Pin the major version so we don't get surprise breaking changes
+          # in the scanner itself.
+          version: "0.5.1"
+          # We have a monorepo-ish layout: backend (src/, tests/) plus the
+          # React app under web/. Point the scanner at the React workspace.
+          directory: web
