@@ -32,10 +32,17 @@ export default function ReplayRoute() {
   const [winProbOpen, setWinProbOpen] = useState(false);
   // Default ON — broadcast-style code labels above every dot. Press L to
   // declutter when you want a clean track view.
-  // Default ON — broadcast-style code labels above every dot. Press L to
-  // declutter when you want a clean track view.
   const [showLabels, setShowLabels] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
+  // Default ON — once the race starts we show telemetry for the current
+  // leader (or the driver the user has clicked). Press D or the close button
+  // to dismiss; clicking another driver re-opens it on that driver.
+  const [telemetryOpen, setTelemetryOpen] = useState(true);
+
+  const handleSelectDriver = (code: string | null) => {
+    setSelected(code);
+    if (code) setTelemetryOpen(true);
+  };
 
   // Keyboard shortcuts — matches Tom Shaw's reference repo so muscle memory
   // transfers. We ignore events while typing in inputs / when a modifier is
@@ -59,8 +66,9 @@ export default function ReplayRoute() {
         case "l": case "L": setShowLabels(v => !v); break;
         case "t": case "T": setTowerOpen(v => !v); break;
         case "w": case "W": setWinProbOpen(v => !v); break;
+        case "d": case "D": setTelemetryOpen(v => !v); break;
         case "h": case "H": case "?": setHelpOpen(v => !v); break;
-        case "Escape": setSelected(null); setHelpOpen(false); break;
+        case "Escape": setTelemetryOpen(false); setHelpOpen(false); break;
       }
     };
     window.addEventListener("keydown", onKey);
@@ -152,7 +160,7 @@ export default function ReplayRoute() {
             sessionTime={replay.sessionTime}
             trackStatus={(replay.snapshot as any)?.track_status ?? null}
             overtakes={overtakesData?.events ?? []}
-            onSelectDriver={setSelected}
+            onSelectDriver={handleSelectDriver}
             selected={focusedDriver?.driver_code}
             safetyCar={replay.safetyCar}
             showLabels={showLabels}
@@ -221,7 +229,7 @@ export default function ReplayRoute() {
                 ) : (
                   <TimingTower
                     drivers={drivers as any}
-                    onSelectDriver={setSelected}
+                    onSelectDriver={handleSelectDriver}
                     selected={focusedDriver?.driver_code}
                   />
                 )}
@@ -241,32 +249,48 @@ export default function ReplayRoute() {
           </button>
         )}
 
-        {/* Overtake feed — right side overlay. Live mode: events stream in
-            as the playhead crosses their session-time, newest on top. */}
-        <div className="absolute right-4 top-20 bottom-20 z-10 w-[320px] rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden hidden md:flex">
-          <OvertakeFeed
-            overtakes={overtakesData?.events ?? []}
-            sessionTime={replay.sessionTime}
-            lapMarks={replay.lapMarks}
-            sectorMarks={replay.sectorMarks}
-            raceStartT={replay.raceStartT}
-            circuitId={replay.meta?.circuit_id ?? null}
-          />
-        </div>
-
-        {/* Driver telemetry panel — bottom-left, opens when a driver is clicked.
-            Speed / Gear / Throttle+Brake traces from cached car_data.ff1pkl. */}
-        {selected && focusedDriver && (
-          <div className="absolute bottom-4 left-4 z-10">
-            <DriverTelemetry
-              driver={focusedDriver}
-              season={season}
-              roundNum={roundNum}
+        {/* Right rail — overtake feed on top, driver telemetry beneath it.
+            Telemetry defaults to the race leader; clicking any driver (track
+            dot or tower row) swaps the trace. Close (X or D) collapses it
+            into a pill that re-opens on click. */}
+        <div className="absolute right-4 top-20 bottom-20 z-10 w-[320px] hidden md:flex flex-col gap-2">
+          {/* Overtake feed — takes remaining vertical space */}
+          <div className="flex-1 min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex">
+            <OvertakeFeed
+              overtakes={overtakesData?.events ?? []}
               sessionTime={replay.sessionTime}
-              onClose={() => setSelected(null)}
+              lapMarks={replay.lapMarks}
+              sectorMarks={replay.sectorMarks}
+              raceStartT={replay.raceStartT}
+              circuitId={replay.meta?.circuit_id ?? null}
             />
           </div>
-        )}
+
+          {/* Telemetry — fixed-height (auto) bottom slot */}
+          {telemetryOpen && focusedDriver && (
+            <div className="shrink-0">
+              <DriverTelemetry
+                driver={focusedDriver}
+                season={season}
+                roundNum={roundNum}
+                sessionTime={replay.sessionTime}
+                onClose={() => setTelemetryOpen(false)}
+              />
+            </div>
+          )}
+
+          {/* Re-open telemetry pill when collapsed */}
+          {!telemetryOpen && focusedDriver && (
+            <button
+              onClick={() => setTelemetryOpen(true)}
+              className="shrink-0 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-xs text-f1-muted hover:text-f1-white"
+              aria-label="Show driver telemetry"
+              title="Show telemetry (D)"
+            >
+              <LineChartIcon size={13} /> Telemetry · {focusedDriver.driver_code}
+            </button>
+          )}
+        </div>
 
         {/* Keyboard shortcuts cheat-sheet — bottom-right popover */}
         <AnimatePresence>
@@ -294,9 +318,10 @@ export default function ReplayRoute() {
                   ["1-5",    "Speed 2× · 4× · 8× · 16× · 32×"],
                   ["L",      "Toggle driver labels on track"],
                   ["T",      "Toggle timing tower"],
+                  ["D",      "Toggle driver telemetry"],
                   ["W",      "Toggle win-probability chart"],
                   ["H or ?", "Show / hide this panel"],
-                  ["Esc",    "Deselect driver / close panel"],
+                  ["Esc",    "Close telemetry / close panel"],
                 ].map(([key, label]) => (
                   <div key={key} className="flex items-baseline justify-between gap-3">
                     <kbd className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded border border-f1-edge bg-f1-panel/60 text-paddock-cyan shrink-0 min-w-[44px] text-center">

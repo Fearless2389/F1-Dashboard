@@ -106,7 +106,7 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
 
   return (
     <div
-      className="rounded-xl border border-f1-edge bg-f1-dark/95 backdrop-blur shadow-2xl w-[420px] overflow-hidden"
+      className="rounded-xl border border-f1-edge bg-f1-dark/95 backdrop-blur shadow-2xl w-full overflow-hidden"
       style={{ boxShadow: `0 0 0 1px ${color}33, 0 12px 40px rgba(0,0,0,0.6)` }}
     >
       {/* Header — team-coloured stripe + close */}
