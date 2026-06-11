@@ -109,75 +109,80 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
       className="rounded-xl border border-f1-edge bg-f1-dark/95 backdrop-blur shadow-2xl w-full overflow-hidden"
       style={{ boxShadow: `0 0 0 1px ${color}33, 0 12px 40px rgba(0,0,0,0.6)` }}
     >
-      {/* Header — team-coloured stripe + close */}
-      <div className="relative px-4 py-3 flex items-start gap-3 border-b border-f1-edge"
+      {/* Header — team-coloured stripe + close. Reduced vertical padding
+          from py-3 → py-2 and driver-code from text-lg → text-base so the
+          header takes ~12 px less vertical space — that headroom goes to
+          the charts below, which is where readers actually look. */}
+      <div className="relative px-3 py-2 flex items-start gap-2 border-b border-f1-edge"
         style={{ background: `linear-gradient(90deg, ${color}33 0%, transparent 80%)` }}>
         <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: color }} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             {driver.driver_number != null && (
-              <span className="font-display font-black text-xl tabular-nums" style={{ color }}>
+              <span className="font-display font-black text-lg tabular-nums leading-none" style={{ color }}>
                 {String(driver.driver_number).padStart(2, "0")}
               </span>
             )}
-            <span className="font-display font-bold text-lg">{driver.driver_code}</span>
+            <span className="font-display font-bold text-base leading-none">{driver.driver_code}</span>
           </div>
-          <div className="text-[10px] uppercase tracking-widest text-f1-muted mt-0.5">
+          <div className="text-[9px] uppercase tracking-widest text-f1-muted mt-1 truncate">
             {driver.team_name || "—"}
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-f1-muted hover:text-f1-white p-1" aria-label="Close">
+          <button onClick={onClose} className="text-f1-muted hover:text-f1-white p-0.5" aria-label="Close">
             <X size={14} />
           </button>
         )}
       </div>
 
-      {/* Live stats row */}
-      <div className="grid grid-cols-4 gap-2 px-4 py-3 text-center border-b border-f1-edge">
+      {/* Live stats row — slimmed vertical padding + position value down a
+          size so the row reads as a single tabular strip rather than the
+          dominant element of the card. */}
+      <div className="grid grid-cols-4 gap-2 px-3 py-2 text-center border-b border-f1-edge">
         <div>
           <div className="text-[9px] uppercase tracking-widest text-f1-muted">Pos</div>
-          <div className="font-display font-bold text-xl tabular-nums" style={{ color }}>
+          <div className="font-display font-bold text-lg tabular-nums leading-none mt-0.5" style={{ color }}>
             {driver.position != null ? `P${driver.position}` : "—"}
           </div>
         </div>
         <div>
           <div className="text-[9px] uppercase tracking-widest text-f1-muted">Gap</div>
-          <div className="font-mono text-sm mt-1">{driver.gap_to_leader ?? "—"}</div>
+          <div className="font-mono text-xs mt-1">{driver.gap_to_leader ?? "—"}</div>
         </div>
         <div>
           <div className="text-[9px] uppercase tracking-widest text-f1-muted">Int</div>
-          <div className="font-mono text-sm mt-1">{driver.interval ?? "—"}</div>
+          <div className="font-mono text-xs mt-1">{driver.interval ?? "—"}</div>
         </div>
         <div>
           <div className="text-[9px] uppercase tracking-widest text-f1-muted">Pits</div>
-          <div className="font-display font-bold text-xl tabular-nums mt-0.5">{driver.pit_count}</div>
+          <div className="font-display font-bold text-lg tabular-nums leading-none mt-0.5">{driver.pit_count}</div>
         </div>
       </div>
 
-      {/* Tyre / stint row */}
-      <div className="px-4 py-2.5 flex items-center justify-between gap-3 border-b border-f1-edge text-xs">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-3 h-3 rounded-full" style={{ background: compoundDot }} />
-          <span className="font-display font-semibold">{driver.compound ?? "—"}</span>
+      {/* Tyre / stint row — slim py-2 to keep the section to two lines max. */}
+      <div className="px-3 py-1.5 flex items-center justify-between gap-2 border-b border-f1-edge text-[11px]">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ background: compoundDot }} />
+          <span className="font-display font-semibold truncate">{driver.compound ?? "—"}</span>
           {compoundTag !== "?" && (
             <span className="font-mono text-[10px] text-f1-muted">[{compoundTag}]</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-f1-muted">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-f1-muted shrink-0">
           <span>Stint {driver.stint_number ?? "—"}</span>
           {last?.drsActive && (
-            <span className="rounded-full px-2 py-0.5 bg-paddock-cyan/20 text-paddock-cyan font-semibold">
+            <span className="rounded-full px-1.5 py-0.5 bg-paddock-cyan/20 text-paddock-cyan font-semibold">
               DRS
             </span>
           )}
           {driver.is_pitting && (
-            <span className="rounded-full px-2 py-0.5 bg-paddock-coral/20 text-paddock-coral font-semibold">
-              IN PIT
+            <span className="rounded-full px-1.5 py-0.5 bg-paddock-coral/20 text-paddock-coral font-semibold">
+              PIT
             </span>
           )}
           {driver.retired && (
-            <span className="rounded-full px-2 py-0.5 bg-f1-red/30 text-f1-red font-semibold">
+            <span className="rounded-full px-1.5 py-0.5 bg-f1-red/30 text-f1-red font-semibold">
               DNF
             </span>
           )}

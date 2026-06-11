@@ -34,13 +34,17 @@ export default function ReplayRoute() {
   // declutter when you want a clean track view.
   const [showLabels, setShowLabels] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Default ON — once the race starts we show telemetry for the current
-  // leader (or the driver the user has clicked). Press D or the close button
-  // to dismiss; clicking another driver re-opens it on that driver.
-  const [telemetryOpen, setTelemetryOpen] = useState(true);
+  // Telemetry panel is now collapsed by default — the playhead briefly
+  // sits at t=0 while the trajectory loads, which gives an empty-window
+  // "loading" flash for the first ~1 s on cold open. Letting the user
+  // explicitly open the panel (D or click the pill / click a driver) means
+  // they only see the charts once everything's ready.
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
 
   const handleSelectDriver = (code: string | null) => {
     setSelected(code);
+    // Clicking a driver is an explicit "show me their telemetry" signal —
+    // open the panel even if the user previously dismissed it.
     if (code) setTelemetryOpen(true);
   };
 
@@ -250,12 +254,14 @@ export default function ReplayRoute() {
         )}
 
         {/* Right rail — overtake feed top-half, driver telemetry bottom-half.
-            Both panels share the column 50/50 so neither obscures the other.
-            Telemetry defaults to the race leader; clicking any driver (track
-            dot or tower row) swaps the trace. Close (X or D) collapses the
-            telemetry slot into a thin pill so the overtake feed expands to
-            fill the column. */}
-        <div className="absolute right-4 top-20 bottom-20 z-10 w-[320px] hidden md:flex flex-col gap-2">
+            Telemetry is closed by default so the overtake feed gets the
+            whole column on first open; clicking a driver (track dot or
+            tower row) or pressing D / clicking the pill expands telemetry
+            into the bottom half (50/50 split). Rail is 360 px wide,
+            matching the timing tower on the left for visual symmetry — it
+            gives the charts + driver-name room to breathe without crowding
+            the track map. */}
+        <div className="absolute right-4 top-20 bottom-20 z-10 w-[360px] hidden md:flex flex-col gap-2">
           {/* Overtake feed — top half (or full column when telemetry collapsed) */}
           <div className="flex-1 min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex">
             <OvertakeFeed
@@ -272,7 +278,7 @@ export default function ReplayRoute() {
               the panel never grows past its allotted half-column; if the
               charts don't fit on a short viewport, the panel scrolls inside. */}
           {telemetryOpen && focusedDriver && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-xl">
               <DriverTelemetry
                 driver={focusedDriver}
                 season={season}
@@ -284,15 +290,19 @@ export default function ReplayRoute() {
           )}
 
           {/* Re-open telemetry pill when collapsed (sits below the now-full
-              overtake feed) */}
-          {!telemetryOpen && focusedDriver && (
+              overtake feed). When no driver is selected yet the pill prompts
+              the user to click anyone first; otherwise it shows the focused
+              driver code so the user knows what'll open. */}
+          {!telemetryOpen && (
             <button
-              onClick={() => setTelemetryOpen(true)}
-              className="shrink-0 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-xs text-f1-muted hover:text-f1-white"
+              onClick={() => focusedDriver && setTelemetryOpen(true)}
+              disabled={!focusedDriver}
+              className="shrink-0 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-widest text-f1-muted hover:text-f1-white disabled:hover:text-f1-muted disabled:cursor-not-allowed"
               aria-label="Show driver telemetry"
-              title="Show telemetry (D)"
+              title={focusedDriver ? "Show telemetry (D)" : "Pick a driver from the track or the tower first"}
             >
-              <LineChartIcon size={13} /> Telemetry · {focusedDriver.driver_code}
+              <LineChartIcon size={13} />
+              {focusedDriver ? <>Telemetry · <span className="font-mono text-f1-white">{focusedDriver.driver_code}</span></> : "Pick a driver to see telemetry"}
             </button>
           )}
         </div>
