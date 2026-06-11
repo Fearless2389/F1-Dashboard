@@ -24,9 +24,9 @@ export function ReplayControls({
   const speeds: Speed[] = [2, 4, 8, 16, 32];
 
   return (
-    <Card>
-      <CardContent className="py-4">
-        <div className="flex items-center gap-4 flex-wrap">
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardContent className="py-1 px-2">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => onStep(-1)} aria-label="Step back">
               <SkipBack size={14} />

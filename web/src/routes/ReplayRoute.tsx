@@ -219,7 +219,7 @@ export default function ReplayRoute() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -380, opacity: 0 }}
               transition={{ type: "spring", stiffness: 220, damping: 30 }}
-              className="absolute left-4 top-20 bottom-20 z-10 w-[360px] rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex flex-col"
+              className="absolute left-4 top-16 bottom-16 z-10 w-[360px] rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 py-2 border-b border-f1-edge shrink-0">
                 <div className="font-display font-semibold text-sm">Timing Tower</div>
@@ -246,23 +246,25 @@ export default function ReplayRoute() {
         {!towerOpen && (
           <button
             onClick={() => setTowerOpen(true)}
-            className="absolute left-4 top-20 z-10 rounded-r-xl border border-f1-edge border-l-0 bg-f1-dark/85 backdrop-blur px-2 py-3 text-f1-muted hover:text-f1-white"
+            className="absolute left-4 top-16 z-10 rounded-r-xl border border-f1-edge border-l-0 bg-f1-dark/85 backdrop-blur px-2 py-3 text-f1-muted hover:text-f1-white"
             aria-label="Show timing tower"
           >
             <ChevronRight size={16} />
           </button>
         )}
 
-        {/* Right rail — overtake feed top-half, driver telemetry bottom-half.
-            Telemetry is closed by default so the overtake feed gets the
-            whole column on first open; clicking a driver (track dot or
-            tower row) or pressing D / clicking the pill expands telemetry
-            into the bottom half (50/50 split). Rail is 360 px wide,
-            matching the timing tower on the left for visual symmetry — it
-            gives the charts + driver-name room to breathe without crowding
-            the track map. */}
-        <div className="absolute right-4 top-20 bottom-20 z-10 w-[360px] hidden md:flex flex-col gap-2">
-          {/* Overtake feed — top half (or full column when telemetry collapsed) */}
+        {/* Right rail — overtake feed gets the natural-remaining space, the
+            telemetry card (when open) sits below at its content-sized height
+            (~400 px on the slimmed layout). The previous 50/50 split made
+            the telemetry charts scroll on shorter viewports; this layout
+            shows both cards fully without internal scrolling. Rail width:
+            360 px to match the timing tower on the left. Rail starts at
+            top-16 / bottom-16 (was top-20 / bottom-20) — gains 16 px each
+            edge now that the bottom strip and lap chip are slimmer. */}
+        <div className="absolute right-4 top-16 bottom-16 z-10 w-[360px] hidden md:flex flex-col gap-2">
+          {/* Overtake feed — flex-1 so it takes whatever the telemetry slot
+              doesn't claim. min-h-0 keeps it from forcing the rail to grow
+              past its parent. */}
           <div className="flex-1 min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex">
             <OvertakeFeed
               overtakes={overtakesData?.events ?? []}
@@ -274,11 +276,14 @@ export default function ReplayRoute() {
             />
           </div>
 
-          {/* Telemetry — bottom half. flex-1 + min-h-0 + overflow-y-auto so
-              the panel never grows past its allotted half-column; if the
-              charts don't fit on a short viewport, the panel scrolls inside. */}
-          {telemetryOpen && focusedDriver && (
-            <div className="flex-1 min-h-0 overflow-y-auto rounded-xl">
+          {/* Telemetry — shrink-0 + content-sized height so the charts
+              render fully without internal scrolling. We additionally guard
+              on sessionTime > 0 (race_start_t hasn't been applied to the
+              playhead yet during the first ~1 s) so the "Awaiting telemetry
+              samples…" empty state never flashes — the panel waits for the
+              trajectory query to settle before opening. */}
+          {telemetryOpen && focusedDriver && replay.sessionTime > 0 && (
+            <div className="shrink-0 rounded-xl">
               <DriverTelemetry
                 driver={focusedDriver}
                 season={season}
@@ -289,11 +294,11 @@ export default function ReplayRoute() {
             </div>
           )}
 
-          {/* Re-open telemetry pill when collapsed (sits below the now-full
-              overtake feed). When no driver is selected yet the pill prompts
-              the user to click anyone first; otherwise it shows the focused
+          {/* Re-open telemetry pill when collapsed (or when waiting for
+              sessionTime to settle). Prompts the user to click a driver
+              first if none is selected yet; otherwise shows the focused
               driver code so the user knows what'll open. */}
-          {!telemetryOpen && (
+          {(!telemetryOpen || replay.sessionTime <= 0) && (
             <button
               onClick={() => focusedDriver && setTelemetryOpen(true)}
               disabled={!focusedDriver}
@@ -383,9 +388,12 @@ export default function ReplayRoute() {
         </AnimatePresence>
       </div>
 
-      {/* BOTTOM STRIP — replay controls (always visible) */}
+      {/* BOTTOM STRIP — replay controls. Slimmed padding from px-3 py-2 to
+          px-2 py-1 so the strip steals less vertical height from the map
+          canvas (which gives the right-rail's overtake feed + telemetry
+          card more room to expand without overlapping). */}
       {replay.meta && (
-        <div className="shrink-0 border-t border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2">
+        <div className="shrink-0 border-t border-f1-edge bg-f1-dark/85 backdrop-blur px-2 py-1">
           <ReplayControls
             lap={replay.lap}
             nLaps={replay.meta.n_laps}
