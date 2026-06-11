@@ -1,41 +1,33 @@
-import { useMemo, useState } from "react";
-import { m } from "framer-motion";
+import { useMemo } from "react";
+import { Calendar as CalIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { TimingTower } from "@/components/panels/TimingTower";
-import { TrackMap } from "@/components/panels/TrackMap";
-import { TelemetryPanel } from "@/components/panels/TelemetryPanel";
-import { RaceControlFeed } from "@/components/panels/RaceControlFeed";
+import { Card, CardContent } from "@/components/ui/Card";
 import { ReplayPicker } from "@/components/panels/ReplayPicker";
 import { Countdown } from "@/components/Countdown";
-import { Calendar as CalIcon, Radio } from "lucide-react";
-import { useLiveSocket } from "@/hooks/useLiveSocket";
 import { useSchedule } from "@/hooks/useApi";
 import { useRaceContext } from "@/store/raceContext";
 
+/**
+ * Replay-focused home — was previously a full live-session dashboard
+ * (timing tower + track map + telemetry + race control), but OpenF1
+ * returns the most-recently-completed session when nothing is actively
+ * live, which made the page misleadingly show "Monaco GP · LIVE" four
+ * days after Monaco actually finished. Stripped to two sections:
+ *
+ *   1. Next-race countdown — pulled straight from the season schedule.
+ *   2. ReplayPicker — 2025 + 2026 grid so a viewer can jump straight
+ *      into the meat of the project (the replay UI with telemetry).
+ *
+ * The /api/live/* endpoints + WebSocket infrastructure stay on the
+ * backend (no code removed) so they're available if we ever wire a
+ * proper live mode again; the UI just doesn't open the socket here.
+ */
 export default function LiveRoute() {
-  const { snapshot, status, lastMessageAt } = useLiveSocket();
-  const [selected, setSelected] = useState<string | null>(null);
   const { season } = useRaceContext();
   const { data: schedule } = useSchedule(season, false);
 
-  const drivers = snapshot?.drivers ?? [];
-  const focusedDriver = useMemo(
-    () => drivers.find((d) => d.driver_code === selected) ?? drivers[0] ?? null,
-    [selected, drivers],
-  );
-
-  const sessionKey = snapshot?.session_key ?? null;
-  const w = snapshot?.weather;
-  const lastSeen = lastMessageAt ? Math.max(0, Math.round((Date.now() - lastMessageAt) / 1000)) : null;
-
-  // Build a circuit id from the live session, falling back to the next-up race
-  const liveCircuitId = useMemo(() => {
-    if (!snapshot?.circuit_short_name) return null;
-    return snapshot.circuit_short_name.toLowerCase().replace(/\s+/g, "_");
-  }, [snapshot]);
-
+  // Pick the next race that hasn't started yet (give or take 6 hours of
+  // race-day slack), or fall back to the first event in the season.
   const nextRace = useMemo(() => {
     const evs = schedule?.events ?? [];
     if (evs.length === 0) return null;
@@ -46,66 +38,11 @@ export default function LiveRoute() {
     }) ?? evs[0];
   }, [schedule]);
 
-  const noSession = drivers.length === 0;
-
   return (
     <div className="space-y-4">
-      {/* Hero strip */}
-      <Card>
-        <CardContent className="py-4 flex flex-wrap items-center gap-3 justify-between">
-          <div className="flex items-center gap-3">
-            {!noSession ? (
-              <Badge tone="live">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-f1-red f1-pulse" />
-                Live · WebSocket {status}
-              </Badge>
-            ) : (
-              <Badge tone="muted">
-                <Radio size={12} />
-                No active session
-              </Badge>
-            )}
-            {snapshot && !noSession ? (
-              <div>
-                <div className="text-sm font-semibold">
-                  {snapshot.session_name ?? snapshot.session_type ?? "Session"}
-                  {snapshot.circuit_short_name ? ` · ${snapshot.circuit_short_name}` : ""}
-                </div>
-                <div className="text-xs text-f1-muted mt-0.5">
-                  Status: {snapshot.status} {lastSeen != null && `· last update ${lastSeen}s ago`}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="text-sm font-semibold">Standby</div>
-                <div className="text-xs text-f1-muted mt-0.5">
-                  This page lights up when an F1 session goes live (FP1, FP2, FP3, Qualifying, Sprint, Race).
-                </div>
-              </div>
-            )}
-          </div>
-          {w && (w.air_temperature != null || w.track_temperature != null) && (
-            <div className="flex items-center gap-4 text-xs">
-              <div>
-                <span className="text-f1-muted">Air</span>{" "}
-                <span className="text-f1-white">{w.air_temperature ?? "—"}°C</span>
-              </div>
-              <div>
-                <span className="text-f1-muted">Track</span>{" "}
-                <span className="text-f1-white">{w.track_temperature ?? "—"}°C</span>
-              </div>
-              <div>
-                <span className="text-f1-muted">Wind</span>{" "}
-                <span className="text-f1-white">{w.wind_speed ?? "—"} m/s</span>
-              </div>
-              {w.rainfall && <Badge color="#0080ff">WET</Badge>}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Next race banner — only show when there's nothing live */}
-      {noSession && nextRace && (
+      {/* Next-race countdown — sticky header so a portfolio reviewer
+          immediately sees what's coming up next. */}
+      {nextRace && (
         <Card>
           <CardContent className="py-5 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
@@ -138,45 +75,10 @@ export default function LiveRoute() {
         </Card>
       )}
 
-      {/* Replay picker — only when no live session */}
-      {noSession && <ReplayPicker />}
-
-      {/* 3-column main */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-[minmax(0,360px)_1fr_minmax(0,360px)]">
-        <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-          <TimingTower
-            drivers={drivers}
-            onSelectDriver={setSelected}
-            selected={focusedDriver?.driver_code}
-          />
-        </m.div>
-        <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <TrackMap
-            drivers={drivers}
-            circuitId={liveCircuitId ?? nextRace?.circuit_id ?? null}
-            circuitName={snapshot?.circuit_short_name ?? nextRace?.race_name ?? null}
-            onSelectDriver={setSelected}
-            selected={focusedDriver?.driver_code}
-          />
-        </m.div>
-        <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <TelemetryPanel driver={focusedDriver} sessionKey={sessionKey} />
-        </m.div>
-      </div>
-
-      {/* Bottom: race control + prediction overlay placeholder */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        <RaceControlFeed messages={snapshot?.race_control ?? []} />
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Live Win Probability</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-f1-muted">
-            Re-prediction overlay updates every 10 laps. Wire `/api/predict` into this card
-            with the current grid + remaining laps once a live session is running.
-          </CardContent>
-        </Card>
-      </div>
+      {/* Replay picker — the primary surface. Lists every replayable race
+          (2025 + 2026 in the deployed cache), with 2026 highlighted by
+          default and a 2025 toggle for last season's races. */}
+      <ReplayPicker />
     </div>
   );
 }
