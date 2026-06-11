@@ -1,3 +1,20 @@
+<!--
+  YAML frontmatter below is required by Hugging Face Spaces — it declares
+  the SDK, display metadata, and license for the deployed Space. Removing
+  it will cause the Space to fail to build. The actual project README
+  starts below the second `---`.
+-->
+---
+title: Race Replay
+emoji: 🏎️
+colorFrom: red
+colorTo: yellow
+sdk: docker
+app_port: 8000
+pinned: false
+license: mit
+---
+
 # F1 ML — Live predictions, race tracking, and analytics
 
 An interactive Formula 1 analytics platform built on the existing FastF1 ingestion + multi-target ML pipeline, with a React dashboard for live race tracking, predictions, and historical exploration.
