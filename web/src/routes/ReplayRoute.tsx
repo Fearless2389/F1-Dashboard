@@ -184,8 +184,20 @@ export default function ReplayRoute() {
 
       {/* MAIN MAP CANVAS — fills remaining viewport */}
       <div className="relative flex-1 min-h-0 bg-f1-dark">
-        {/* Background: the track map fills the entire region */}
-        <div className="absolute inset-0">
+        {/* Background: the track map is constrained to the visible region
+            between the rails and above the scrubber so the SVG's
+            preserveAspectRatio="xMidYMid meet" centers the circuit on the
+            *actually visible* area, not the full overflow-hidden region.
+            Previously the map filled inset-0, which centered the circuit
+            in the full canvas — so on long-and-thin tracks like Spa the
+            visible portion ended up off-centre and clipped at the bottom
+            by the scrubber. The new bounds match the rails' positions:
+            left-[388px] = tower's right edge + 12 px gap; right-[388px]
+            mirrors the overtake/telemetry column; bottom-[64px] keeps the
+            map's bottom edge above the 40-ish-px scrubber that sits at
+            bottom-4. On mobile (< md) where the side rails are hidden,
+            the map fills horizontally via inset-x-0. */}
+        <div className="absolute top-0 bottom-[64px] inset-x-0 md:left-[388px] md:right-[388px]">
           <ReplayTrackMap
             drivers={drivers}
             circuitId={replay.meta?.circuit_id ?? null}
