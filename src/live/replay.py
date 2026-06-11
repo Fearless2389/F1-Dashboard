@@ -107,6 +107,11 @@ def _driver_meta(season: int, round_num: int) -> dict[str, dict]:
             "team_name":       str(row.get("team_name") or ""),
             "finish_position": int(row["finish_position"]) if pd.notna(row.get("finish_position")) else None,
             "grid_position":   int(row["grid_position"]) if pd.notna(row.get("grid_position")) else None,
+            # finish_status surfaces "Did not start", "Finished", "Engine",
+            # "Accident", etc. The snapshot tags DNS/DNF rows using it so
+            # the timing tower can show non-starters and retired drivers
+            # rather than silently dropping them.
+            "finish_status":   str(row.get("finish_status") or ""),
         }
     return out
 
@@ -294,6 +299,20 @@ class Replay:
             # Compound + tyre age from lap_data.parquet (joined per-driver, per-lap)
             tyre = self.tyre_lookup(driver_code, d["last_lap"]) if d["last_lap"] > 0 else {}
 
+            # Detect retirement: if the driver's last_lap is well before the
+            # leader's current lap (>=2 behind) AND their position-data has
+            # no samples after that lap, mark them retired. The frontend can
+            # then surface a "DNF" badge so viewers don't think the driver
+            # has vanished from the timing tower.
+            status: Optional[str] = None
+            finish_status = meta.get("finish_status") or ""
+            if "did not start" in finish_status.lower():
+                status = "DNS"
+            elif finish_status and finish_status.lower() not in ("finished", "+1 lap", "+2 laps", "+3 laps", "+4 laps", "+5 laps", "lapped"):
+                # Race terminated early for this driver (Engine, Gearbox, Accident, etc.)
+                if d["last_lap"] < lap_n - 1:
+                    status = "DNF"
+
             drivers_out.append({
                 "driver_number":  meta.get("driver_number") or (int(drv_num_str) if drv_num_str.isdigit() else None),
                 "driver_code":    driver_code,
@@ -312,7 +331,43 @@ class Replay:
                 "top_speed":      float(speed_st) if pd.notna(speed_st) else None,
                 "lap_progress":   d["lap_progress"],
                 "tyre_life":      tyre.get("tyre_life"),
+                "status":         status,
             })
+
+        # 6) Append DNS drivers — they're in drivers_meta but never showed up
+        # in timing_df (no laps completed). The tower would otherwise omit
+        # them entirely, making it look like the field had 18 cars when it
+        # was actually 22. We pin them at positions (n_racers + 1)…22 with
+        # a status="DNS" badge.
+        racing_nums = {d["drv"] for d in per_driver}
+        dns_pos = len(per_driver) + 1
+        for drv_num_str, meta in self.drivers_meta.items():
+            if drv_num_str in racing_nums:
+                continue
+            finish_status = (meta.get("finish_status") or "").lower()
+            if "did not start" not in finish_status:
+                continue
+            drivers_out.append({
+                "driver_number":  meta.get("driver_number") or (int(drv_num_str) if drv_num_str.isdigit() else None),
+                "driver_code":    meta.get("driver_code") or drv_num_str,
+                "full_name":      meta.get("driver_code") or drv_num_str,
+                "team_name":      meta.get("team_name") or "",
+                "team_colour":    None,
+                "headshot_url":   None,
+                "position":       dns_pos,
+                "gap_to_leader":  "—",
+                "interval":       None,
+                "compound":       None,
+                "stint_number":   None,
+                "lap_start":      0,
+                "pit_count":      0,
+                "lap_time":       None,
+                "top_speed":      None,
+                "lap_progress":   0.0,
+                "tyre_life":      None,
+                "status":         "DNS",
+            })
+            dns_pos += 1
 
         return {
             "session_key":         None,

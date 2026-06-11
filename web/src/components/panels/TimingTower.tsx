@@ -1,7 +1,6 @@
 import { m, AnimatePresence } from "framer-motion";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { teamColorFallback } from "@/lib/teams";
 import type { LiveDriver } from "@/lib/types";
 
@@ -9,6 +8,11 @@ interface TowerDriver extends LiveDriver {
   /** Tyre age in laps (replay enrichment) */
   tyre_life?: number | null;
 }
+
+const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
+  DNF: { bg: "rgba(225,6,0,0.18)",  text: "#ff6b6b" },
+  DNS: { bg: "rgba(138,138,163,0.18)", text: "#b0b0c8" },
+};
 
 interface Props {
   drivers: TowerDriver[];
@@ -51,11 +55,10 @@ const GRID = "grid-cols-[22px_1fr_44px_44px_48px_24px]";
 export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
   return (
     <Card className="flex flex-col border-0 bg-transparent shadow-none">
-      <CardHeader className="flex items-center justify-between pb-1 px-3 pt-2">
-        <CardTitle className="text-sm">Timing Tower</CardTitle>
-        <Badge tone="muted">{drivers.length}</Badge>
-      </CardHeader>
-      <CardContent className="pt-0 px-2 pb-2">
+      {/* CardHeader removed — the drawer wrapper in ReplayRoute already
+          carries the "Timing Tower" title + collapse button, so rendering
+          another title here just duplicated the heading. */}
+      <CardContent className="pt-2 px-2 pb-2">
         <div className={`grid ${GRID} gap-x-1.5 text-[9px] uppercase tracking-wider text-f1-muted px-1.5 pb-1`}>
           <div>P</div>
           <div>Driver</div>
@@ -70,6 +73,10 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
               const color = teamColorFallback(d.team_colour, d.team_name);
               const isSel = selected && selected === d.driver_code;
               const compColor = compoundColor(d.compound);
+              // Greyed-out treatment for non-active rows so the eye still
+              // reads them as part of the field but knows they aren't racing.
+              const statusStyle = d.status ? STATUS_STYLE[d.status] : null;
+              const dimmed = !!statusStyle;
               return (
                 <m.div
                   key={d.driver_code || d.driver_number || Math.random()}
@@ -84,10 +91,11 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                     "border-b border-f1-edge last:border-b-0 px-1.5 py-1 cursor-pointer",
                     "hover:bg-white/[0.03] transition-colors",
                     isSel ? "bg-f1-red/10" : "",
+                    dimmed ? "opacity-55" : "",
                   ].join(" ")}
                 >
                   <div className="text-xs font-mono text-f1-white tabular-nums leading-none">
-                    {d.position ?? "—"}
+                    {dimmed ? "—" : (d.position ?? "—")}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
                     <div
@@ -103,12 +111,25 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                       </div>
                     </div>
                   </div>
-                  <div className="text-[10px] text-f1-muted text-right tabular-nums leading-tight">
-                    {d.gap_to_leader ?? "—"}
-                  </div>
-                  <div className="text-[10px] text-f1-muted text-right tabular-nums leading-tight">
-                    {d.interval ?? "—"}
-                  </div>
+                  {statusStyle ? (
+                    // DNS / DNF rows show a single status badge spanning the
+                    // gap + interval slots so the row stays visually balanced.
+                    <div
+                      className="col-span-2 text-[9px] text-center font-bold uppercase tracking-widest rounded-sm px-1 py-0.5"
+                      style={{ background: statusStyle.bg, color: statusStyle.text }}
+                    >
+                      {d.status}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-[10px] text-f1-muted text-right tabular-nums leading-tight">
+                        {d.gap_to_leader ?? "—"}
+                      </div>
+                      <div className="text-[10px] text-f1-muted text-right tabular-nums leading-tight">
+                        {d.interval ?? "—"}
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center justify-end gap-1">
                     <span
                       className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold shrink-0"

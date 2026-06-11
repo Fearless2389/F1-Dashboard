@@ -16,6 +16,9 @@ class LiveDriver(BaseModel):
     stint_number: Optional[int] = None
     lap_start: Optional[int] = None
     pit_count: int = 0
+    # "DNF" / "DNS" when the snapshot wants the UI to surface a retirement
+    # or did-not-start indicator; None for active racers.
+    status: Optional[str] = None
 
 
 class RaceControlMessage(BaseModel):

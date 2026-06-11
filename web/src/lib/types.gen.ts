@@ -1174,6 +1174,8 @@ export interface components {
              * @default 0
              */
             pit_count: number;
+            /** Status — "DNS" / "DNF" when surfacing a retirement indicator */
+            status?: string | null;
         };
         /** LiveSnapshot */
         LiveSnapshot: {
