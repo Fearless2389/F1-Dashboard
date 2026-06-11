@@ -19,7 +19,10 @@ import type {
   AccuracyResponse, ApexResponse, ForecastResponse, ScheduleResponse,
 } from "@/lib/types";
 
-const SEASONS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018];
+// Trimmed to seasons we actually ship on the deployed Space (2025 + 2026).
+// Earlier years still work through Jolpica for standings, but predictions
+// and replay both lean on parquet artifacts that only carry 2025+2026.
+const SEASONS = [2026, 2025];
 
 /**
  * Unified Race Predictor (was /apex + /forecast — merged here so all

@@ -105,15 +105,20 @@ def _load_aligned() -> Optional[pd.DataFrame]:
     return pd.read_parquet(ALIGNED_FILE)
 
 
-def compute_standings(season: int) -> pd.DataFrame:
+def compute_standings(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
     """
     Driver standings — prefers Jolpica (always up-to-date) when reachable,
     falls back to the local aligned dataset otherwise.
 
         driver_code | team_name | points | championship_position
+
+    When `round_num` is supplied, returns the standings as of the *end of
+    that round* (i.e. before any later races' points are tallied). This is
+    what surfaces the famous HAM = VER = 369.5 tie going into Abu Dhabi
+    2021 — both at 369.5 after round 21.
     """
     try:
-        jdf = jolpica.driver_standings(season)
+        jdf = jolpica.driver_standings(season, round_num)
         if not jdf.empty:
             jdf = jdf.copy()
             jdf["team_name"] = jdf["team_name"].map(_canonicalise_team)
@@ -125,6 +130,8 @@ def compute_standings(season: int) -> pd.DataFrame:
     if df is None:
         return pd.DataFrame()
     sub = df[df["season"] == season]
+    if round_num is not None and "round" in sub.columns:
+        sub = sub[sub["round"] <= round_num]
     if sub.empty:
         return pd.DataFrame()
 
@@ -139,9 +146,13 @@ def compute_standings(season: int) -> pd.DataFrame:
     return by_driver
 
 
-def constructor_standings(season: int) -> pd.DataFrame:
+def constructor_standings(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
+    """Constructor standings — mirrors `compute_standings` for teams.
+
+    `round_num`, when given, returns the constructor table as of that round.
+    """
     try:
-        jdf = jolpica.constructor_standings(season)
+        jdf = jolpica.constructor_standings(season, round_num)
         if not jdf.empty:
             jdf = jdf.copy()
             jdf["team_name"] = jdf["team_name"].map(_canonicalise_team)
@@ -153,6 +164,8 @@ def constructor_standings(season: int) -> pd.DataFrame:
     if df is None:
         return pd.DataFrame()
     sub = df[df["season"] == season]
+    if round_num is not None and "round" in sub.columns:
+        sub = sub[sub["round"] <= round_num]
     if sub.empty:
         return pd.DataFrame()
     return (

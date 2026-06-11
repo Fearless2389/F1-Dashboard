@@ -24,23 +24,44 @@ interface RecentRaceResponse {
   podium: { position: number; driver_code: string; team_name: string | null }[];
 }
 
-const SEASONS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018];
+// Trimmed to the seasons we actually ship on the deployed Space (2025 + 2026).
+// The /api/standings endpoint supports earlier seasons via Jolpica, but the
+// Replay surface and the SHAP feature pipeline only carry 2025+2026, so
+// exposing older years here just leads users to dead clicks elsewhere.
+const SEASONS = [2026, 2025];
 
 export default function StandingsRoute() {
   const [search, setSearch] = useSearchParams();
   const season = parseInt(search.get("season") ?? "2026", 10);
+  // Round selector — "all" means end-of-season totals (the historic
+  // behaviour). A specific round queries `?round_num=N` so the user can
+  // verify e.g. HAM = VER = 369.5 going into Abu Dhabi 2021. URL-driven so
+  // the snapshot is shareable.
+  const roundParam = search.get("round");
+  const round: number | "all" = roundParam ? parseInt(roundParam, 10) : "all";
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   const onSeason = (s: number) => {
     const next = new URLSearchParams(search);
     next.set("season", String(s));
+    // Different season → different schedule of rounds; reset to season-end.
+    next.delete("round");
     setSearch(next, { replace: true });
     setSelectedTeam(null);
   };
 
+  const onRound = (r: number | "all") => {
+    const next = new URLSearchParams(search);
+    if (r === "all") next.delete("round");
+    else next.set("round", String(r));
+    setSearch(next, { replace: true });
+  };
+
   const { data, isLoading } = useQuery({
-    queryKey: ["standings", season],
-    queryFn: () => api.get<StandingsResponse>(`/api/standings/${season}`),
+    queryKey: ["standings", season, round],
+    queryFn: () => api.get<StandingsResponse>(
+      `/api/standings/${season}` + (round === "all" ? "" : `?round_num=${round}`),
+    ),
   });
 
   const { data: progression, isLoading: progressionLoading } = useQuery({
@@ -167,14 +188,29 @@ export default function StandingsRoute() {
             Live data via Jolpica · click a driver to jump to their profile · click a team's colour stripe to filter
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] uppercase tracking-widest text-f1-muted">Season</span>
           <Select
             value={season}
             onChange={(e) => onSeason(parseInt(e.target.value, 10))}
-            className="h-9 w-28"
+            className="h-9 w-24"
           >
             {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
+          </Select>
+          <span className="text-[10px] uppercase tracking-widest text-f1-muted ml-1">After round</span>
+          <Select
+            value={round === "all" ? "all" : String(round)}
+            onChange={(e) => {
+              const v = e.target.value;
+              onRound(v === "all" ? "all" : parseInt(v, 10));
+            }}
+            className="h-9 w-32"
+            title="Standings snapshot as of the end of this round. Pick 'Final' for end-of-season totals."
+          >
+            <option value="all">Final</option>
+            {(schedule?.events ?? []).map(ev => (
+              <option key={ev.round} value={ev.round}>R{ev.round} · {ev.race_name}</option>
+            ))}
           </Select>
         </div>
       </div>

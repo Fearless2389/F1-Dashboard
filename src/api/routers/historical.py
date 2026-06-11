@@ -189,9 +189,17 @@ def driver_profile(code: str, season: Optional[int] = Query(None)) -> DriverProf
 
 
 @router.get("/standings/{season}", response_model=StandingsResponse)
-def standings(season: int) -> StandingsResponse:
-    drivers_df = compute_standings(season)
-    constructors_df = constructor_standings(season)
+def standings(
+    season: int,
+    round_num: int | None = Query(
+        None,
+        ge=1,
+        le=24,
+        description="Standings as of the end of this round. Omit for end-of-season totals.",
+    ),
+) -> StandingsResponse:
+    drivers_df = compute_standings(season, round_num=round_num)
+    constructors_df = constructor_standings(season, round_num=round_num)
     if drivers_df.empty and constructors_df.empty:
         raise HTTPException(404, f"No standings for season {season}")
     return StandingsResponse(

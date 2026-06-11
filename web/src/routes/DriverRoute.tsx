@@ -19,7 +19,10 @@ import { teamColor } from "@/lib/teams";
 import type { DriverSeasonResult, DriverSeasonRow } from "@/lib/types";
 
 const DEFAULT_SEASON = 2026;
-const SEASONS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018];
+// Trimmed to seasons the deployed Space carries (2025 + 2026). Driver
+// season-results below 2025 fall through to Jolpica anyway, but cross-page
+// links (e.g. into Replay) only make sense for the years we actually ship.
+const SEASONS = [2026, 2025];
 
 interface DriverCardData {
   driver_code: string;
