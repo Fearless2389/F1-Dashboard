@@ -1,5 +1,13 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
+// Same base resolution as src/lib/api.ts — empty string in dev (so Vite's
+// proxy can intercept /api), the VITE_API_URL host in production. Using a
+// raw fetch (instead of api.get) so we can detect the 204 no-content
+// response that flags "telemetry never fetched for this race" — but we
+// still need the base URL or the production build hits Vercel for /api
+// and 404s on every telemetry request.
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
 export interface TelemetryWindow {
   driver_code: string;
   from_t: number;
@@ -47,7 +55,7 @@ export function useDriverTelemetry({
       const from_t = Math.max(0, sessionTime - windowSeconds);
       const to_t = sessionTime;
       // Use the raw fetch so we can detect a 204 (no-content) response.
-      const url = `/api/replay/${season}/${roundNum}/telemetry/${driverCode}?from_t=${from_t}&to_t=${to_t}`;
+      const url = `${API_BASE}/api/replay/${season}/${roundNum}/telemetry/${driverCode}?from_t=${from_t}&to_t=${to_t}`;
       const res = await fetch(url);
       if (res.status === 204) return { __notAvailable: true } as const;
       if (!res.ok) throw new Error(`Telemetry fetch failed: ${res.status}`);

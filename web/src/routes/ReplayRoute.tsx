@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -34,11 +34,40 @@ export default function ReplayRoute() {
   // declutter when you want a clean track view.
   const [showLabels, setShowLabels] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Telemetry panel defaults to OPEN per user request. The "empty samples"
-  // flash that previously appeared during the first ~1 s of cold load is
-  // guarded by `sessionTime > 0` at the render site, so the panel waits
-  // for the trajectory query to settle before it actually mounts.
-  const [telemetryOpen, setTelemetryOpen] = useState(true);
+  // Telemetry panel collapsed by default — viewer opens by clicking a
+  // driver or pressing D. Prevents the empty-window flash during cold
+  // load and lets the overtake feed take the full right column on first
+  // open.
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
+
+  // Right-column split — telemetry's share of the column when open, as a
+  // fraction in [0.25, 0.75]. The user drags the divider to adjust;
+  // default 0.5 (50/50). Stored as a number so we can pass straight to
+  // flexBasis. Could be persisted to localStorage in a follow-up.
+  const [telemetryShare, setTelemetryShare] = useState(0.5);
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const [draggingDivider, setDraggingDivider] = useState(false);
+
+  // Mouse-drag handler — wired to the divider's onPointerDown. While
+  // dragging we follow the pointer's y position relative to the rail and
+  // compute the telemetry's share as (rail.bottom − pointerY) / rail.height.
+  useEffect(() => {
+    if (!draggingDivider) return;
+    const onMove = (e: PointerEvent) => {
+      const rail = railRef.current;
+      if (!rail) return;
+      const rect = rail.getBoundingClientRect();
+      const share = (rect.bottom - e.clientY) / rect.height;
+      setTelemetryShare(Math.max(0.25, Math.min(0.75, share)));
+    };
+    const onUp = () => setDraggingDivider(false);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [draggingDivider]);
 
   const handleSelectDriver = (code: string | null) => {
     setSelected(code);
@@ -252,15 +281,25 @@ export default function ReplayRoute() {
           </button>
         )}
 
-        {/* Right column — Overtakes on top (flex-1), Telemetry on bottom
-            (shrink-0, content-sized). Both visible at all times. Column
-            stretches from top-16 down to bottom-4 (the same bottom edge
-            the scrubber sits at) so telemetry has full vertical room.
-            The scrubber below stops before this column starts, so this
-            column is never hidden by the scrubber. */}
-        <div className="absolute right-4 top-16 bottom-4 z-10 w-[360px] hidden md:flex flex-col gap-2">
-          {/* Overtake feed — takes whatever vertical space telemetry leaves */}
-          <div className="flex-1 min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex">
+        {/* Right column — Overtakes on top, Telemetry on bottom, with a
+            resizable divider in between. Both panels share the column
+            via flex-basis (telemetryShare ∈ [0.25, 0.75]; default 0.5).
+            Column stretches top-16 → bottom-4 so telemetry has the same
+            bottom edge as the scrubber. */}
+        <div
+          ref={railRef}
+          className={`absolute right-4 top-16 bottom-4 z-10 w-[360px] hidden md:flex flex-col ${draggingDivider ? "select-none" : ""}`}
+        >
+          {/* Overtake feed — gets (1 − telemetryShare) of the column when
+              telemetry is open, the whole column otherwise. */}
+          <div
+            className="min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex"
+            style={
+              telemetryOpen && focusedDriver && replay.sessionTime > 0
+                ? { flexBasis: `${(1 - telemetryShare) * 100}%`, flexShrink: 1, flexGrow: 0 }
+                : { flexBasis: "100%", flexShrink: 1, flexGrow: 1 }
+            }
+          >
             <OvertakeFeed
               overtakes={overtakesData?.events ?? []}
               sessionTime={replay.sessionTime}
@@ -271,12 +310,32 @@ export default function ReplayRoute() {
             />
           </div>
 
-          {/* Telemetry — content-sized, never internal-scrolls. Gated on
-              sessionTime>0 so the empty-window flash during the first ~1 s
-              of trajectory load never renders. While we wait we show a
-              small pill instead — the column visually doesn't shift. */}
+          {/* Draggable divider — only when telemetry is open. The pointer
+              capture is on the bar itself; useEffect listens for global
+              pointermove/up while draggingDivider is true. */}
+          {telemetryOpen && focusedDriver && replay.sessionTime > 0 && (
+            <div
+              onPointerDown={(e) => {
+                (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                setDraggingDivider(true);
+              }}
+              className="h-1.5 my-1 shrink-0 rounded-full bg-f1-edge hover:bg-paddock-coral/60 cursor-row-resize transition-colors"
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="Resize overtakes / telemetry split"
+              title="Drag to resize"
+            />
+          )}
+
+          {/* Telemetry — content-sized scroll inside its allotted share.
+              When the divider sits at 50/50 on a 1080p viewport the
+              panel has ~400px which fits all the charts without scrolling;
+              shrinking the share scrolls the panel internally. */}
           {telemetryOpen && focusedDriver && replay.sessionTime > 0 ? (
-            <div className="shrink-0">
+            <div
+              className="min-h-0 overflow-y-auto"
+              style={{ flexBasis: `${telemetryShare * 100}%`, flexShrink: 1, flexGrow: 0 }}
+            >
               <DriverTelemetry
                 driver={focusedDriver}
                 season={season}
@@ -289,7 +348,7 @@ export default function ReplayRoute() {
             <button
               onClick={() => focusedDriver && setTelemetryOpen(true)}
               disabled={!focusedDriver}
-              className="shrink-0 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-widest text-f1-muted hover:text-f1-white disabled:hover:text-f1-muted disabled:cursor-not-allowed"
+              className="shrink-0 mt-2 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-widest text-f1-muted hover:text-f1-white disabled:hover:text-f1-muted disabled:cursor-not-allowed"
               title={focusedDriver ? "Show telemetry (D)" : "Pick a driver from the track or the tower first"}
             >
               <LineChartIcon size={13} />
