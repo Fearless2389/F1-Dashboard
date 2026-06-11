@@ -38,8 +38,13 @@ RUN sed -i '/^streamlit/d' requirements.txt && \
     pip install -r requirements.txt
 
 # Application source. data/ is intentionally NOT copied — it lives on the
-# persistent volume. .dockerignore should keep web/, node_modules/, etc out.
+# mounted persistent volume / HF Space repo. .dockerignore keeps web/,
+# node_modules/, etc out. The trained model artifacts are tiny (~2.8 MB
+# total across 7 .pkl files) and version-tracked alongside the code, so we
+# bundle them into the image instead of asking users to upload them
+# separately to the Space's data directory.
 COPY src/ ./src/
+COPY models/ ./models/
 
 # Non-root user — Fly.io complains if we run as root.
 RUN useradd --create-home --uid 1000 app && \
