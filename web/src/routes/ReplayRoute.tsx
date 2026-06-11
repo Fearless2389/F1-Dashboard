@@ -34,12 +34,11 @@ export default function ReplayRoute() {
   // declutter when you want a clean track view.
   const [showLabels, setShowLabels] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Telemetry panel is now collapsed by default — the playhead briefly
-  // sits at t=0 while the trajectory loads, which gives an empty-window
-  // "loading" flash for the first ~1 s on cold open. Letting the user
-  // explicitly open the panel (D or click the pill / click a driver) means
-  // they only see the charts once everything's ready.
-  const [telemetryOpen, setTelemetryOpen] = useState(false);
+  // Telemetry panel defaults to OPEN per user request. The "empty samples"
+  // flash that previously appeared during the first ~1 s of cold load is
+  // guarded by `sessionTime > 0` at the render site, so the panel waits
+  // for the trajectory query to settle before it actually mounts.
+  const [telemetryOpen, setTelemetryOpen] = useState(true);
 
   const handleSelectDriver = (code: string | null) => {
     setSelected(code);
@@ -253,12 +252,14 @@ export default function ReplayRoute() {
           </button>
         )}
 
-        {/* Right rail — overtake feed ONLY, full vertical height. Telemetry
-            moved out of the rail to the bottom strip so both panels stay
-            visible at all times (per the user feedback: "i want to see
-            both fully at all times"). Rail width matches the timing tower
-            on the left for visual symmetry. */}
-        <div className="absolute right-4 top-16 bottom-16 z-10 w-[360px] hidden md:flex flex-col">
+        {/* Right column — Overtakes on top (flex-1), Telemetry on bottom
+            (shrink-0, content-sized). Both visible at all times. Column
+            stretches from top-16 down to bottom-4 (the same bottom edge
+            the scrubber sits at) so telemetry has full vertical room.
+            The scrubber below stops before this column starts, so this
+            column is never hidden by the scrubber. */}
+        <div className="absolute right-4 top-16 bottom-4 z-10 w-[360px] hidden md:flex flex-col gap-2">
+          {/* Overtake feed — takes whatever vertical space telemetry leaves */}
           <div className="flex-1 min-h-0 rounded-xl border border-f1-edge bg-f1-dark/90 backdrop-blur shadow-2xl overflow-hidden flex">
             <OvertakeFeed
               overtakes={overtakesData?.events ?? []}
@@ -269,6 +270,36 @@ export default function ReplayRoute() {
               circuitId={replay.meta?.circuit_id ?? null}
             />
           </div>
+
+          {/* Telemetry — content-sized, never internal-scrolls. Gated on
+              sessionTime>0 so the empty-window flash during the first ~1 s
+              of trajectory load never renders. While we wait we show a
+              small pill instead — the column visually doesn't shift. */}
+          {telemetryOpen && focusedDriver && replay.sessionTime > 0 ? (
+            <div className="shrink-0">
+              <DriverTelemetry
+                driver={focusedDriver}
+                season={season}
+                roundNum={roundNum}
+                sessionTime={replay.sessionTime}
+                onClose={() => setTelemetryOpen(false)}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => focusedDriver && setTelemetryOpen(true)}
+              disabled={!focusedDriver}
+              className="shrink-0 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-widest text-f1-muted hover:text-f1-white disabled:hover:text-f1-muted disabled:cursor-not-allowed"
+              title={focusedDriver ? "Show telemetry (D)" : "Pick a driver from the track or the tower first"}
+            >
+              <LineChartIcon size={13} />
+              {focusedDriver ? (
+                replay.sessionTime > 0 ? (
+                  <>Telemetry · <span className="font-mono text-f1-white">{focusedDriver.driver_code}</span></>
+                ) : "Loading replay…"
+              ) : "Pick a driver"}
+            </button>
+          )}
         </div>
 
         {/* Keyboard shortcuts cheat-sheet — bottom-right popover */}
@@ -345,55 +376,49 @@ export default function ReplayRoute() {
             </m.div>
           )}
         </AnimatePresence>
+
+        {/* Scrubber — absolute, only spans the map width (between the
+            timing tower on the left and the overtake/telemetry column on
+            the right). Sits at bottom-4 like the right column so neither
+            covers the other. On mobile (< md) the side rails are hidden,
+            so the scrubber spans the full width via inset-x-4. */}
+        {replay.meta && (
+          <>
+            {/* Desktop scrubber — between tower (left-4 + 360 + 8 gap = 388px from left)
+                and right column (right-4 + 360 + 8 gap = 388px from right) */}
+            <div className="absolute bottom-4 left-[388px] right-[388px] z-10 hidden md:block">
+              <div className="rounded-xl border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-1">
+                <ReplayControls
+                  lap={replay.lap}
+                  nLaps={replay.meta.n_laps}
+                  isPlaying={replay.isPlaying}
+                  speed={replay.speed}
+                  onTogglePlay={replay.toggle}
+                  onStep={replay.step}
+                  onSeek={replay.setLap}
+                  onSpeed={replay.setSpeed}
+                />
+              </div>
+            </div>
+            {/* Mobile scrubber — full width since side rails are hidden */}
+            <div className="absolute bottom-4 left-4 right-4 z-10 md:hidden">
+              <div className="rounded-xl border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-1">
+                <ReplayControls
+                  lap={replay.lap}
+                  nLaps={replay.meta.n_laps}
+                  isPlaying={replay.isPlaying}
+                  speed={replay.speed}
+                  onTogglePlay={replay.toggle}
+                  onStep={replay.step}
+                  onSeek={replay.setLap}
+                  onSpeed={replay.setSpeed}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* BOTTOM STRIP — flex row. When telemetry is open it slots in on
-          the LEFT (360 px wide, matching the timing tower above) and the
-          scrubber controls narrow to fit beside it. When closed, the
-          scrubber gets the full width and a small "Show telemetry" pill
-          sits on the left so the user can open the panel without having
-          to click a driver first. This layout keeps the right-rail
-          overtake feed full-height (it never gets covered by telemetry),
-          which is what the user asked for. */}
-      {replay.meta && (
-        <div className="shrink-0 border-t border-f1-edge bg-f1-dark/85 backdrop-blur flex items-stretch gap-2 px-2 py-1">
-          {telemetryOpen && focusedDriver && replay.sessionTime > 0 ? (
-            <div className="w-[360px] shrink-0">
-              <DriverTelemetry
-                driver={focusedDriver}
-                season={season}
-                roundNum={roundNum}
-                sessionTime={replay.sessionTime}
-                onClose={() => setTelemetryOpen(false)}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => focusedDriver && setTelemetryOpen(true)}
-              disabled={!focusedDriver}
-              className="w-[200px] shrink-0 self-center flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/60 px-3 py-1.5 text-[11px] uppercase tracking-widest text-f1-muted hover:text-f1-white disabled:hover:text-f1-muted disabled:cursor-not-allowed"
-              title={focusedDriver ? "Show telemetry (D)" : "Pick a driver from the track or the tower first"}
-            >
-              <LineChartIcon size={13} />
-              {focusedDriver ? (
-                <>Telemetry · <span className="font-mono text-f1-white">{focusedDriver.driver_code}</span></>
-              ) : "Pick a driver"}
-            </button>
-          )}
-          <div className="flex-1 min-w-0 flex items-center">
-            <ReplayControls
-              lap={replay.lap}
-              nLaps={replay.meta.n_laps}
-              isPlaying={replay.isPlaying}
-              speed={replay.speed}
-              onTogglePlay={replay.toggle}
-              onStep={replay.step}
-              onSeek={replay.setLap}
-              onSpeed={replay.setSpeed}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
