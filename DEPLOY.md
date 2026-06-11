@@ -1,151 +1,200 @@
 # Deploy
 
-Backend on Fly.io with a persistent volume holding the FastF1 cache + trained
-model artifacts; frontend on Cloudflare Pages (or Vercel) as a static build
-pointing at the backend.
+The default deploy is **free** end-to-end:
 
-The split exists because the backend needs ~3 GB of data co-located, while
-the frontend is a 600 KB Vite bundle that benefits from CDN edge caching.
+| Surface | Host | Cost |
+|---|---|---|
+| Frontend (Vite/React) | **Vercel Hobby** | $0 |
+| Backend (FastAPI + ~3 GB FastF1 cache + models) | **Hugging Face Spaces** (Docker SDK, free tier) | $0 |
+
+Total: **$0/month**, replay + WebSockets + predictions all work.
+
+> If you outgrow the HF free tier (idle sleep too painful for a demo, or you want a custom domain on the API), there's a $3/mo Fly.io appendix at the bottom.
 
 ---
 
-## 1 · Prerequisites
+## 1 · Backend — Hugging Face Spaces
 
-```bash
-# Fly CLI
-brew install flyctl                # or scoop install flyctl on Windows
-fly auth signup                    # or `fly auth login`
+### 1.1 Create the Space
 
-# Wrangler (Cloudflare Pages) — optional, only if you use the CLI path
-npm install -g wrangler
-wrangler login
-```
-
-The backend needs roughly 3 GB on the volume; check your local size first so
-nothing surprises you mid-upload:
-
-```bash
-du -sh data/cache data/models data/processed
-```
-
-## 2 · Backend — Fly.io
-
-```bash
-# From the repo root.
-fly launch --copy-config --no-deploy        # reads fly.toml; pick an app name
-fly volumes create paddock_data --size 5    # 5 GB, ~60% headroom over 3 GB
-
-# Production CORS origin (your frontend URL — comma-separated for previews).
-fly secrets set FRONTEND_ORIGIN=https://paddock.yourdomain.com,https://*.paddock-frontend.pages.dev
-
-fly deploy
-```
-
-Populate the volume from your local data directory. Fly's SFTP shell is the
-simplest path:
-
-```bash
-fly ssh sftp shell -a <your-app-name>
-# Inside the shell:
-sftp> mkdir /app/data
-sftp> put -r data /app/data
-```
-
-Or, if the upload is being slow, scp into a one-off machine with the volume
-attached and `rsync` from a closer source (e.g. an object-storage bucket
-you populated earlier).
-
-Smoke-test the deployed backend:
-
-```bash
-curl https://<your-app-name>.fly.dev/api/health
-curl https://<your-app-name>.fly.dev/api/apex/next | jq '.race_meta'
-```
-
-### Trimming the volume if you're tight on space
-
-The full `data/cache` directory is 3.0 GB across all 195 cached races. If
-you only care about recent seasons:
-
-```bash
-# Keep only 2024–2026 (everything else stays out of the volume)
-fly ssh console -a <your-app-name>
-cd /app/data/cache
-ls -d 20[12][0-3] | xargs rm -rf
-# Then refresh the replay index from the trimmed cache:
-python -m src.live.replay_index
-```
-
-The Predictor page still works end-to-end on a slim cache (it only reads
-parquet); only Replay degrades when a season's pickles aren't on disk.
-
-## 3 · Frontend — Cloudflare Pages
-
-Either via the dashboard (connect repo, set the build dir to `web/`) or CLI:
-
-```bash
-cd web
-cp .env.example .env.local
-
-# Edit .env.local — point at the deployed backend:
-#   VITE_API_URL=https://<your-app-name>.fly.dev
-
-npm ci
-npm run build
-wrangler pages deploy dist --project-name paddock-dashboard
-```
-
-Build settings if you're configuring via the dashboard:
+Go to https://huggingface.co/new-space:
 
 | Field | Value |
 |---|---|
-| Framework preset | Vite |
-| Build command | `npm ci && npm run build` |
-| Build output directory | `web/dist` |
-| Root directory | `web` |
-| Environment variable | `VITE_API_URL = https://<your-app-name>.fly.dev` |
+| Owner | your HF account |
+| Space name | `paddock-api` (or anything; the URL becomes `<owner>-<name>.hf.space`) |
+| License | MIT (or whatever fits your repo) |
+| Space SDK | **Docker** |
+| Docker template | "Blank" |
+| Hardware | "CPU basic · free" |
+| Visibility | Public |
 
-Same path works on Vercel — set the root directory to `web/` and the
-`VITE_API_URL` env var in the project settings.
+This creates an empty git repo at `https://huggingface.co/spaces/<owner>/paddock-api`.
 
-## 4 · Custom domain (optional)
+### 1.2 Push the code
+
+The existing repo-root `Dockerfile` is what HF will build. From your local clone:
 
 ```bash
-fly certs create api.paddock.yourdomain.com -a <your-app-name>
-# Add a CNAME pointing api.paddock.yourdomain.com → <your-app-name>.fly.dev
+git remote add hf https://huggingface.co/spaces/<owner>/paddock-api
+git push hf main
 ```
 
-Then update `VITE_API_URL` in the frontend env to the custom domain so the
-WebSocket also lands there (the same-host derivation in `api.ts:wsUrl`).
+You'll be prompted for an HF access token — generate one at https://huggingface.co/settings/tokens with "write" scope.
 
-## 5 · Costs (ballpark, as of 2026)
+The Space's build log shows `docker build` running. ~3-4 minutes on the free tier.
+
+### 1.3 Upload the data directory
+
+The Dockerfile deliberately doesn't bundle `data/` (it's 3 GB, would inflate the image). HF Spaces gives you persistent storage at `/app/data` — push the directory separately:
+
+```bash
+pip install huggingface_hub
+huggingface-cli login                    # paste your token
+huggingface-cli upload <owner>/paddock-api data data --repo-type=space
+```
+
+Expect ~30 minutes on a decent connection (3 GB through git-lfs). You can resume if it disconnects — the CLI handles retry.
+
+Web-UI fallback: Space → Files → Upload → drag the `data/` folder in. Slower but no CLI install.
+
+### 1.4 Set environment variables
+
+Space → Settings → "Variables and secrets":
+
+| Type | Name | Value |
+|---|---|---|
+| Variable | `FRONTEND_ORIGIN` | `https://paddock-<you>.vercel.app,https://*.vercel.app` |
+| Variable | `F1ML_DISABLE_REFRESHER` | `1` |
+
+The comma-separated CORS handler accepts both your production Vercel URL and the wildcard for preview deploys. Disable the refresher on a sleeping free Space — the cron firing into a suspended container just burns wake-ups.
+
+### 1.5 Smoke test
+
+Once the build finishes:
+
+```bash
+curl https://<owner>-paddock-api.hf.space/api/health
+curl https://<owner>-paddock-api.hf.space/api/apex/next | jq '.race_meta'
+```
+
+First request after a long idle takes ~10–20 s while the warm-up thread loads the six trained models.
+
+### Trimming the volume if you're tight on disk space
+
+You're under the 50 GB Space limit at 3 GB, but if you want to slim further (every other season, say):
+
+```bash
+# Locally, before re-upload — keep only 2024–2026
+cd data/cache
+ls -d 20[12][0-3] | xargs rm -rf
+python -m src.live.replay_index                    # rebuild the index
+# Then re-upload data/cache and data/processed
+huggingface-cli upload <owner>/paddock-api data/cache data/cache --repo-type=space
+huggingface-cli upload <owner>/paddock-api data/processed data/processed --repo-type=space
+```
+
+The Predictor still works end-to-end on a slim cache (only reads parquet); only Replay degrades when a season's pickles aren't on disk.
+
+---
+
+## 2 · Frontend — Vercel
+
+### 2.1 Import the repo
+
+https://vercel.com/new → pick this GitHub repo → on the "Configure Project" screen:
+
+| Setting | Value |
+|---|---|
+| Framework Preset | Vite (auto-detected) |
+| Root Directory | `web` |
+| Build Command | `npm run build` (auto-detected) |
+| Output Directory | `dist` (auto-detected) |
+| Install Command | `npm ci` (or `pnpm install --frozen-lockfile` if Vercel detects `pnpm-lock.yaml`) |
+
+### 2.2 Environment variables
+
+Under Environment Variables in the same setup screen:
+
+| Name | Value | Environments |
+|---|---|---|
+| `VITE_API_URL` | `https://<owner>-paddock-api.hf.space` | Production + Preview + Development |
+
+That's the only env var the frontend needs in production. The WebSocket URL is derived from `VITE_API_URL` automatically (`https://` → `wss://`).
+
+### 2.3 Deploy
+
+Click Deploy. ~90 seconds later you have `https://paddock-<you>.vercel.app`. Every push to `main` redeploys; PRs get preview URLs.
+
+### 2.4 vercel.json
+
+The repo ships `web/vercel.json` with a single SPA rewrite:
+
+```json
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+}
+```
+
+This makes deep-link refreshes (e.g. `/apex?season=2026&round=7` opened in a new tab) serve `index.html` so react-router picks the route up client-side. No other config needed.
+
+---
+
+## 3 · Custom domain (optional, free)
+
+Vercel:
+- Project → Domains → add `paddock.yourdomain.com` → follow the CNAME / nameserver instructions. HTTPS is automatic.
+- Update `FRONTEND_ORIGIN` on the HF Space to add the new origin.
+
+HF Spaces:
+- Custom domains require an HF Pro account ($9/mo). Keep the `*.hf.space` URL as `VITE_API_URL` if you don't want to pay; the frontend can still live on a custom domain.
+
+---
+
+## 4 · Costs (zero-cost path)
 
 | Resource | Plan | $/mo |
 |---|---|---|
-| Fly.io `shared-cpu-1x` 1 GB | scale-to-zero when idle | ~$2 |
-| Fly.io 5 GB volume | always-on | ~$0.75 |
-| Cloudflare Pages | free tier | $0 |
-| Total | | ~$3 |
+| Vercel Hobby | 100 GB bandwidth, unlimited preview deploys | $0 |
+| HF Spaces free tier | 16 GB RAM, 50 GB disk, idle-sleep after 48 h | $0 |
+| **Total** | | **$0** |
 
-If you outgrow the free tier on Pages (>500 builds/month) the next step is
-Vercel's hobby tier or self-hosting the frontend on the same Fly machine.
+---
 
-## 6 · Operational notes
+## 5 · Operational notes
 
-- **First request after idle**: the warm-up thread loads the six trained
-  `.pkl` models on import. Cold-start is ~5–8 seconds; the `auto_stop_machines = "stop"`
-  setting in `fly.toml` means after 5 min of no traffic the machine sleeps.
-- **Refresher**: `F1ML_DISABLE_REFRESHER=1` will disable the live-data
-  cron loop. Leave it on for real deploys so the Live Race page stays fresh.
-- **Logs**: `fly logs -a <your-app-name>`. The warm-up thread logs once on
-  startup so you can see the parquet/model load times.
-- **Re-training**: when you re-train models locally, `rsync` the new
-  `data/models/` directory back to the volume, then restart the machine so
-  the `load_model` `lru_cache` (which holds the old artifacts in memory)
-  drops:
+- **Cold start**: first request after the HF Space sleeps takes ~10–20 s while the warm-up thread loads the six models. Subsequent requests are fast.
+- **Wake the Space**: just hit any endpoint. A `curl /api/health` from your dev machine is enough to bring it back if you know a portfolio reviewer is about to look.
+- **Re-training**: when you train new models locally, push just `data/models/` back to the Space:
   ```bash
-  fly machine restart -a <your-app-name>
+  huggingface-cli upload <owner>/paddock-api data/models data/models --repo-type=space
   ```
-- **CORS regressions**: if the deployed frontend can't talk to the backend,
-  check that `FRONTEND_ORIGIN` was set before `fly deploy` (it's read at
-  startup, not per-request). `fly secrets list -a <your-app-name>` confirms.
+  Then restart the Space from Settings → "Factory rebuild" (or click "Restart") so the in-process `lru_cache` on `load_model` drops the old artifacts.
+- **Refresher**: `F1ML_DISABLE_REFRESHER=1` is recommended on a sleeping free Space (the cron's wakeups burn Space budget). For a paid host that stays awake, set it to `0` so live data refreshes.
+- **Logs**: Space → Logs tab in the HF UI; same surface as Docker logs.
+- **CORS regressions**: if the deployed frontend can't talk to the backend, check that `FRONTEND_ORIGIN` is set on the Space (read at startup). `vercel env ls` confirms the Vercel side.
+
+---
+
+## Appendix · Optional paid path ($3/mo, Fly.io)
+
+If HF Spaces sleeping is too painful (portfolio reviewer hits a cold start, etc.), the original Fly.io scaffold is still in the repo:
+
+```bash
+brew install flyctl                      # or scoop on Windows
+fly auth signup
+fly launch --copy-config --no-deploy     # uses the included fly.toml
+fly volumes create paddock_data --size 5
+fly secrets set FRONTEND_ORIGIN=https://paddock-<you>.vercel.app
+fly deploy
+fly ssh sftp shell -a <app-name>
+# put -r data /app/data                  # ~3 GB upload
+```
+
+| Resource | $/mo |
+|---|---|
+| Fly.io `shared-cpu-1x` 1 GB | ~$2 |
+| Fly.io 5 GB volume | ~$0.75 |
+| **Total** | **~$3** |
+
+After deploy, swap `VITE_API_URL` in the Vercel project to the Fly hostname (`https://<app-name>.fly.dev`) and redeploy. The frontend doesn't change.

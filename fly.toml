@@ -1,9 +1,14 @@
 # Fly.io config for the Paddock Dashboard backend.
 #
+# This file is the OPTIONAL PAID PATH (~$3/mo). The default zero-cost deploy
+# uses Hugging Face Spaces (Docker SDK) for the backend and Vercel for the
+# frontend — see DEPLOY.md. Keep this config around as an escape hatch if
+# the HF Space starts feeling sluggish for your portfolio demo.
+#
 # Bootstrap:
 #   fly launch --copy-config --no-deploy        # first time only
 #   fly volumes create paddock_data --size 5    # 5 GB volume (~3 GB used)
-#   fly secrets set FRONTEND_ORIGIN=https://paddock-yourdomain.pages.dev
+#   fly secrets set FRONTEND_ORIGIN=https://paddock-yourname.vercel.app
 #   fly deploy
 #
 # After first deploy, populate the volume from your local machine:
