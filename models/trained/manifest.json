@@ -1,0 +1,81 @@
+{
+  "generated_at": "2026-06-10T05:23:06.461138+00:00",
+  "targets": [
+    {
+      "target": "logistic_baseline",
+      "kind": "binary",
+      "output_filename": "logistic_baseline.pkl",
+      "n_features": 1,
+      "val_metric": 0.8368113668061365,
+      "test_metric": 0.8123333333333334,
+      "val_metric_name": "roc_auc",
+      "train_date": "2026-06-10T05:23:02.059882+00:00"
+    },
+    {
+      "target": "top10",
+      "kind": "binary",
+      "output_filename": "xgb_top10.pkl",
+      "train_rows": 3089,
+      "n_features": 18,
+      "val_metric": 0.8329933751743375,
+      "test_metric": 0.863,
+      "val_metric_name": "roc_auc",
+      "train_date": "2026-06-10T05:23:02.371119+00:00"
+    },
+    {
+      "target": "podium",
+      "kind": "binary",
+      "output_filename": "xgb_podium.pkl",
+      "train_rows": 3089,
+      "n_features": 18,
+      "val_metric": 0.9488636363636364,
+      "test_metric": 0.9757894736842105,
+      "val_metric_name": "roc_auc",
+      "train_date": "2026-06-10T05:23:02.578149+00:00"
+    },
+    {
+      "target": "winner",
+      "kind": "ranker",
+      "output_filename": "lgbm_winner.pkl",
+      "train_rows": 3089,
+      "n_features": 18,
+      "val_metric": 0.375,
+      "test_metric": 0.6,
+      "val_metric_name": "ndcg@1",
+      "train_date": "2026-06-10T05:23:04.472362+00:00"
+    },
+    {
+      "target": "dnf",
+      "kind": "binary",
+      "output_filename": "xgb_dnf.pkl",
+      "train_rows": 3089,
+      "n_features": 18,
+      "val_metric": 0.707514744763067,
+      "test_metric": 0.8382905982905984,
+      "val_metric_name": "roc_auc",
+      "train_date": "2026-06-10T05:23:04.842363+00:00"
+    },
+    {
+      "target": "fastest_lap",
+      "kind": "regression",
+      "output_filename": "lgbm_fastest_lap.pkl",
+      "train_rows": 2850,
+      "n_features": 18,
+      "val_metric": 3.844082461465241,
+      "test_metric": null,
+      "val_metric_name": "rmse",
+      "train_date": "2026-06-10T05:23:05.691749+00:00"
+    },
+    {
+      "target": "quali",
+      "kind": "regression",
+      "output_filename": "lgbm_quali.pkl",
+      "train_rows": 3029,
+      "n_features": 15,
+      "val_metric": 4.4075294525889,
+      "test_metric": 1.6350675284323368,
+      "val_metric_name": "rmse",
+      "train_date": "2026-06-10T05:23:06.436185+00:00"
+    }
+  ]
+}

@@ -26,18 +26,23 @@ env/
 *.pickle
 *.h5
 *.hdf5
+# Trained model artifacts ARE tracked so they ship with the Docker image —
+# the Dockerfile COPY models/ relies on these being in the git repo.
+!models/trained/*.pkl
 *.sqlite
 *.db
 data/raw/
 data/processed/
 data/cache/
 data/live/
+data_slim/
 
 # Runtime weather caches (re-fetched on demand from Open-Meteo)
 data/schedule/weather_*.json
 
-# Models
-models/trained/
+# Models — trained artifacts are version-tracked so they ride along with
+# the Docker image (Dockerfile: COPY models/). Only intermediate joblib
+# scratch files stay ignored.
 *.joblib
 *.model
 
