@@ -1,0 +1,42 @@
+# Frontend — deploys separately to a static host.
+web/
+node_modules/
+
+# Data — stays on the mounted volume, not in the image.
+data/
+
+# Git, IDE, Python build artifacts.
+.git/
+.github/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+.claude/
+.streamlit/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environment
+.env
+.env.*
+venv/
+.venv/
+
+# Tests + docs — not needed at runtime.
+tests/
+docs/
+notebooks/
+*.ipynb
+streamlit_app/
+
+# Logs + scratch
+*.log
+*.tmp
+scratch/
+handoff.md

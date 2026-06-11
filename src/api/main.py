@@ -91,14 +91,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow local dev + the configured frontend origin
+# CORS — local dev origins are always on; production origins come from the
+# FRONTEND_ORIGIN env var, which accepts either a single value
+# ("https://paddock.example.com") or a comma-separated list
+# ("https://paddock.example.com,https://preview-1.pages.dev") so Vercel /
+# Cloudflare Pages preview deploys can hit the same backend.
 allowed_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-frontend = os.environ.get("FRONTEND_ORIGIN")
-if frontend:
-    allowed_origins.append(frontend)
+frontend = os.environ.get("FRONTEND_ORIGIN", "")
+for origin in (o.strip() for o in frontend.split(",")):
+    if origin:
+        allowed_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
