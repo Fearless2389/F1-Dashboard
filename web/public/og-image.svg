@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Open Graph card for Paddock Dashboard. 1200×630 — the canonical
+  OG size for Twitter, LinkedIn, Slack, Discord previews.
+
+  Italic Playfair display wordmark, three pillar labels, ALLCAPS mono
+  metadata strip at the bottom, single coral rule under the headline.
+  No images, no external resources — everything rendered from text +
+  the inline palette so the file is ~3 KB and ships fast.
+
+  PNG fallback: most modern crawlers (FB/LinkedIn/Twitter/Slack/Discord)
+  accept SVG OG images. Older clients fall back to favicon. If a PNG
+  is needed, render this SVG to PNG via `sharp` or `puppeteer` and
+  swap the og:image meta tag in index.html to point at og-image.png.
+-->
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg"
+     style="font-family: 'Playfair Display', Georgia, serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c0e17"/>
+      <stop offset="100%" stop-color="#07080d"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.7" fill="#1a1f33" opacity="0.55"/>
+    </pattern>
+  </defs>
+
+  <!-- Background — warm graphite + the same subtle grid texture used  -->
+  <!-- inside the app. Matches the live site at f1-dashboard-blush…    -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Kicker eyebrow — coral ALLCAPS mono -->
+  <text x="80" y="160"
+        font-family="JetBrains Mono, ui-monospace, Menlo, Consolas, monospace"
+        font-size="20" font-weight="700"
+        fill="#ff5e6c" letter-spacing="6">
+    FORMULA 1 · MACHINE LEARNING · LIVE REPLAY
+  </text>
+
+  <!-- Wordmark — italic Playfair, white + coral split -->
+  <text x="80" y="290" font-size="120" font-weight="900" font-style="italic"
+        letter-spacing="-2" fill="#f5f5f7">
+    Paddock
+  </text>
+  <text x="488" y="290" font-size="120" font-weight="900" font-style="italic"
+        letter-spacing="-2" fill="#ff5e6c">
+    Dashboard
+  </text>
+
+  <!-- Cream rule under the headline — the editorial section-header   -->
+  <!-- signature, scaled up for the card. -->
+  <rect x="80" y="328" width="1040" height="3" fill="#ede4d3" opacity="0.85"/>
+
+  <!-- Tagline — Inter sentence-case, muted cream -->
+  <text x="80" y="392"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="28" font-weight="400"
+        fill="#ede4d3" opacity="0.85">
+    Six trained ML models. 10K-iteration Monte Carlo simulator.
+  </text>
+  <text x="80" y="430"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="28" font-weight="400"
+        fill="#ede4d3" opacity="0.85">
+    Real-time replay of every 2025–2026 F1 race.
+  </text>
+
+  <!-- Three-pillar strip — ALLCAPS mono labels with cream rules ----->
+  <g font-family="JetBrains Mono, ui-monospace, Menlo, Consolas, monospace"
+     font-size="16" font-weight="700" letter-spacing="4">
+    <rect x="80"  y="500" width="280" height="2" fill="#ff5e6c" opacity="0.75"/>
+    <text x="80"  y="540" fill="#ff5e6c">PREDICT</text>
+    <text x="80"  y="568" font-size="13" font-weight="500" fill="#8a92ad" letter-spacing="1">
+      Winner · podium · DNF · top-10
+    </text>
+
+    <rect x="450" y="500" width="280" height="2" fill="#ede4d3" opacity="0.65"/>
+    <text x="450" y="540" fill="#ede4d3">REPLAY</text>
+    <text x="450" y="568" font-size="13" font-weight="500" fill="#8a92ad" letter-spacing="1">
+      Track map · timing · telemetry
+    </text>
+
+    <rect x="820" y="500" width="280" height="2" fill="#7fc9a4" opacity="0.75"/>
+    <text x="820" y="540" fill="#7fc9a4">ANALYSE</text>
+    <text x="820" y="568" font-size="13" font-weight="500" fill="#8a92ad" letter-spacing="1">
+      Standings · drivers · radar
+    </text>
+  </g>
+
+  <!-- Footer metadata strip — JetBrains Mono, muted cream -->
+  <text x="80" y="615"
+        font-family="JetBrains Mono, ui-monospace, Menlo, Consolas, monospace"
+        font-size="13" font-weight="500"
+        fill="#5a6075" letter-spacing="3">
+    REACT · TYPESCRIPT · FASTAPI · XGBOOST · LIGHTGBM · SHAP · FASTF1 · $0/MONTH ON VERCEL + HF SPACES
+  </text>
+</svg>
