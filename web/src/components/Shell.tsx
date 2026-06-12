@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { LayoutGroup, m } from "framer-motion";
 
 import { cn } from "@/lib/cn";
 import { prefetchForRoute } from "@/lib/prefetch";
@@ -48,39 +49,45 @@ function Topbar() {
           anywhere. Hidden on the landing page so the hero owns the screen. */}
       {!onLanding && (
         <nav className="ml-auto hidden md:flex items-stretch" aria-label="Primary">
-          {TOP_NAV.map(({ to, label }, idx) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/live"}
-              onMouseEnter={() => prefetchForRoute(qc, to)}
-              onFocus={() => prefetchForRoute(qc, to)}
-              className={({ isActive }) =>
-                cn(
-                  "relative flex items-center justify-center px-5 text-[11px] uppercase tracking-[0.18em] font-semibold transition-colors",
-                  idx === 0 && "border-l border-paddock-cream/15",
-                  "border-r border-paddock-cream/15",
-                  isActive
-                    ? "text-paddock-cream bg-white/[0.02]"
-                    : "text-f1-muted hover:text-paddock-cream hover:bg-white/[0.015]",
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {/* Hard-edged 2px coral top rule announces the active */}
-                  {/* tab without any rounded "pill" affordance. */}
-                  {isActive && (
-                    <span
-                      aria-hidden
-                      className="absolute left-0 right-0 top-0 h-[2px] bg-paddock-coral"
-                    />
-                  )}
-                  {label}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {/* LayoutGroup shares a single layoutId across all NavLinks so */}
+          {/* the active coral rule slides between tabs on route change   */}
+          {/* instead of fading out/in at each location. Framer Motion's  */}
+          {/* layout animation does the FLIP math on every relayout.     */}
+          <LayoutGroup id="paddock-nav">
+            {TOP_NAV.map(({ to, label }, idx) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/live"}
+                onMouseEnter={() => prefetchForRoute(qc, to)}
+                onFocus={() => prefetchForRoute(qc, to)}
+                className={({ isActive }) =>
+                  cn(
+                    "relative flex items-center justify-center px-5 text-[11px] uppercase tracking-[0.18em] font-semibold transition-colors",
+                    idx === 0 && "border-l border-paddock-cream/15",
+                    "border-r border-paddock-cream/15",
+                    isActive
+                      ? "text-paddock-cream bg-white/[0.02]"
+                      : "text-f1-muted hover:text-paddock-cream hover:bg-white/[0.015]",
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <m.span
+                        layoutId="paddock-nav-active"
+                        aria-hidden
+                        className="absolute left-0 right-0 top-0 h-[2px] bg-paddock-coral"
+                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                      />
+                    )}
+                    {label}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </LayoutGroup>
         </nav>
       )}
     </header>

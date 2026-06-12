@@ -7,7 +7,7 @@ interface Props {
   /**
    * Pixel size of the card. The digit scales to ~70% of the height.
    */
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   /**
    * Use a different palette for static separators (colons, unit
    * letters). Separators skip the flap animation and render flat to
@@ -18,6 +18,7 @@ interface Props {
 }
 
 const SIZE_SCALES = {
+  sm: { card: 14, height: 19, font: 13, gap: 1, perspective: 160 },
   md: { card: 28, height: 38, font: 24, gap: 1, perspective: 240 },
   lg: { card: 44, height: 60, font: 38, gap: 2, perspective: 380 },
 };
@@ -135,7 +136,7 @@ export function SplitFlapString({
   text, size = "lg", className,
 }: {
   text: string;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }) {
   const dims = SIZE_SCALES[size];

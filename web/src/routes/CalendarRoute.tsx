@@ -501,14 +501,27 @@ export default function CalendarRoute() {
 
       {events.length > 0 && (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          {events.map((ev) => (
-            <RaceCard
+          {events.map((ev, i) => (
+            <m.div
               key={`${ev.season}-${ev.round}`}
-              ev={ev}
-              status={statuses.get(ev.round) ?? "future"}
-              expanded={expanded === ev.round}
-              onToggle={() => setExpanded(expanded === ev.round ? null : ev.round)}
-            />
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                // 40 ms cascade per card, capped so 24-race seasons
+                // don't take a full second to settle. Cards beyond
+                // index 12 all fire together at the cap.
+                delay: Math.min(i * 0.04, 0.48),
+                duration: 0.35,
+                ease: [0.2, 0.0, 0.0, 1],
+              }}
+            >
+              <RaceCard
+                ev={ev}
+                status={statuses.get(ev.round) ?? "future"}
+                expanded={expanded === ev.round}
+                onToggle={() => setExpanded(expanded === ev.round ? null : ev.round)}
+              />
+            </m.div>
           ))}
         </div>
       )}

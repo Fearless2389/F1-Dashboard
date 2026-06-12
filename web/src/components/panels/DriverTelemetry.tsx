@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import {
   Area,
@@ -106,6 +106,36 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
 
   // Last sample is the "now" datum that we badge at the right edge.
   const last = chartData.length ? chartData[chartData.length - 1] : null;
+
+  // ── Stroke draw-in on first paint ────────────────────────────────
+  //
+  // Recharts re-runs its enter animation every time data changes, so
+  // leaving `isAnimationActive={true}` would make the lines blink on
+  // every per-tick sample append. Instead we run the entry animation
+  // exactly ONCE — on the first non-empty render after the panel
+  // opens — and switch animations off for every subsequent tick.
+  //
+  // The ref+state pair: we flip `hasDrawnIn` to true the frame AFTER
+  // the first chart paint, which guarantees Recharts captured the
+  // initial render with animation enabled before we disable it for
+  // streaming updates. Resets when the driver changes so each new
+  // panel-open gets its own draw-in.
+  const [hasDrawnIn, setHasDrawnIn] = useState(false);
+  const lastDriverRef = useRef<string | null>(null);
+  useEffect(() => {
+    const code = driver?.driver_code ?? null;
+    if (code !== lastDriverRef.current) {
+      lastDriverRef.current = code;
+      setHasDrawnIn(false);
+      return;
+    }
+    if (chartData.length > 0 && !hasDrawnIn) {
+      // Run one paint with animation enabled, then disable for streaming.
+      const id = window.setTimeout(() => setHasDrawnIn(true), 700);
+      return () => window.clearTimeout(id);
+    }
+  }, [driver?.driver_code, chartData.length, hasDrawnIn]);
+  const animateEntry = !hasDrawnIn;
 
   // Now safe to early-return — all hooks have already executed.
   if (!driver) return null;
@@ -252,7 +282,9 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
                     stroke={SPEED_COL}
                     strokeWidth={1.4}
                     fill="url(#dt-speed)"
-                    isAnimationActive={false}
+                    isAnimationActive={animateEntry}
+                    animationDuration={600}
+                    animationEasing="ease-out"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -275,7 +307,10 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
                     stroke={GEAR_COL}
                     strokeWidth={1.5}
                     dot={false}
-                    isAnimationActive={false}
+                    isAnimationActive={animateEntry}
+                    animationDuration={650}
+                    animationBegin={80}
+                    animationEasing="ease-out"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -297,7 +332,10 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
                     stroke={THROTTLE_COL}
                     strokeWidth={1.5}
                     dot={false}
-                    isAnimationActive={false}
+                    isAnimationActive={animateEntry}
+                    animationDuration={700}
+                    animationBegin={150}
+                    animationEasing="ease-out"
                     name="Throttle %"
                   />
                   <Line
@@ -306,7 +344,10 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
                     stroke={BRAKE_COL}
                     strokeWidth={1.5}
                     dot={false}
-                    isAnimationActive={false}
+                    isAnimationActive={animateEntry}
+                    animationDuration={700}
+                    animationBegin={220}
+                    animationEasing="ease-out"
                     name="Brake"
                   />
                 </LineChart>

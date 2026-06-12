@@ -187,18 +187,29 @@ export function ReplayTrackMap({
           </text>
         )}
 
-        {/* Overtake flashes — render under the driver dots */}
+        {/* Overtake ripples — single expanding coral ring at the overtake */}
+        {/* location, fading to transparent. Replaces the previous gold    */}
+        {/* indefinite-throb with a one-shot ripple per event so the page  */}
+        {/* reads as "something just happened" rather than "this driver is */}
+        {/* permanently flagged." The ring repeats every 1.4 s while the   */}
+        {/* event is inside the activeOvertakes window (~2.5 s total).     */}
         {activeOvertakes.slice(0, 6).map((o, i) => {
-          // Place flash at the overtaker's current location (approx)
           const driver = drivers.find(d => d.driver_code === o.overtaker_code);
           if (!driver || driver.lap_progress == null) return null;
           const xy = sample(driver.lap_progress);
           if (!xy) return null;
           return (
-            <g key={`ov-${i}`} transform={`translate(${xy.x} ${xy.y})`}>
-              <circle r="22" fill="#ffd200" opacity="0.18">
-                <animate attributeName="r" values="14;30;14" dur="1.6s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.4;0;0.4" dur="1.6s" repeatCount="indefinite" />
+            <g key={`ov-${o.time}-${o.overtaker_code}-${i}`} transform={`translate(${xy.x} ${xy.y})`}>
+              {/* Outer ripple ring */}
+              <circle r="10" fill="none" stroke="var(--color-paddock-coral)" strokeWidth="2.5" opacity="0.85">
+                <animate attributeName="r" values="8;38;38" dur="1.4s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.85;0;0" dur="1.4s" repeatCount="indefinite" />
+                <animate attributeName="strokeWidth" values="2.5;0.6;0.6" dur="1.4s" repeatCount="indefinite" />
+              </circle>
+              {/* Inner glow */}
+              <circle r="6" fill="var(--color-paddock-coral)" opacity="0.35">
+                <animate attributeName="opacity" values="0.55;0;0" dur="1.4s" repeatCount="indefinite" />
+                <animate attributeName="r" values="6;14;14" dur="1.4s" repeatCount="indefinite" />
               </circle>
             </g>
           );
@@ -284,6 +295,16 @@ export function ReplayTrackMap({
                 <circle r={13} fill="none" stroke="#ffd200" strokeWidth={2} opacity={0.7}>
                   <animate attributeName="r" values="12;18;12" dur="1.8s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.9;0.15;0.9" dur="1.8s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {/* Selected-driver pulse — soft coral ring expanding around */}
+              {/* the dot at 1.6 s loop. Makes the focused car obvious     */}
+              {/* among 20 dots without needing to enlarge the dot itself  */}
+              {/* (which would mask the team-colour stripe).               */}
+              {isSel && !d.is_pitting && (
+                <circle r={14} fill="none" stroke="var(--color-paddock-coral)" strokeWidth={1.5} opacity={0.85}>
+                  <animate attributeName="r" values="11;19;11" dur="1.6s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.9;0.1;0.9" dur="1.6s" repeatCount="indefinite" />
                 </circle>
               )}
               <circle

@@ -25,11 +25,25 @@ const ELEVATION_CLASSES: Record<Elevation, string> = {
     "border bg-[var(--surface-elevated)] border-[var(--border-elevated)] shadow-[var(--shadow-elevated)] backdrop-blur",
 };
 
+// Subtle hover lift — translateY(-2px) + slightly deeper shadow. Pure
+// CSS so it costs zero JS. Only applied to panel-elevation cards; the
+// recessed variant intentionally stays inert (it represents a pressed
+// state). Skip on elevated cards because they're often modals/drop-
+// downs that have their own enter/exit animation.
+const HOVER_LIFT =
+  "transition-[transform,box-shadow] duration-200 ease-out " +
+  "hover:-translate-y-[2px] hover:shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_18px_42px_-14px_rgba(0,0,0,0.7)]";
+
 export function Card({ className, children, elevation = "panel", ...rest }: CardProps) {
   return (
     <div
       {...rest}
-      className={cn("rounded-[var(--radius-lg)]", ELEVATION_CLASSES[elevation], className)}
+      className={cn(
+        "rounded-[var(--radius-lg)]",
+        ELEVATION_CLASSES[elevation],
+        elevation === "panel" && HOVER_LIFT,
+        className,
+      )}
     >
       {children}
     </div>

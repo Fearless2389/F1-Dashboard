@@ -54,6 +54,10 @@ export function PodiumHero({
           {[p2, p1, p3].map((d, idx) => {
             if (!d) return <div key={idx} className="h-24 w-20 rounded-md border border-dashed border-f1-edge" />;
             const isWinner = d.position === 1;
+            // Reveal order — P3 first, then P2, climax on P1. The grid
+            // layout stays left-to-right [p2, p1, p3]; only the entrance
+            // delay maps to championship position for the drum-roll.
+            const revealDelay = d.position === 3 ? 0 : d.position === 2 ? 0.18 : 0.42;
             const heights = { 1: "h-36 md:h-40", 2: "h-28 md:h-32", 3: "h-24 md:h-28" } as const;
             // Olympic medal palette — vivid top, darker bottom for a metallic feel.
             // The team-colour accent stripe at the base keeps the team identity readable.
@@ -66,9 +70,17 @@ export function PodiumHero({
             return (
               <m.div
                 key={d.position}
-                initial={{ y: 14, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.07 * idx, type: "spring", stiffness: 220, damping: 24 }}
+                initial={{ y: 18, opacity: 0, scale: 0.94 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{
+                  delay: revealDelay,
+                  // Stiffer spring on P1 so the climax tile arrives
+                  // with a tiny bit more force than the supporting
+                  // P2/P3 tiles. Subtle but registers.
+                  type: "spring",
+                  stiffness: isWinner ? 280 : 220,
+                  damping: isWinner ? 22 : 26,
+                }}
                 className={`relative w-20 md:w-24 ${heights[d.position as 1 | 2 | 3]} rounded-md flex flex-col items-center justify-end pb-3`}
                 style={{ background: c.bg, color: c.text, boxShadow: isWinner ? `0 0 28px ${c.glow}` : `0 0 18px ${c.glow}` }}
               >

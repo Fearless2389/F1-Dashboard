@@ -44,6 +44,39 @@ function compoundLabel(c?: string | null): string {
   }
 }
 
+/**
+ * Tyre-wear desaturation. Blends the vivid compound colour toward
+ * muted grey as `tyre_life` grows, so the ring fades from "fresh
+ * rubber" (full vivid) to "worn shoulders" (~55 % blended toward
+ * grey) over the first ~25 laps of a stint. After that the floor
+ * holds — even an ancient set still has SOME compound colour or you
+ * can't tell what they're on.
+ *
+ * The reference: F1 engineers literally watch this gradient on the
+ * pit wall. A driver still on the medium 22 laps into the stint with
+ * a faded yellow disc tells the engineer "thinking about pitting" at
+ * a glance — no need to read a number.
+ */
+function lerpHex(a: string, b: string, t: number): string {
+  const parse = (hex: string) => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ] as const;
+  const [ar, ag, ab] = parse(a);
+  const [br, bg, bb] = parse(b);
+  const ch = (x: number) => Math.round(x).toString(16).padStart(2, "0");
+  return `#${ch(ar + (br - ar) * t)}${ch(ag + (bg - ag) * t)}${ch(ab + (bb - ab) * t)}`;
+}
+
+function wornCompoundColor(compColor: string, tyreLife: number | null | undefined): string {
+  if (tyreLife == null || tyreLife <= 0) return compColor;
+  // 0 → 0, 25 → 0.55. Linear, clamped at 0.55 so a 50-lap-old set
+  // doesn't fully grey out (we still need to read the compound).
+  const t = Math.min(1, tyreLife / 25) * 0.55;
+  return lerpHex(compColor, "#5a5a72", t);
+}
+
 // ─ Pit-wall column layout ──────────────────────────────────────────
 //
 // Six fixed columns expressed in ch units so the grid reads as
@@ -106,7 +139,8 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
           {drivers.map((d, idx) => {
             const color = teamColorFallback(d.team_colour, d.team_name);
             const isSel = selected && selected === d.driver_code;
-            const compColor = compoundColor(d.compound);
+            const compColorVivid = compoundColor(d.compound);
+            const compColor = wornCompoundColor(compColorVivid, d.tyre_life);
             const statusStyle = d.status ? STATUS_STYLE[d.status] : null;
             const dimmed = !!statusStyle;
             const isLast = idx === drivers.length - 1;

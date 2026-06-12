@@ -13,6 +13,8 @@ import { GlossaryTerm } from "@/lib/glossary";
 import { PodiumHero } from "@/components/panels/PodiumHero";
 import { SeasonProgressionCard } from "@/components/panels/SeasonProgressionCard";
 import { ChampionshipProgressionChart } from "@/components/panels/ChampionshipProgressionChart";
+import { SplitFlapDigit } from "@/components/SplitFlapDigit";
+import { useCountUp } from "@/hooks/useCountUp";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { teamColor } from "@/lib/teams";
@@ -296,7 +298,7 @@ export default function StandingsRoute() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr>
-                    <FiaTh align="left"   width="6ch">Pos</FiaTh>
+                    <FiaTh align="left"   width="7ch">Pos</FiaTh>
                     <FiaTh align="left"   width="7ch">Driver</FiaTh>
                     <FiaTh align="left"             >Team</FiaTh>
                     <FiaTh align="right"  width="9ch" lastCol>Pts</FiaTh>
@@ -307,8 +309,8 @@ export default function StandingsRoute() {
                     <tr key={d.driver_code} className="group">
                       <FiaTd>
                         <FiaHoverEdge />
-                        <div className="flex items-center gap-1.5 font-mono tabular-nums">
-                          <span className="text-paddock-cream/90 w-[2ch] text-right">{d.championship_position}</span>
+                        <div className="flex items-center gap-1.5">
+                          <PositionFlap pos={d.championship_position} />
                           <PositionDelta delta={driverPositionDelta[d.driver_code] ?? null} />
                         </div>
                       </FiaTd>
@@ -359,7 +361,7 @@ export default function StandingsRoute() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr>
-                    <FiaTh align="left"  width="6ch">Pos</FiaTh>
+                    <FiaTh align="left"  width="7ch">Pos</FiaTh>
                     <FiaTh align="left"            >Team</FiaTh>
                     <FiaTh align="right" width="9ch" lastCol>Pts</FiaTh>
                   </tr>
@@ -372,8 +374,8 @@ export default function StandingsRoute() {
                       <tr key={c.team_name} className="group">
                         <FiaTd>
                           <FiaHoverEdge active={isSelected} />
-                          <div className="flex items-center gap-1.5 font-mono tabular-nums">
-                            <span className="text-paddock-cream/90 w-[2ch] text-right">{c.constructor_position}</span>
+                          <div className="flex items-center gap-1.5">
+                            <PositionFlap pos={c.constructor_position} />
                             <PositionDelta delta={constructorPositionDelta[c.team_name] ?? null} />
                           </div>
                         </FiaTd>
@@ -452,16 +454,41 @@ export default function StandingsRoute() {
  */
 function PointsBar({ pts, maxPts, color }: { pts: number; maxPts: number; color: string }) {
   const pct = maxPts > 0 ? Math.max(0, Math.min(100, (pts / maxPts) * 100)) : 0;
+  // Count-up tween — when the round dropdown changes, the points figure
+  // counts from the previous round's value up to the new one over ~600 ms.
+  // First mount snaps to the target (no theatre on cold page load).
+  const displayPts = useCountUp(pts, 600);
   return (
     <div className="relative h-5 flex items-center justify-end">
       <div
-        className="absolute inset-y-0.5 left-0 transition-all"
+        className="absolute inset-y-0.5 left-0 transition-all duration-500"
         style={{ background: color, opacity: 0.22, width: `${pct}%` }}
       />
       <span className="relative tabular-nums font-mono font-semibold pr-2 text-f1-white">
-        {Math.round(pts)}
+        {displayPts}
       </span>
     </div>
+  );
+}
+
+/**
+ * Two-card split-flap rendering of a championship position number.
+ * Each digit is its own card; when the position changes (round dropdown
+ * tick), the AnimatePresence inside each SplitFlapDigit fires a Solari
+ * flip. Used in the standings tables' Pos column.
+ */
+function PositionFlap({ pos }: { pos: number | null | undefined }) {
+  const safe = pos != null ? pos : 0;
+  const tens = Math.floor(safe / 10);
+  const ones = safe % 10;
+  if (safe <= 0) {
+    return <span className="font-mono text-f1-muted text-sm">—</span>;
+  }
+  return (
+    <span className="inline-flex items-center" style={{ gap: 1 }}>
+      <SplitFlapDigit char={String(tens)} size="sm" />
+      <SplitFlapDigit char={String(ones)} size="sm" />
+    </span>
   );
 }
 
