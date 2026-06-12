@@ -345,6 +345,18 @@ function ResultsTable({
                       <div className="flex items-center gap-1.5">
                         <span className="h-2.5 w-1 rounded-sm shrink-0" style={{ background: color }} />
                         <span className="font-mono font-semibold text-f1-white">{r.driver_code}</span>
+                        {r.fastest_lap && (
+                          // F1's traditional fastest-lap purple. Title
+                          // surfaces the lap time so hovering tells the
+                          // story without needing extra columns.
+                          <span
+                            className="text-[8px] font-bold uppercase tracking-widest rounded-sm px-1 py-0.5 leading-none"
+                            style={{ background: "rgba(168,85,247,0.22)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.4)" }}
+                            title={r.fastest_lap_time ? `Fastest lap · ${r.fastest_lap_time}` : "Fastest lap"}
+                          >
+                            FL
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-2 py-1.5 text-f1-muted">{r.team_name ?? "—"}</td>

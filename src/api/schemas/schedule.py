@@ -70,6 +70,11 @@ class ResultRow(BaseModel):
     # a gap string ("+5.234") or None when no time was recorded (DNFs,
     # lapped finishers in older races, etc.).
     time: Optional[str] = None
+    # True for the driver who set the race's fastest lap (Jolpica's
+    # FastestLap.rank == 1). The lap time string is surfaced separately
+    # for the badge tooltip ("1:19.409").
+    fastest_lap: bool = False
+    fastest_lap_time: Optional[str] = None
 
 
 class ResultsResponse(BaseModel):

@@ -164,6 +164,7 @@ def _parse_results(data: dict) -> pd.DataFrame:
             drv = r.get("Driver", {})
             con = r.get("Constructor", {})
             time_obj = r.get("Time") or {}
+            fl = r.get("FastestLap") or {}
             rows.append({
                 "season":      int(race.get("season")),
                 "round":       int(race.get("round")),
@@ -179,6 +180,12 @@ def _parse_results(data: dict) -> pd.DataFrame:
                 "status":      r.get("status"),
                 "laps":        int(r.get("laps", 0)) if r.get("laps") else None,
                 "time":        time_obj.get("time"),
+                # Jolpica returns FastestLap.rank for every finisher; rank=1
+                # means this driver set the race's fastest lap. We surface
+                # both the boolean (for the badge) and the lap time string
+                # (for the badge tooltip / inline label).
+                "fastest_lap":      str(fl.get("rank")) == "1",
+                "fastest_lap_time": (fl.get("Time") or {}).get("time"),
             })
     return pd.DataFrame(rows)
 
@@ -202,6 +209,7 @@ def sprint_results(season: int, round_num: int) -> pd.DataFrame:
             drv = r.get("Driver", {})
             con = r.get("Constructor", {})
             time_obj = r.get("Time") or {}
+            fl = r.get("FastestLap") or {}
             rows.append({
                 "season":        int(race.get("season")),
                 "round":         int(race.get("round")),
@@ -217,6 +225,8 @@ def sprint_results(season: int, round_num: int) -> pd.DataFrame:
                 # Same convention as race_results: P1 carries the absolute
                 # sprint duration; everyone else has a gap string ("+0.234").
                 "time":          time_obj.get("time"),
+                "fastest_lap":      str(fl.get("rank")) == "1",
+                "fastest_lap_time": (fl.get("Time") or {}).get("time"),
             })
     return pd.DataFrame(rows)
 
@@ -242,6 +252,7 @@ def race_results(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
                 drv = r.get("Driver", {})
                 con = r.get("Constructor", {})
                 time_obj = r.get("Time") or {}
+                fl = r.get("FastestLap") or {}
                 rows.append({
                     "season":      int(race.get("season")),
                     "round":       int(race.get("round")),
@@ -259,6 +270,8 @@ def race_results(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
                     # a gap like "+5.234". Lapped finishers / DNFs have no
                     # time string — Jolpica just returns status.
                     "time":        time_obj.get("time"),
+                    "fastest_lap":      str(fl.get("rank")) == "1",
+                    "fastest_lap_time": (fl.get("Time") or {}).get("time"),
                 })
                 page_rows += 1
 

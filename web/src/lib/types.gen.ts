@@ -1249,6 +1249,10 @@ export interface components {
             laps?: number | null;
             /** Time — race time for P1, gap string ("+5.234") for everyone else, null for DNFs */
             time?: string | null;
+            /** Fastest Lap — true for the driver who set the race's fastest lap */
+            fastest_lap?: boolean;
+            /** Fastest Lap Time — e.g. "1:19.409" */
+            fastest_lap_time?: string | null;
         };
         /** ResultsResponse */
         ResultsResponse: {

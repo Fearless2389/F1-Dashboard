@@ -314,6 +314,8 @@ def _df_to_result_rows(df: pd.DataFrame) -> list[ResultRow]:
             status=_clean(r.get("status")),
             laps=_clean(r.get("laps")),
             time=_clean(r.get("time")),
+            fastest_lap=bool(r.get("fastest_lap")),
+            fastest_lap_time=_clean(r.get("fastest_lap_time")),
         ))
     return rows
 
