@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Select } from "@/components/ui/Input";
+import { NewToF1Strip } from "@/components/NewToF1Strip";
+import { GlossaryTerm } from "@/lib/glossary";
 import { PodiumHero } from "@/components/panels/PodiumHero";
 import { SeasonProgressionCard } from "@/components/panels/SeasonProgressionCard";
 import { ChampionshipProgressionChart } from "@/components/panels/ChampionshipProgressionChart";
@@ -178,6 +180,15 @@ export default function StandingsRoute() {
 
   return (
     <div className="space-y-4">
+      <NewToF1Strip storageKey="standings.primer.v1" title="New to F1?">
+        Each driver scores championship points based on race results — 25 for the winner, down to 1 for P10.
+        The <GlossaryTerm term="championship-position">Drivers' Championship</GlossaryTerm> goes to whoever
+        has the most points at the end of the season; the{" "}
+        <GlossaryTerm term="constructor">Constructors' Championship</GlossaryTerm> sums points from both
+        of a team's drivers. Switch the round dropdown to see standings at any point in any season — e.g.
+        2021 R21 shows the famous HAM = VER tie at 369.5 going into Abu Dhabi.
+      </NewToF1Strip>
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="font-display font-bold text-2xl flex items-center gap-2">

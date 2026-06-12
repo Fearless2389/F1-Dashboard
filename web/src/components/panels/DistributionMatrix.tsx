@@ -1,5 +1,6 @@
 import { teamColorFallback } from "@/lib/teams";
 import { cn } from "@/lib/cn";
+import { GlossaryTerm } from "@/lib/glossary";
 import type { ForecastDriver } from "@/lib/types";
 
 interface Props {
@@ -131,7 +132,10 @@ export function DistributionMatrix({ drivers }: Props) {
       </div>
 
       <div className="mt-3 text-[10px] text-f1-muted/80">
-        Cell value = round(P × 100). Each finishing row sums to (100 − DNF%); the cyan DNF column on the right is the share of simulations where the car retired. Cells below 5% are blank; the coral scale is gamma-corrected so sub-threshold tails still register.
+        Cell value = round(P × 100). Each finishing row sums to (100 − DNF%); the cyan{" "}
+        <GlossaryTerm term="dnf">DNF</GlossaryTerm> column on the right is the share of{" "}
+        <GlossaryTerm term="monte-carlo">simulations</GlossaryTerm> where the car retired. Cells
+        below 5% are blank; the coral scale is gamma-corrected so sub-threshold tails still register.
       </div>
     </div>
   );

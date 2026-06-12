@@ -36,6 +36,16 @@ jobs:
       - name: Install deps
         working-directory: web
         run: pnpm install --frozen-lockfile || pnpm install
+      # Type-check is now its own job so CI surfaces tsc / eslint errors
+      # separately. ESLint enforces the React Doctor catches that bit us
+      # before — rules-of-hooks, button-has-type, no-unstable-nested-components —
+      # at error level. Warnings are capped at 200 so we can ratchet down.
       - name: Type-check
         working-directory: web
+        run: pnpm typecheck
+      - name: Lint
+        working-directory: web
         run: pnpm lint
+      - name: Unit tests
+        working-directory: web
+        run: pnpm test -- --run

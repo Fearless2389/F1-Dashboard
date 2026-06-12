@@ -5,6 +5,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Select } from "@/components/ui/Input";
+import { NewToF1Strip } from "@/components/NewToF1Strip";
+import { GlossaryTerm } from "@/lib/glossary";
 import { ApexHeader } from "@/components/panels/ApexHeader";
 import { TopPredictionCard } from "@/components/panels/TopPredictionCard";
 import { PredictedPodiumCard } from "@/components/panels/PredictedPodiumCard";
@@ -127,6 +129,15 @@ export default function ApexRoute() {
 
   return (
     <div className="space-y-4">
+      <NewToF1Strip storageKey="apex.primer.v1" title="New to F1?">
+        Each race awards championship points based on finishing position (25 for the winner, 18 for P2,
+        15 for P3, down to 1 for P10). This page shows where six trained ML models think every driver will
+        finish the next race — plus a{" "}
+        <GlossaryTerm term="monte-carlo">10,000-iteration Monte Carlo simulation</GlossaryTerm>{" "}
+        that turns those predictions into real probabilities (win %, podium %,{" "}
+        <GlossaryTerm term="dnf">DNF</GlossaryTerm> %).
+      </NewToF1Strip>
+
       <ApexHeader
         modelVersion={data?.reliability.model_version ?? "v1.0"}
         nextEvent={data?.race_meta.race_name?.toUpperCase() ?? "—"}

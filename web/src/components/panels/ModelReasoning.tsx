@@ -1,6 +1,7 @@
 import { BarChart3, Gauge, Sparkles } from "lucide-react";
 
 import { teamColor } from "@/lib/teams";
+import { GlossaryTerm } from "@/lib/glossary";
 import type { PodiumReasoning, ReasoningBlockOut } from "@/lib/types";
 
 interface Props {
@@ -29,12 +30,14 @@ export function ModelReasoning({ groups }: Props) {
       <div className="flex items-center gap-2 mb-4">
         <BarChart3 size={14} className="text-paddock-coral" />
         <span className="text-[10px] uppercase tracking-widest text-f1-muted font-semibold">
-          Model Reasoning · Podium
+          Model Reasoning · <GlossaryTerm term="podium">Podium</GlossaryTerm>
         </span>
       </div>
 
       {safeGroups.length === 0 && (
-        <div className="text-xs text-f1-muted">No SHAP signals available.</div>
+        <div className="text-xs text-f1-muted">
+          No <GlossaryTerm term="shap">SHAP</GlossaryTerm> signals available.
+        </div>
       )}
 
       <div className="space-y-6">
