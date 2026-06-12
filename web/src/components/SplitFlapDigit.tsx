@@ -6,8 +6,6 @@ interface Props {
   char: string;
   /**
    * Pixel size of the card. The digit scales to ~70% of the height.
-   * Tuned via SIZE_SCALES below for both `lg` (hero) and `md` (panel)
-   * preset usage.
    */
   size?: "md" | "lg";
   /**
@@ -25,26 +23,29 @@ const SIZE_SCALES = {
 };
 
 /**
- * Solari split-flap card — single character. On every change the
- * outgoing glyph rotates forward and down (rotateX 0 → −90, pivot
- * around the horizontal mid-axis), while the incoming glyph rotates
- * up from below (rotateX 90 → 0). Both animations overlap, taking
- * ~200 ms total. The visual reference is the Solari di Udine departure
- * board — and old circuit timing scoreboards.
+ * Solari split-flap card — single character.
  *
- * Implementation notes:
- *   - The OUTER span carries `perspective` so the rotateX reads as 3D
- *     depth rather than a flat scaleY. Without this, the card just
- *     squashes vertically.
- *   - `backface-visibility: hidden` means once a glyph has rotated past
- *     90° in either direction it disappears — that's what gives the
- *     "edge-on, then gone" affordance.
- *   - The card body is warm graphite (#1a1a1a); the digit is cream;
- *     a 1 px black hairline at the midline sells the two-flap mechanism.
+ * Anatomy:
+ *   - OUTER span: a dark "recess" / channel that the flap sits inside.
+ *     Carries the `perspective` so child rotateX reads as 3D depth.
+ *   - INNER m.span (per char): the actual flap *card face*. Has the
+ *     panel background, the digit, and a midline hairline drawn on it.
+ *     On every char change, this whole card face tips forward (rotateX
+ *     0 → −90, pivot at the horizontal mid-axis) and the new card face
+ *     rises from below (rotateX 90 → 0). Both animations overlap.
  *
- * Static separators (the colon between hours / minutes / seconds and
- * the unit letters like 'd') skip the rotation — flapping every
- * character at once would over-animate.
+ * The earlier version separated the panel background (static, on the
+ * outer span) from the glyph (rotating, on the inner span). That made
+ * the digit cartwheel inside a static frame instead of the whole flap
+ * face physically flipping — fixed by putting the panel background on
+ * the rotating element so it turns as a single unit.
+ *
+ * `transform-style: preserve-3d` on the outer span is critical for
+ * Safari and certain Chromium builds — without it the child's rotateX
+ * is flattened back to the parent's 2D plane before the perspective
+ * has a chance to apply.
+ *
+ * Static separators (colons, unit letters) skip the rotation.
  */
 export function SplitFlapDigit({ char, size = "lg", separator, className }: Props) {
   const dims = SIZE_SCALES[size];
@@ -70,52 +71,58 @@ export function SplitFlapDigit({ char, size = "lg", separator, className }: Prop
       style={{
         width: dims.card,
         height: dims.height,
-        background: "#1a1a1a",
+        // The recessed channel — slightly darker than the flap face so
+        // the flap reads as a card sitting inside a slot.
+        background: "#08090d",
         boxShadow:
-          "inset 0 1px 0 0 rgba(255,255,255,0.04), 0 1px 0 0 rgba(0,0,0,0.5)",
-        // perspective lives on the parent so the rotateX on the child
-        // reads as actual 3D depth, not a scaleY squash.
+          "inset 0 1px 2px 0 rgba(0,0,0,0.7), 0 1px 0 0 rgba(0,0,0,0.5)",
         perspective: `${dims.perspective}px`,
         perspectiveOrigin: "50% 50%",
+        transformStyle: "preserve-3d",
       }}
     >
       <AnimatePresence initial={false}>
         <m.span
           key={char}
-          initial={{ rotateX: 90,  opacity: 0 }}
-          animate={{ rotateX: 0,   opacity: 1 }}
-          exit={{    rotateX: -90, opacity: 0 }}
+          initial={{ rotateX: 90,  opacity: 0.0 }}
+          animate={{ rotateX: 0,   opacity: 1.0 }}
+          exit={{    rotateX: -90, opacity: 0.0 }}
           transition={{
-            // ease in-out cubic — accelerates into the flap, decelerates
-            // out of it, which matches mechanical flap physics.
-            rotateX: { duration: 0.22, ease: [0.55, 0.05, 0.45, 0.95] },
-            opacity: { duration: 0.16, ease: "easeOut" },
+            rotateX: { duration: 0.26, ease: [0.55, 0.05, 0.45, 0.95] },
+            opacity: { duration: 0.18, ease: "easeOut" },
           }}
           className="absolute inset-0 flex items-center justify-center font-mono font-bold leading-none text-paddock-cream"
           style={{
+            // The flap card FACE — the rectangular tile that physically
+            // tips forward. Background + midline hairline + digit all
+            // belong to this single rotating element so they move as
+            // one piece.
+            background: "#1a1a1a",
+            boxShadow:
+              "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 4px 0 rgba(0,0,0,0.55)",
             fontSize: dims.font,
             letterSpacing: "-0.02em",
             transformOrigin: "50% 50%",
+            transformStyle: "preserve-3d",
             backfaceVisibility: "hidden",
-            willChange: "transform",
+            willChange: "transform, opacity",
           }}
         >
           {char}
+          {/* Midline hairline — sits on the flap face, so when the */}
+          {/* flap rotates the hairline rotates with it. */}
+          <span
+            className="absolute left-0 right-0 pointer-events-none"
+            style={{
+              top: "50%",
+              height: 1,
+              background: "rgba(0,0,0,0.75)",
+              boxShadow: "0 -1px 0 0 rgba(255,255,255,0.05)",
+            }}
+            aria-hidden
+          />
         </m.span>
       </AnimatePresence>
-
-      {/* Mid-card hairline — sells the "two flaps" affordance. Sits
-          above both glyphs so the flap appears to pivot AT this line. */}
-      <span
-        className="absolute left-0 right-0 pointer-events-none z-10"
-        style={{
-          top: "50%",
-          height: 1,
-          background: "rgba(0,0,0,0.75)",
-          boxShadow: "0 -1px 0 0 rgba(255,255,255,0.05)",
-        }}
-        aria-hidden
-      />
     </span>
   );
 }
@@ -138,12 +145,8 @@ export function SplitFlapString({
         const isSeparator = c === ":" || c === " " || c === "d" || c === "h" || c === "m" || c === "s";
         return (
           <SplitFlapDigit
-            // Key by POSITION only so the same SplitFlapDigit instance
-            // persists across ticks — the `char` prop change is what
-            // triggers the AnimatePresence inside it. If we keyed by
-            // `${i}-${c}` instead, React would tear down the component
-            // on every digit change and the AnimatePresence would
-            // never get a chance to fire.
+            // Key by POSITION only — the `char` prop change drives the
+            // AnimatePresence inside each SplitFlapDigit.
             key={i}
             char={c}
             size={size}
