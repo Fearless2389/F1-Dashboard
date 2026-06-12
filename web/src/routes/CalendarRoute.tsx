@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { RouteHeader } from "@/components/RouteHeader";
 import { NextRaceHero } from "@/components/panels/NextRaceHero";
 import { useSchedule } from "@/hooks/useApi";
 import { useRaceContext } from "@/store/raceContext";
@@ -468,12 +470,16 @@ export default function CalendarRoute() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between flex-wrap gap-2">
-        <h1 className="font-display font-bold text-2xl">Schedule · {season}</h1>
-        <div className="text-xs text-f1-muted">
-          {events.length} rounds · {pastCount} completed · {events.length - pastCount} remaining
-        </div>
-      </div>
+      <RouteHeader
+        kicker="Schedule"
+        title={`${season} season`}
+        subtitle="Round-by-round calendar with circuit specs, weather forecast and live countdown. Click any card to expand race + sprint results."
+        controls={
+          <div className="text-xs text-f1-muted">
+            {events.length} rounds · {pastCount} completed · {events.length - pastCount} remaining
+          </div>
+        }
+      />
 
       {/* Next race hero */}
       {!isLoading && nextRace && <NextRaceHero next={nextRace} />}
@@ -490,11 +496,11 @@ export default function CalendarRoute() {
       )}
 
       {!isLoading && events.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-f1-muted">
-            No schedule data for {season}.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Flag size={20} />}
+          title={`No schedule published for ${season}`}
+          description="Race calendars typically appear ~10 months ahead of the season. Pick a different year in the global season switcher."
+        />
       )}
 
       {events.length > 0 && (

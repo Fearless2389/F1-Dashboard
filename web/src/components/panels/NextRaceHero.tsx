@@ -1,7 +1,8 @@
 import { m } from "framer-motion";
-import { Cloud, CloudRain, MapPin, Sun } from "lucide-react";
+import { Cloud, CloudRain, MapPin, Sun, CalendarOff } from "lucide-react";
 
 import { Countdown } from "@/components/Countdown";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { RaceEvent } from "@/lib/types";
 
 interface Props {
@@ -24,9 +25,11 @@ function weatherIcon(ev?: RaceEvent | null) {
 export function NextRaceHero({ next }: Props) {
   if (!next) {
     return (
-      <div className="rounded-xl border border-dashed border-f1-edge p-8 text-center text-sm text-f1-muted">
-        No upcoming race in this season.
-      </div>
+      <EmptyState
+        icon={<CalendarOff size={20} />}
+        title="Season complete"
+        description="No more races on the calendar this year. Pick a different season to see its schedule."
+      />
     );
   }
 

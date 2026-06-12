@@ -1,15 +1,35 @@
 import { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export function Card({ className, children, ...rest }: ComponentProps<"div">) {
+type Elevation = "recessed" | "panel" | "elevated";
+
+interface CardProps extends ComponentProps<"div"> {
+  /**
+   * Surface depth.
+   *   - `recessed` reads as inset — use for table rows, pressed states.
+   *   - `panel`    is the default card surface.
+   *   - `elevated` is for hovered cards, dropdowns, modals.
+   *
+   * Defaults to `panel`. The token layer in tokens.css guarantees
+   * borders and shadows are paired with the right background.
+   */
+  elevation?: Elevation;
+}
+
+const ELEVATION_CLASSES: Record<Elevation, string> = {
+  recessed:
+    "border bg-[var(--surface-recessed)] border-[var(--border-recessed)] shadow-[var(--shadow-recessed)]",
+  panel:
+    "border bg-[var(--surface-panel)] border-[var(--border-panel)] shadow-[var(--shadow-panel)] backdrop-blur",
+  elevated:
+    "border bg-[var(--surface-elevated)] border-[var(--border-elevated)] shadow-[var(--shadow-elevated)] backdrop-blur",
+};
+
+export function Card({ className, children, elevation = "panel", ...rest }: CardProps) {
   return (
     <div
       {...rest}
-      className={cn(
-        "rounded-xl border border-f1-edge bg-f1-panel/80 backdrop-blur",
-        "shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_8px_30px_-12px_rgba(0,0,0,0.6)]",
-        className,
-      )}
+      className={cn("rounded-[var(--radius-lg)]", ELEVATION_CLASSES[elevation], className)}
     >
       {children}
     </div>

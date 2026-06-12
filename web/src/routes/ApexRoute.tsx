@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Select } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { NewToF1Strip } from "@/components/NewToF1Strip";
 import { GlossaryTerm } from "@/lib/glossary";
 import { ApexHeader } from "@/components/panels/ApexHeader";
@@ -189,9 +190,10 @@ export default function ApexRoute() {
       )}
 
       {!isLoading && error && (
-        <div className="rounded-md border border-dashed border-f1-edge p-6 text-center text-sm text-f1-muted">
-          Apex prediction unavailable for this race. Train the models and refresh the schedule.
-        </div>
+        <EmptyState
+          title="Apex prediction unavailable for this race"
+          description="The model artifact for this round isn't on disk yet. Train the predictors (python -m src.training.apex) and reload."
+        />
       )}
 
       {data && (
@@ -276,14 +278,16 @@ export default function ApexRoute() {
           {isPastRace && accuracy && <PredictedVsActualTable data={accuracy} />}
           {isPastRace && accLoading && <Skeleton className="h-72 w-full" />}
           {isPastRace && accError && (
-            <div className="rounded-md border border-dashed border-f1-edge p-4 text-center text-xs text-f1-muted">
-              Final results haven't been published for this race yet.
-            </div>
+            <EmptyState
+              title="Final results not yet published"
+              description="Jolpica typically posts within a few hours of the chequered flag. Check back shortly."
+            />
           )}
           {!isPastRace && explicitMode && (
-            <div className="rounded-md border border-dashed border-f1-edge p-4 text-center text-xs text-f1-muted">
-              Predicted vs actual will appear here once this race has run.
-            </div>
+            <EmptyState
+              title="Predicted vs actual will appear here after the race"
+              description="The model's top-10 picks will be scored against the real finishing order once Jolpica publishes results."
+            />
           )}
 
           {/* Provenance footer — model + simulation source */}

@@ -1,0 +1,108 @@
+/*
+ * Paddock Dashboard — design tokens.
+ *
+ * The colour palette lives in globals.css. This file documents three
+ * orthogonal scales every layout primitive consumes:
+ *
+ *   1. ELEVATION — three tiers of surface depth so cards inside cards
+ *      stay visually distinguishable without inventing new colours.
+ *   2. TYPOGRAPHY — a ramp of size + line-height pairs so headings,
+ *      body, captions and mono lock together across surfaces.
+ *   3. RADIUS + SHADOW — discrete steps that match the elevation tiers.
+ *
+ * Each token is documented in place with a one-line "when to use" hint.
+ * Tailwind v4 reads custom properties off :root directly, so utilities
+ * like `bg-[var(--surface-elevated)]` work without theme extension.
+ */
+
+:root {
+  /* ── ELEVATION TIERS ──────────────────────────────────────────────
+     Three depths. Below "panel" reads as inset/recessed (table rows,
+     pressed states); "panel" is the default card surface; "elevated"
+     is for hovered/active surfaces and dropdowns.
+     Borders and shadows come paired so a card's elevation is set in
+     ONE place — don't mix-and-match shadows across tiers.
+  */
+  --surface-recessed: rgba(0, 0, 0, 0.18);              /* inset rows, pressed states */
+  --surface-panel:    var(--color-paddock-panel);       /* default card / panel */
+  --surface-elevated: #1a1d27;                          /* hovered card, dropdown, modal */
+
+  --border-recessed:  rgba(255, 255, 255, 0.04);
+  --border-panel:     var(--color-paddock-edge);
+  --border-elevated:  rgba(255, 255, 255, 0.10);
+
+  /* Shadows pair 1:1 with elevation tiers. The inset highlight keeps
+     dark-on-dark surfaces from disappearing on retina displays. */
+  --shadow-recessed:  inset 0 1px 0 0 rgba(0, 0, 0, 0.25);
+  --shadow-panel:     0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+                      0 8px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-elevated:  0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+                      0 16px 48px -16px rgba(0, 0, 0, 0.75);
+
+  /* ── TYPOGRAPHY RAMP ──────────────────────────────────────────────
+     Pair a size with a line-height. Reach for these tokens rather
+     than ad-hoc `text-2xl leading-tight` combinations — the line
+     heights are tuned to the Playfair display vs Inter body so
+     mixed-font surfaces don't jitter.
+  */
+  --text-hero:    clamp(2.75rem, 5vw, 4.5rem);   /* hero numerals (P1 73%) */
+  --text-hero-lh: 0.92;
+
+  --text-h1:      clamp(1.875rem, 3vw, 2.5rem);  /* route titles */
+  --text-h1-lh:   1.05;
+
+  --text-h2:      1.5rem;                         /* section heading */
+  --text-h2-lh:   1.15;
+
+  --text-h3:      1.125rem;                       /* card title */
+  --text-h3-lh:   1.3;
+
+  --text-body:    0.875rem;                       /* default body copy */
+  --text-body-lh: 1.55;
+
+  --text-caption: 0.75rem;                        /* secondary annotations */
+  --text-caption-lh: 1.4;
+
+  --text-kicker:  0.625rem;                       /* uppercase eyebrow labels */
+  --text-kicker-lh: 1;                            /* tightly-leaded, often uppercase + tracking-widest */
+
+  /* ── RADIUS SCALE ─────────────────────────────────────────────────
+     Three steps. Smaller = chips/pills, medium = inputs/buttons,
+     large = cards/heroes. The "pill" token is for fully-rounded.
+  */
+  --radius-sm:   4px;     /* small chip, kbd cap, table cell highlight */
+  --radius-md:   6px;     /* button, input, badge */
+  --radius-lg:   12px;    /* card, panel, hero */
+  --radius-pill: 9999px;  /* pill button, status dot border */
+
+  /* ── SPACING SCALE ────────────────────────────────────────────────
+     Tailwind's 4-px grid is fine for spacing utilities. These tokens
+     are for components that compose spacing in style props (rare).
+  */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ── MOTION ───────────────────────────────────────────────────────
+     Two durations. Anything faster than 120 ms feels janky on slow
+     displays; anything slower than 320 ms feels sluggish in lists.
+  */
+  --duration-fast:    150ms;   /* hover / focus reactions */
+  --duration-base:    220ms;   /* card transitions, panel opens */
+  --easing-standard:  cubic-bezier(0.2, 0, 0.0, 1);
+}
+
+/* ── SHIMMER (used by Skeleton) ─────────────────────────────────────
+   A horizontal sheen sweep that tells the user "something is loading"
+   without dancing pixels. Phase the duration so adjacent skeletons
+   don't sync up into a strobe (Skeleton stagger handles that too).
+*/
+@keyframes paddock-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}

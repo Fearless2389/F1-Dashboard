@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { DriverCard } from "@/components/cards/DriverCard";
+import { RouteHeader } from "@/components/RouteHeader";
 import { SeasonResultsGrid } from "@/components/cards/SeasonResultsGrid";
 import { PerformanceRadar } from "@/components/panels/PerformanceRadar";
 import { LastTenRaces } from "@/components/panels/LastTenRaces";
@@ -526,65 +527,64 @@ export default function DriverRoute() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <h1 className="font-display font-bold text-2xl">Drivers</h1>
-          <p className="text-xs text-f1-muted mt-1">
-            {code ? `Profile for ${code.toUpperCase()}` : `${season} grid — click any driver for the full profile.`}
-          </p>
-        </div>
+      <RouteHeader
+        kicker="Drivers"
+        title="Driver profiles"
+        subtitle={code
+          ? `Profile for ${code.toUpperCase()} — career trajectory, performance radar, season grid.`
+          : `${season} grid — click any driver for the full profile.`}
+        controls={
+          <>
+            {code && (
+              <Link to={`/driver?season=${season}`}>
+                <Button variant="ghost" size="sm"><ArrowLeft size={14} /> All drivers</Button>
+              </Link>
+            )}
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {code && (
-            <Link to={`/driver?season=${season}`}>
-              <Button variant="ghost" size="sm"><ArrowLeft size={14} /> All drivers</Button>
-            </Link>
-          )}
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest text-f1-muted">Season</span>
-            <Select
-              value={season}
-              onChange={(e) => update({ season: parseInt(e.target.value, 10) })}
-              className="h-9 w-24"
-            >
-              {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-
-          {/* Compare-with picker — only meaningful on the profile view */}
-          {code && (
-            compareSeason != null ? (
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-paddock-cream/10 border border-paddock-cream/40 pl-2 pr-1 py-0.5">
-                <span className="text-[10px] uppercase tracking-widest text-paddock-cream">vs</span>
-                <Select
-                  value={compareSeason}
-                  onChange={(e) => update({ vs: parseInt(e.target.value, 10) })}
-                  className="h-7 w-20 text-xs"
-                >
-                  {SEASONS.filter(s => s !== season).map(s => <option key={s} value={s}>{s}</option>)}
-                </Select>
-                <button type="button"
-                  onClick={() => update({ vs: null })}
-                  aria-label="Clear comparison"
-                  className="text-paddock-cream hover:text-f1-white p-1 rounded-full hover:bg-white/10"
-                >
-                  <X size={11} />
-                </button>
-              </div>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => update({ vs: defaultCompareSeason })}
-                className="border border-dashed border-f1-edge hover:border-paddock-cream/60"
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-f1-muted">Season</span>
+              <Select
+                value={season}
+                onChange={(e) => update({ season: parseInt(e.target.value, 10) })}
+                className="h-9 w-24"
               >
-                <Plus size={12} /> Compare
-              </Button>
-            )
-          )}
-        </div>
-      </div>
+                {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            </div>
+
+            {code && (
+              compareSeason != null ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-paddock-cream/10 border border-paddock-cream/40 pl-2 pr-1 py-0.5">
+                  <span className="text-[10px] uppercase tracking-widest text-paddock-cream">vs</span>
+                  <Select
+                    value={compareSeason}
+                    onChange={(e) => update({ vs: parseInt(e.target.value, 10) })}
+                    className="h-7 w-20 text-xs"
+                  >
+                    {SEASONS.filter(s => s !== season).map(s => <option key={s} value={s}>{s}</option>)}
+                  </Select>
+                  <button type="button"
+                    onClick={() => update({ vs: null })}
+                    aria-label="Clear comparison"
+                    className="text-paddock-cream hover:text-f1-white p-1 rounded-full hover:bg-white/10"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => update({ vs: defaultCompareSeason })}
+                  className="border border-dashed border-f1-edge hover:border-paddock-cream/60"
+                >
+                  <Plus size={12} /> Compare
+                </Button>
+              )
+            )}
+          </>
+        }
+      />
 
       {code
         ? <DriverProfile code={code.toUpperCase()} season={season} compareSeason={compareSeason} />
