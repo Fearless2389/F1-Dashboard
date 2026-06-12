@@ -190,6 +190,46 @@ def _parse_results(data: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def sprint_results_season(season: int) -> pd.DataFrame:
+    """All sprint results for a season. Used by season_progression to
+    merge sprint points into the championship-development chart (a
+    drivers' total in modern F1 is race points + sprint points, but the
+    /results endpoint only returns race points)."""
+    rows: list[dict] = []
+    offset = 0
+    page_size = 100
+    while True:
+        try:
+            data = _get(f"{season}/sprint", limit=page_size, offset=offset)
+        except Exception:
+            break
+        mr = data.get("MRData", {})
+        races = mr.get("RaceTable", {}).get("Races", [])
+        page_rows = 0
+        for race in races:
+            for r in race.get("SprintResults", []):
+                drv = r.get("Driver", {})
+                con = r.get("Constructor", {})
+                rows.append({
+                    "season":      int(race.get("season")),
+                    "round":       int(race.get("round")),
+                    "race_name":   race.get("raceName"),
+                    "driver_code": drv.get("code") or (drv.get("driverId") or "").upper()[:3],
+                    "team_name":   con.get("name"),
+                    "position":    int(r.get("position")) if r.get("position") else None,
+                    "points":      float(r.get("points", 0)),
+                })
+                page_rows += 1
+        try:
+            total = int(mr.get("total", 0))
+        except (TypeError, ValueError):
+            total = 0
+        offset += page_rows
+        if page_rows == 0 or offset >= total:
+            break
+    return pd.DataFrame(rows)
+
+
 def sprint_results(season: int, round_num: int) -> pd.DataFrame:
     """Sprint race results for a single (season, round). Returns an empty
     DataFrame for weekends without a sprint or seasons before 2021

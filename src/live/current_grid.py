@@ -209,6 +209,22 @@ def season_progression(season: int) -> dict:
     if df.empty:
         return {"rounds": [], "drivers": []}
 
+    # Merge sprint points — Jolpica's /results endpoint returns race points
+    # only, so the cumulative championship line was under-counting at every
+    # sprint-weekend round. Concat sprint rows so the per-round pivot below
+    # sums race + sprint into a single value. Sprint fetch failures
+    # degrade silently to "race points only" instead of breaking the chart.
+    try:
+        sprint_df = jolpica.sprint_results_season(season)
+    except Exception as exc:
+        log.warning("Jolpica sprint_results_season failed for progression: %s", exc)
+        sprint_df = pd.DataFrame()
+    if not sprint_df.empty:
+        df = pd.concat(
+            [df, sprint_df[["season", "round", "race_name", "driver_code", "team_name", "points"]]],
+            ignore_index=True,
+        )
+
     df = df.copy()
     df["team_name"] = df["team_name"].map(_canonicalise_team)
     df = df.sort_values(["round", "driver_code"])

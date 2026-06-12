@@ -180,13 +180,12 @@ export default function StandingsRoute() {
 
   return (
     <div className="space-y-4">
-      <NewToF1Strip storageKey="standings.primer.v1" title="New to F1?">
+      <NewToF1Strip storageKey="standings.primer.v2" title="New to F1?">
         Each driver scores championship points based on race results — 25 for the winner, down to 1 for P10.
         The <GlossaryTerm term="championship-position">Drivers' Championship</GlossaryTerm> goes to whoever
         has the most points at the end of the season; the{" "}
         <GlossaryTerm term="constructor">Constructors' Championship</GlossaryTerm> sums points from both
-        of a team's drivers. Switch the round dropdown to see standings at any point in any season — e.g.
-        2021 R21 shows the famous HAM = VER tie at 369.5 going into Abu Dhabi.
+        of a team's drivers. Switch the round dropdown to see standings as of any race weekend.
       </NewToF1Strip>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
