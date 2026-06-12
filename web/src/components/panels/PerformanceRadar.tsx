@@ -28,21 +28,23 @@ interface Props {
  * Pentagon-shaped performance radar. All metrics 0..100, computed server-side
  * from the aligned dataset (`compute_metrics()` in `src/live/driver_metrics.py`).
  *
- *   Qualifying    — average qualifying position over the sample (lower P = higher score)
- *   Race Pace     — average finish position over the sample
- *   Tyre Mgmt     — consistency × (1 − DNF rate); proxy for race-trim discipline
- *   Consistency   — 100 − stdev(finish_position), capped
- *   Overtaking    — median (grid − finish); positive = positions gained
+ * Every axis prefers a team-mate-controlled measurement (same car, same
+ * strategy, same conditions, different driver), and falls back to an
+ * absolute-position formula only when there aren't enough head-to-head
+ * matchups in the sample.
  *
- *   Aggression %  — DNF rate × 4 (capped at 100). High = aggressive / unlucky
- *   Experience %  — driver's career-race percentile against all drivers in our data
+ *   Qualifying    — % of races driver out-qualified team-mate (≥3 matchups)
+ *   Race Pace     — % of races driver beat team-mate to the flag, both classified
+ *   Consistency   — 100 − stdev(driver_finish − teammate_finish) × 15
+ *   Overtaking    — avg (grid − finish) across FINISHED races, mapped 50 + Δ×10
+ *   Tyre Mgmt     — longest stint per compound vs field median, from lap data
  */
 const METRIC_HINTS: Record<keyof RadarValues, string> = {
-  qualifying:  "Average qualifying position over the sample",
-  race_pace:   "Average finish position over the sample",
-  tyre_mgmt:   "Race-trim discipline (consistency × non-DNF rate)",
-  consistency: "How tight are finish positions vs the season mean",
-  overtaking:  "Median positions gained per race (grid − finish)",
+  qualifying:  "% of races driver out-qualified team-mate",
+  race_pace:   "% of races driver beat team-mate (both classified)",
+  consistency: "100 − stdev of finish-position gap to team-mate × 15",
+  overtaking:  "Avg positions gained vs grid, finished races only",
+  tyre_mgmt:   "Longest stint per compound vs field median (lap data)",
 };
 
 function asAxisRows(v?: RadarValues | null) {
@@ -83,13 +85,13 @@ export function PerformanceRadar({
             <span
               className="inline-flex"
               title={
-                "5 axes, 0–100 each:\n" +
-                "• Qualifying: avg quali position\n" +
-                "• Race Pace: avg finish position\n" +
-                "• Tyre Mgmt: consistency × (1 − DNF rate)\n" +
-                "• Consistency: 100 − stdev(finish position)\n" +
-                "• Overtaking: median (grid − finish), positive = gained\n" +
-                "All values from the selected season; falls back to last 10 across career"
+                "5 axes, 0–100 each. Team-mate H2H wherever possible:\n" +
+                "• Qualifying: % out-qualified team-mate (≥3 matchups)\n" +
+                "• Race Pace: % beat team-mate to the flag, both classified\n" +
+                "• Consistency: 100 − stdev(driver − teammate finish gap) × 15\n" +
+                "• Overtaking: avg (grid − finish) on finished races, ×10 + 50\n" +
+                "• Tyre Mgmt: longest stint per compound vs field median (lap data)\n" +
+                "Each axis falls back to an absolute formula when matchups are scarce."
               }
             >
               <Info size={11} />
