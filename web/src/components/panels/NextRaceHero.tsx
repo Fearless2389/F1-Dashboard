@@ -35,20 +35,11 @@ export function NextRaceHero({ next }: Props) {
 
   return (
     <div className="relative overflow-hidden rounded-xl paddock-dashed-coral bg-paddock-panel">
-      {/* Background — ghosted circuit outline + radial gradients */}
-      {next.circuit_id && (
-        // object-contain fits the SVG entirely within the hero card,
-        // letterboxing if needed. object-cover was scaling the wide
-        // Barcelona circuit to fill the height, which pushed the right
-        // side of the track past the card edge and made the circuit look
-        // truncated.
-        <img
-          src={`/circuits/${next.circuit_id}.svg`}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 w-full h-full object-contain opacity-[0.12] select-none pointer-events-none"
-        />
-      )}
+      {/* Background — radial gradients only. The ghosted circuit SVG was
+          dropped at the user's request — wide tracks like Barcelona
+          looked truncated and even with object-contain they competed
+          with the gradient + the title for attention. The card reads
+          cleaner with just the colour wash. */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{

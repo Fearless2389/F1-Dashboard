@@ -201,6 +201,7 @@ def sprint_results(season: int, round_num: int) -> pd.DataFrame:
         for r in race.get("SprintResults", []):
             drv = r.get("Driver", {})
             con = r.get("Constructor", {})
+            time_obj = r.get("Time") or {}
             rows.append({
                 "season":        int(race.get("season")),
                 "round":         int(race.get("round")),
@@ -213,6 +214,9 @@ def sprint_results(season: int, round_num: int) -> pd.DataFrame:
                 "points":        float(r.get("points", 0)),
                 "status":        r.get("status"),
                 "laps":          int(r.get("laps", 0)) if r.get("laps") else None,
+                # Same convention as race_results: P1 carries the absolute
+                # sprint duration; everyone else has a gap string ("+0.234").
+                "time":          time_obj.get("time"),
             })
     return pd.DataFrame(rows)
 
