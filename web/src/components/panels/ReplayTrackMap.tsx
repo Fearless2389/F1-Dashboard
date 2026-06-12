@@ -268,7 +268,16 @@ export function ReplayTrackMap({
               key={d.driver_code || d.driver_number || `i${i}`}
               transform={`translate(${x} ${y})`}
               onClick={() => onSelectDriver?.(d.driver_code)}
-              style={{ cursor: "pointer" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectDriver?.(d.driver_code);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${d.driver_code}${d.team_name ? ` (${d.team_name})` : ""} — click to view telemetry${d.is_pitting ? ", currently in the pits" : ""}`}
+              style={{ cursor: "pointer", outline: "none" }}
               opacity={dotOpacity}
             >
               {isLeader && !d.is_pitting && (

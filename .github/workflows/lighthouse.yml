@@ -1,0 +1,61 @@
+name: Lighthouse
+
+# Runs Lighthouse CI against the production preview build of the React
+# app to enforce Q4=(a) strict thresholds the user approved:
+#   Performance     ≥ 90
+#   Accessibility   ≥ 95
+#   Best Practices  ≥ 95
+#   SEO             ≥ 90
+#
+# Triggers on every PR + main push. The Space-deployed backend is NOT
+# required — Lighthouse hits the Vite preview server which serves the
+# built static assets. Routes that fetch live data render their
+# loading skeletons, which is the perf-critical state anyway (first
+# paint + hydration, before TanStack Query resolves).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        working-directory: web
+        run: npm ci || npm install
+
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+      - name: Start preview server
+        working-directory: web
+        run: npx vite preview --port 4173 &
+        env:
+          # Mock API URL so the route components don't error during
+          # initial mount. Lighthouse measures the loading state.
+          VITE_API_URL: "http://localhost:4173/api-mock"
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:4173 --timeout 30000
+
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            http://localhost:4173/
+            http://localhost:4173/dashboard
+            http://localhost:4173/standings
+          # Strict thresholds per Q4=(a) — assertions FAIL the job
+          # if any score drops below the floor.
+          configPath: ./.lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

@@ -47,7 +47,7 @@ function Topbar() {
           Active state = 2px coral top-rule + cream text. No border-radius
           anywhere. Hidden on the landing page so the hero owns the screen. */}
       {!onLanding && (
-        <nav className="ml-auto hidden md:flex items-stretch">
+        <nav className="ml-auto hidden md:flex items-stretch" aria-label="Primary">
           {TOP_NAV.map(({ to, label }, idx) => (
             <NavLink
               key={to}
@@ -90,8 +90,17 @@ function Topbar() {
 export default function Shell({ children }: Props) {
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Skip-link — invisible until focused, lets keyboard users jump */}
+      {/* past the nav straight into route content. Required for       */}
+      {/* WCAG 2.4.1 (Bypass Blocks) and a Lighthouse a11y check.       */}
+      <a
+        href="#main-content"
+        className="absolute left-3 top-3 z-50 -translate-y-20 focus-visible:translate-y-0 transition-transform bg-paddock-coral text-paddock-dark px-3 py-1.5 font-mono text-xs uppercase tracking-[0.15em] font-bold"
+      >
+        Skip to content
+      </a>
       <Topbar />
-      <main className="flex-1 overflow-x-hidden p-6 f1-grid-bg">
+      <main id="main-content" className="flex-1 overflow-x-hidden p-6 f1-grid-bg" tabIndex={-1}>
         {children}
       </main>
     </div>

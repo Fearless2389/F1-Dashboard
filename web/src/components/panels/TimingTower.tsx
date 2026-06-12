@@ -59,7 +59,7 @@ function compoundLabel(c?: string | null): string {
 // Gap/Int — wide tracks with multi-second deltas (Spa rain finishes,
 // etc.) need the headroom.
 
-const GRID = "grid-cols-[3ch_1fr_5ch_5ch_6ch_3ch]";
+const GRID = "grid-cols-[3ch_1fr_6ch_6ch_7ch_3ch]";
 const RULE = "rgba(237, 228, 211, 0.10)";
 const STRONG = "rgba(237, 228, 211, 0.22)";
 
@@ -80,18 +80,25 @@ const STRONG = "rgba(237, 228, 211, 0.22)";
  */
 export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
   return (
-    <div className="font-mono">
+    <div
+      className="font-mono"
+      role="grid"
+      aria-label="Live timing tower — drivers ordered by current position"
+      aria-rowcount={drivers.length + 1}
+    >
       {/* Header rule strip — labels above a single STRONG cream rule. */}
       <div
-        className={`grid ${GRID} gap-x-2 text-[9px] uppercase tracking-[0.18em] text-paddock-cream/75 font-semibold px-2 py-2`}
+        role="row"
+        aria-rowindex={1}
+        className={`grid ${GRID} gap-x-2 text-[10px] uppercase tracking-[0.16em] text-paddock-cream/85 font-semibold px-2 py-2.5`}
         style={{ borderBottom: `1px solid ${STRONG}` }}
       >
-        <div>P</div>
-        <div>Driver</div>
-        <div className="text-right">Gap</div>
-        <div className="text-right">Int</div>
-        <div className="text-right">Tyre</div>
-        <div className="text-right">Pit</div>
+        <div role="columnheader">P</div>
+        <div role="columnheader">Driver</div>
+        <div role="columnheader" className="text-right">Gap</div>
+        <div role="columnheader" className="text-right">Int</div>
+        <div role="columnheader" className="text-right">Tyre</div>
+        <div role="columnheader" className="text-right">Pit</div>
       </div>
 
       <div>
@@ -112,6 +119,17 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                 exit={{ opacity: 0 }}
                 transition={{ type: "spring", stiffness: 260, damping: 30 }}
                 onClick={() => onSelectDriver?.(d.driver_code)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectDriver?.(d.driver_code);
+                  }
+                }}
+                role="row"
+                aria-rowindex={idx + 2}
+                aria-selected={isSel ? true : undefined}
+                aria-label={`P${d.position ?? "—"} ${d.driver_code}${d.team_name ? `, ${d.team_name}` : ""}${d.gap_to_leader ? `, gap ${d.gap_to_leader}` : ""}${d.compound ? `, ${d.compound} tyres` : ""}${d.tyre_life != null ? ` lap ${d.tyre_life}` : ""}`}
+                tabIndex={0}
                 className={[
                   "relative group grid", GRID,
                   "gap-x-2 items-center px-2 py-1.5 cursor-pointer",
@@ -132,21 +150,27 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                 />
 
                 {/* Position */}
-                <div className="text-[11px] text-paddock-cream tabular-nums leading-none font-semibold">
+                <div className="text-[13px] text-paddock-cream tabular-nums leading-none font-semibold">
                   {dimmed ? "—" : String(d.position ?? "—").padStart(2, " ")}
                 </div>
 
                 {/* Driver — team-colour stripe + code + team name */}
                 <div className="flex items-center gap-2 min-w-0">
                   <div
-                    className="h-4 w-[2px] shrink-0"
+                    className="h-5 w-[2px] shrink-0"
                     style={{ background: color }}
                   />
                   <div className="min-w-0">
-                    <div className="text-[11px] font-semibold leading-tight tracking-tight truncate text-f1-white">
+                    <div className="text-[13px] font-semibold leading-tight tracking-tight truncate text-f1-white">
                       {d.driver_code}
                     </div>
-                    <div className="text-[9px] text-f1-muted uppercase tracking-[0.1em] truncate leading-tight">
+                    {/* Team name — sentence-case mono, no extreme    */}
+                    {/* tracking. The earlier ALLCAPS tracking-widest */}
+                    {/* register turned this line into a wall of      */}
+                    {/* identical-width glyphs that the eye couldn't  */}
+                    {/* skim — fine for a 3-letter driver code, ruin- */}
+                    {/* ous for "Aston Martin Aramco Mercedes."       */}
+                    <div className="text-[11px] text-f1-muted truncate leading-tight font-mono">
                       {d.team_name}
                     </div>
                   </div>
@@ -154,17 +178,17 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
 
                 {statusStyle ? (
                   <div
-                    className="col-span-2 text-[9px] text-center font-bold uppercase tracking-[0.18em] px-1 py-0.5"
+                    className="col-span-2 text-[10px] text-center font-bold uppercase tracking-[0.18em] px-1 py-0.5"
                     style={{ background: statusStyle.bg, color: statusStyle.text, border: `1px solid ${statusStyle.text}33` }}
                   >
                     {d.status}
                   </div>
                 ) : (
                   <>
-                    <div className="text-[10px] text-paddock-cream/85 text-right tabular-nums leading-tight">
+                    <div className="text-[12px] text-paddock-cream/85 text-right tabular-nums leading-tight font-semibold">
                       {d.gap_to_leader ?? "—"}
                     </div>
-                    <div className="text-[10px] text-paddock-cream/85 text-right tabular-nums leading-tight">
+                    <div className="text-[12px] text-paddock-cream/85 text-right tabular-nums leading-tight font-semibold">
                       {d.interval ?? "—"}
                     </div>
                   </>
@@ -173,22 +197,23 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                 {/* Tyre — 1-char compound code + age in laps */}
                 <div className="flex items-center justify-end gap-1.5">
                   <span
-                    className="inline-flex h-4 w-4 items-center justify-center text-[8px] font-bold shrink-0 leading-none"
+                    className="inline-flex h-[20px] w-[20px] items-center justify-center text-[11px] font-bold shrink-0 leading-none"
                     style={{
-                      background: compColor + "26",
+                      background: compColor + "33",
                       color: compColor,
-                      border: `1px solid ${compColor}66`,
+                      border: `1px solid ${compColor}80`,
                     }}
+                    title={d.compound ?? undefined}
                   >
                     {compoundLabel(d.compound)}
                   </span>
-                  <span className="text-paddock-cream/70 text-[9px] tabular-nums">
+                  <span className="text-paddock-cream/80 text-[11px] tabular-nums font-semibold">
                     {d.tyre_life != null ? `L${d.tyre_life}` : "—"}
                   </span>
                 </div>
 
                 {/* Pit count */}
-                <div className="text-[10px] text-paddock-cream/85 text-right tabular-nums leading-tight">
+                <div className="text-[12px] text-paddock-cream/85 text-right tabular-nums leading-tight font-semibold">
                   {d.pit_count ?? 0}
                 </div>
               </m.div>

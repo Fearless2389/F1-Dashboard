@@ -179,9 +179,9 @@ function FeatureCard({
             {kicker}
           </div>
         </div>
-        <h3 className="font-display font-bold text-xl mb-2 group-hover:text-paddock-coral transition-colors">
+        <h2 className="font-display font-bold text-xl mb-2 group-hover:text-paddock-coral transition-colors">
           {title}
-        </h3>
+        </h2>
         <p className="text-sm text-f1-muted leading-relaxed">{body}</p>
         <div className="mt-4 flex items-center gap-1 text-xs text-paddock-coral font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
           Open <ArrowRight size={12} />
