@@ -38,7 +38,7 @@ export function SeasonResultsGrid({ results, totalRounds = 24 }: Props) {
           const fin = r?.finish_position ?? null;
           const { bg, text } = r ? cellColor(fin, r.is_dnf) : cellColor(null, false);
           return (
-            <button
+            <button type="button"
               key={round}
               onMouseEnter={() => setHovered(r ?? null)}
               onMouseLeave={() => setHovered(null)}

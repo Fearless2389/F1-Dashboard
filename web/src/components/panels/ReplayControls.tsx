@@ -43,7 +43,7 @@ export function ReplayControls({
           <div className="flex items-center gap-2 ml-2">
             <span className="text-[10px] uppercase tracking-widest text-f1-muted">Speed</span>
             {speeds.map(s => (
-              <button
+              <button type="button"
                 key={s}
                 onClick={() => onSpeed(s)}
                 className={cn(

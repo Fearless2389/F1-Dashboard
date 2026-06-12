@@ -253,7 +253,7 @@ export default function ReplayRoute() {
             >
               <div className="flex items-center justify-between px-4 py-2 border-b border-f1-edge shrink-0">
                 <div className="font-display font-semibold text-sm">Timing Tower</div>
-                <button onClick={() => setTowerOpen(false)} className="text-f1-muted hover:text-f1-white">
+                <button type="button" onClick={() => setTowerOpen(false)} className="text-f1-muted hover:text-f1-white">
                   <ChevronLeft size={16} />
                 </button>
               </div>
@@ -274,7 +274,7 @@ export default function ReplayRoute() {
 
         {/* Re-open tower button when collapsed */}
         {!towerOpen && (
-          <button
+          <button type="button"
             onClick={() => setTowerOpen(true)}
             className="absolute left-4 top-16 z-10 rounded-r-xl border border-f1-edge border-l-0 bg-f1-dark/85 backdrop-blur px-2 py-3 text-f1-muted hover:text-f1-white"
             aria-label="Show timing tower"
@@ -347,7 +347,7 @@ export default function ReplayRoute() {
               />
             </div>
           ) : (
-            <button
+            <button type="button"
               onClick={() => focusedDriver && setTelemetryOpen(true)}
               disabled={!focusedDriver}
               className="shrink-0 mt-2 flex items-center justify-center gap-1.5 rounded-md border border-f1-edge bg-f1-dark/85 backdrop-blur px-3 py-2 text-[11px] uppercase tracking-widest text-f1-muted hover:text-f1-white disabled:hover:text-f1-muted disabled:cursor-not-allowed"
@@ -378,7 +378,7 @@ export default function ReplayRoute() {
                 <div className="flex items-center gap-2 font-display font-semibold text-sm">
                   <Keyboard size={14} /> Keyboard Shortcuts
                 </div>
-                <button onClick={() => setHelpOpen(false)} className="text-f1-muted hover:text-f1-white">
+                <button type="button" onClick={() => setHelpOpen(false)} className="text-f1-muted hover:text-f1-white">
                   <X size={14} />
                 </button>
               </div>

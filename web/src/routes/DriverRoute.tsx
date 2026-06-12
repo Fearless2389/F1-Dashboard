@@ -573,7 +573,7 @@ export default function DriverRoute() {
                 >
                   {SEASONS.filter(s => s !== season).map(s => <option key={s} value={s}>{s}</option>)}
                 </Select>
-                <button
+                <button type="button"
                   onClick={() => update({ vs: null })}
                   aria-label="Clear comparison"
                   className="text-paddock-cyan hover:text-f1-white p-1 rounded-full hover:bg-white/10"

@@ -61,7 +61,7 @@ function RaceCard({
         status === "next"   && "ring-2 ring-paddock-coral/40 shadow-[0_0_40px_-12px_rgba(255,94,108,0.4)]",
       )}
     >
-      <button onClick={onToggle} className="w-full text-left">
+      <button type="button" onClick={onToggle} className="w-full text-left">
         {ev.circuit_id && (
           <div
             className="aspect-[16/8] w-full border-b border-f1-edge overflow-hidden relative"

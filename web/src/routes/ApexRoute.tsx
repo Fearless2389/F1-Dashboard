@@ -160,7 +160,7 @@ export default function ApexRoute() {
           ))}
         </Select>
         {explicitMode && (
-          <button
+          <button type="button"
             onClick={clearSelection}
             className="text-[10px] uppercase tracking-widest text-paddock-cyan hover:text-f1-white border border-dashed border-paddock-cyan/40 rounded-full px-2.5 py-0.5"
             title="Return to the auto-selected next race"
@@ -235,7 +235,7 @@ export default function ApexRoute() {
               probabilistic surface get it on demand. */}
           {forecast && (
             <div className="rounded-xl border border-f1-edge bg-paddock-panel/40">
-              <button
+              <button type="button"
                 onClick={() => setMatrixOpen(v => !v)}
                 className="w-full px-5 py-3 flex items-center justify-between gap-3 hover:bg-paddock-panel/60 transition-colors"
                 aria-expanded={matrixOpen}

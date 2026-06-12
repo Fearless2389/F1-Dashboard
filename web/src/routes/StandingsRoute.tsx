@@ -266,7 +266,7 @@ export default function StandingsRoute() {
               <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/[0.06] border border-white/10 px-2 py-0.5 text-[10px]">
                 <span className="h-2 w-2 rounded-sm" style={{ background: teamColor(selectedTeam) }} />
                 <span className="text-f1-white font-mono">Team: {selectedTeam}</span>
-                <button
+                <button type="button"
                   onClick={() => setSelectedTeam(null)}
                   aria-label="Clear team filter"
                   className="text-f1-muted hover:text-f1-white p-0.5 rounded-full hover:bg-white/10"

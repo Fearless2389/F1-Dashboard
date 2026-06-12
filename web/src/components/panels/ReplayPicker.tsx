@@ -62,7 +62,7 @@ export function ReplayPicker() {
           {!isLoading && seasons.map((s) => {
             const active = (season ?? seasons[0]) === s;
             return (
-              <button
+              <button type="button"
                 key={s}
                 onClick={() => setSeason(s)}
                 className={cn(

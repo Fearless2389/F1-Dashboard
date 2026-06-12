@@ -61,16 +61,19 @@ const GEAR_COL = "#B0B0B0";
  * cached for the selected race.
  */
 export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose }: Props) {
-  if (!driver) return null;
-
-  const color = teamColorFallback(driver.team_colour, driver.team_name);
-  const compoundKey = (driver.compound ?? "").toUpperCase();
+  // Hooks MUST run on every render — the previous `if (!driver) return null`
+  // sat above the useDriverTelemetry + useMemo calls, which violated React's
+  // rules-of-hooks (the hook order changed when `driver` flipped from null
+  // to non-null). Hook calls now use safe defaults when `driver` is absent;
+  // the early return moves below them.
+  const color = teamColorFallback(driver?.team_colour, driver?.team_name);
+  const compoundKey = (driver?.compound ?? "").toUpperCase();
   const compoundDot = COMPOUND_DOT[compoundKey] ?? "#888";
   const compoundTag = COMPOUND_TAG[compoundKey] ?? "?";
 
   const { samples, isLoading, notAvailable } = useDriverTelemetry({
     season, roundNum,
-    driverCode: driver.driver_code,
+    driverCode: driver?.driver_code ?? null,
     sessionTime,
     windowSeconds: 30,
   });
@@ -104,6 +107,9 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
   // Last sample is the "now" datum that we badge at the right edge.
   const last = chartData.length ? chartData[chartData.length - 1] : null;
 
+  // Now safe to early-return — all hooks have already executed.
+  if (!driver) return null;
+
   return (
     <div
       className="rounded-xl border border-f1-edge bg-f1-dark/95 backdrop-blur shadow-2xl w-full overflow-hidden"
@@ -130,7 +136,7 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-f1-muted hover:text-f1-white p-0.5" aria-label="Close">
+          <button type="button" onClick={onClose} className="text-f1-muted hover:text-f1-white p-0.5" aria-label="Close">
             <X size={14} />
           </button>
         )}

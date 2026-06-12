@@ -55,7 +55,7 @@ export function TabsTrigger({
   if (!ctx) return null;
   const active = ctx.value === value;
   return (
-    <button
+    <button type="button"
       onClick={() => ctx.setValue(value)}
       className={cn(
         "rounded-md px-3 py-1.5 text-xs font-medium tracking-wide transition-colors",

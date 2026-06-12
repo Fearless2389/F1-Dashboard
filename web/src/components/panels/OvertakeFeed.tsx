@@ -194,7 +194,7 @@ export function OvertakeFeed({
                 <span className="h-2 w-2 rounded-sm" style={{ background: teamColor(value) }} />
               )}
               <span className={cn("font-mono", isTeam ? "text-f1-white" : "text-f1-white")}>{value}</span>
-              <button
+              <button type="button"
                 aria-label={`Remove filter ${value}`}
                 onClick={() => toggleChip(id)}
                 className="text-f1-muted hover:text-f1-white p-0.5 rounded-full hover:bg-white/10"
@@ -204,7 +204,7 @@ export function OvertakeFeed({
             </span>
           );
         })}
-        <button
+        <button type="button"
           onClick={() => setPickerOpen(o => !o)}
           aria-expanded={pickerOpen}
           className={cn(
@@ -218,7 +218,7 @@ export function OvertakeFeed({
         </button>
 
         {chips.size > 0 && (
-          <button
+          <button type="button"
             onClick={() => setChips(new Set())}
             className="ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]
                        text-f1-muted hover:text-f1-white transition-colors"
@@ -241,7 +241,7 @@ export function OvertakeFeed({
                 const id = chipDriver(code);
                 const active = chips.has(id);
                 return (
-                  <button key={id} onClick={() => toggleChip(id)}
+                  <button type="button" key={id} onClick={() => toggleChip(id)}
                     className={cn(
                       "rounded px-1.5 py-0.5 text-[10px] font-mono border transition-colors",
                       active
@@ -263,7 +263,7 @@ export function OvertakeFeed({
                 const id = chipTeam(team);
                 const active = chips.has(id);
                 return (
-                  <button key={id} onClick={() => toggleChip(id)}
+                  <button type="button" key={id} onClick={() => toggleChip(id)}
                     className={cn(
                       "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] border transition-colors",
                       active

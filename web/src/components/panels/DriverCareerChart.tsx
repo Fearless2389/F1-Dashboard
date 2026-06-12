@@ -23,6 +23,39 @@ interface SeasonAggregate {
 }
 
 /**
+ * Recharts LabelList `content` factory — closes over the row aggregates so
+ * the renderer itself can stay a single function at module scope (avoids
+ * re-creating a component identity per render of DriverCareerChart, which
+ * React Doctor's `component-defined-inside-another-component` rule
+ * correctly flagged).
+ */
+function makeAvgPLabelRenderer(
+  aggregates: SeasonAggregate[],
+): (props: { x?: string | number; y?: string | number; width?: string | number; index?: number }) => React.ReactElement | null {
+  return (props) => {
+    const xn = typeof props.x === "number" ? props.x : Number(props.x);
+    const yn = typeof props.y === "number" ? props.y : Number(props.y);
+    const wn = typeof props.width === "number" ? props.width : Number(props.width);
+    if (!Number.isFinite(xn) || !Number.isFinite(yn) || !Number.isFinite(wn) || props.index == null) return null;
+    const row = aggregates[props.index];
+    if (!row || row.avg_finish == null) return null;
+    return (
+      <text
+        x={xn + wn / 2}
+        y={yn - 6}
+        textAnchor="middle"
+        fill="#a4acc4"
+        fontSize={10}
+        fontFamily="ui-monospace, SFMono-Regular, monospace"
+        fontWeight={600}
+      >
+        P{row.avg_finish.toFixed(1)}
+      </text>
+    );
+  };
+}
+
+/**
  * Career trajectory — one bar per season showing points scored, in that
  * season's team livery colour. The season's average finish position is
  * labelled directly above each bar as `P4.7` so points (height) and
@@ -65,31 +98,13 @@ export function DriverCareerChart({ driverCode, timeline }: Props) {
 
   if (aggregates.length < 2) return null;
 
-  // Recharts LabelList passes `index` to a content function, so we close
-  // over `aggregates` and look up the row to get this bar's avg-finish.
-  // (`value` from LabelList is the data key's value, i.e. points — useless
-  // here since we want a separate field per cell.)
-  function AvgPLabel(props: { x?: string | number; y?: string | number; width?: string | number; index?: number }) {
-    const xn = typeof props.x === "number" ? props.x : Number(props.x);
-    const yn = typeof props.y === "number" ? props.y : Number(props.y);
-    const wn = typeof props.width === "number" ? props.width : Number(props.width);
-    if (!Number.isFinite(xn) || !Number.isFinite(yn) || !Number.isFinite(wn) || props.index == null) return null;
-    const row = aggregates[props.index];
-    if (!row || row.avg_finish == null) return null;
-    return (
-      <text
-        x={xn + wn / 2}
-        y={yn - 6}
-        textAnchor="middle"
-        fill="#a4acc4"
-        fontSize={10}
-        fontFamily="ui-monospace, SFMono-Regular, monospace"
-        fontWeight={600}
-      >
-        P{row.avg_finish.toFixed(1)}
-      </text>
-    );
-  }
+  // Recharts LabelList passes `index` to a content function. We close over
+  // `aggregates` via a factory so the rendering component itself lives at
+  // module scope (the prior inline `function AvgPLabel(...)` triggered
+  // React Doctor's "Component defined inside another component" — React
+  // would recreate the component identity every render, which can cause
+  // remount/state-loss in more complex children).
+  const renderAvgPLabel = makeAvgPLabelRenderer(aggregates);
 
   return (
     <Card>
@@ -122,7 +137,7 @@ export function DriverCareerChart({ driverCode, timeline }: Props) {
                 radius={[4, 4, 0, 0]}
                 isAnimationActive={false}
               >
-                <LabelList content={AvgPLabel} />
+                <LabelList content={renderAvgPLabel} />
                 {aggregates.map((row) => (
                   <Cell key={row.season} fill={row.fill} />
                 ))}
