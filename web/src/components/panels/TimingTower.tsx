@@ -194,16 +194,24 @@ export function TimingTower({ drivers, onSelectDriver, selected }: Props) {
                   </>
                 )}
 
-                {/* Tyre — 1-char compound code + age in laps */}
+                {/* Tyre — broadcast-style colored ring + high-contrast    */}
+                {/* letter + age in laps. The compound colour lives on the */}
+                {/* RING (not the fill), so the letter inside is always    */}
+                {/* on the same dark disc — M vs H stop reading identical  */}
+                {/* at small sizes because the bright-yellow ring vs       */}
+                {/* white ring is unmistakable even before you read the    */}
+                {/* glyph. */}
                 <div className="flex items-center justify-end gap-1.5">
                   <span
-                    className="inline-flex h-[20px] w-[20px] items-center justify-center text-[11px] font-bold shrink-0 leading-none"
+                    className="inline-flex h-[22px] w-[22px] items-center justify-center text-[12px] font-bold shrink-0 leading-none rounded-full"
                     style={{
-                      background: compColor + "33",
-                      color: compColor,
-                      border: `1px solid ${compColor}80`,
+                      background: "#0c0e17",
+                      color: "#f5f5f7",
+                      border: `2.5px solid ${compColor}`,
+                      boxShadow: `0 0 0 1px ${compColor}40`,
                     }}
                     title={d.compound ?? undefined}
+                    aria-label={d.compound ?? "Unknown compound"}
                   >
                     {compoundLabel(d.compound)}
                   </span>
