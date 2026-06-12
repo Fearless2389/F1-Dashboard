@@ -143,7 +143,6 @@ export default function ApexRoute() {
       <ApexHeader
         modelVersion={data?.reliability.model_version ?? "v1.0"}
         nextEvent={data?.race_meta.race_name?.toUpperCase() ?? "—"}
-        trainDate={data?.reliability.train_date}
       />
 
       {/* Race selector — defaults to "next race" when nothing's pinned. */}
