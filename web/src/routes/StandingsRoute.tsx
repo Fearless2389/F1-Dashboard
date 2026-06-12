@@ -264,156 +264,152 @@ export default function StandingsRoute() {
 
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
         {/* Drivers */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Drivers' Championship</CardTitle>
-            <CardDescription>
-              {isLoading
-                ? "Loading…"
-                : selectedTeam
-                  ? `${filteredDriverRows.length} of ${driverRows.length} drivers · filtered to ${selectedTeam}`
-                  : `${driverRows.length} drivers · top scorer ${driverRows[0]?.points ?? "—"} pts`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {selectedTeam && (
-              <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/[0.06] border border-white/10 px-2 py-0.5 text-[10px]">
-                <span className="h-2 w-2 rounded-sm" style={{ background: teamColor(selectedTeam) }} />
-                <span className="text-f1-white font-mono">Team: {selectedTeam}</span>
-                <button type="button"
-                  onClick={() => setSelectedTeam(null)}
-                  aria-label="Clear team filter"
-                  className="text-f1-muted hover:text-f1-white p-0.5 rounded-full hover:bg-white/10"
-                >
-                  <X size={9} />
-                </button>
-              </div>
-            )}
+        <FiaTable
+          title="Drivers' Championship"
+          subtitle={
+            isLoading
+              ? "Loading…"
+              : selectedTeam
+                ? `${filteredDriverRows.length} of ${driverRows.length} drivers · filtered to ${selectedTeam}`
+                : `${driverRows.length} drivers · top scorer ${driverRows[0]?.points ?? "—"} pts`
+          }
+          index={`P1–P${driverRows.length || "—"}`}
+        >
+          {selectedTeam && (
+            <div className="mb-3 inline-flex items-center gap-1.5 border border-paddock-cream/25 bg-white/[0.03] px-2 py-1 text-[10px] font-mono">
+              <span className="h-2 w-[3px]" style={{ background: teamColor(selectedTeam) }} />
+              <span className="text-paddock-cream uppercase tracking-[0.18em]">FILTER · {selectedTeam}</span>
+              <button type="button"
+                onClick={() => setSelectedTeam(null)}
+                aria-label="Clear team filter"
+                className="text-f1-muted hover:text-paddock-cream px-1"
+              >
+                <X size={9} />
+              </button>
+            </div>
+          )}
 
-            {isLoading ? (
-              <Skeleton className="h-[420px] w-full" />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-[10px] text-f1-muted uppercase tracking-wider">
-                    <tr className="border-b border-f1-edge">
-                      <th className="text-left pb-2 pl-1">Pos</th>
-                      <th className="text-left pb-2">Driver</th>
-                      <th className="text-left pb-2">Team</th>
-                      <th className="text-right pb-2 pr-1">Pts</th>
+          {isLoading ? (
+            <Skeleton className="h-[420px] w-full" />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr>
+                    <FiaTh align="left"   width="6ch">Pos</FiaTh>
+                    <FiaTh align="left"   width="7ch">Driver</FiaTh>
+                    <FiaTh align="left"             >Team</FiaTh>
+                    <FiaTh align="right"  width="9ch" lastCol>Pts</FiaTh>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDriverRows.map((d) => (
+                    <tr key={d.driver_code} className="group">
+                      <FiaTd>
+                        <FiaHoverEdge />
+                        <div className="flex items-center gap-1.5 font-mono tabular-nums">
+                          <span className="text-paddock-cream/90 w-[2ch] text-right">{d.championship_position}</span>
+                          <PositionDelta delta={driverPositionDelta[d.driver_code] ?? null} />
+                        </div>
+                      </FiaTd>
+                      <FiaTd>
+                        <Link
+                          to={`/driver/${d.driver_code}?season=${season}`}
+                          className="flex items-center gap-2 hover:text-paddock-coral transition-colors"
+                        >
+                          <span className="h-3 w-[2px]" style={{ background: d._color }} />
+                          <span className="font-mono">{d.driver_code}</span>
+                        </Link>
+                      </FiaTd>
+                      <FiaTd>
+                        <span className="text-xs text-f1-muted truncate max-w-[180px] inline-block font-mono uppercase tracking-[0.1em]">{d.team_name}</span>
+                      </FiaTd>
+                      <FiaTd lastCol align="right">
+                        <PointsBar pts={d.points} maxPts={driverLeaderPts} color={d._color} />
+                      </FiaTd>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredDriverRows.map((d) => (
-                      <tr key={d.driver_code} className="border-b border-f1-edge/60 hover:bg-white/[0.02] transition-colors">
-                        <td className="py-2 pl-1 tabular-nums font-mono">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-f1-muted">{d.championship_position}</span>
-                            <PositionDelta delta={driverPositionDelta[d.driver_code] ?? null} />
-                          </div>
-                        </td>
-                        <td className="py-2">
-                          <Link
-                            to={`/driver/${d.driver_code}?season=${season}`}
-                            className="flex items-center gap-2 hover:text-f1-red transition-colors"
-                          >
-                            <span className="h-3 w-1 rounded-sm" style={{ background: d._color }} />
-                            <span className="font-mono">{d.driver_code}</span>
-                          </Link>
-                        </td>
-                        <td className="py-2 text-xs text-f1-muted truncate max-w-[200px]">{d.team_name}</td>
-                        <td className="py-2 pr-1">
-                          <PointsBar pts={d.points} maxPts={driverLeaderPts} color={d._color} />
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredDriverRows.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="py-6 text-center text-xs text-f1-muted">
-                          No drivers on {selectedTeam} found in this season's roster.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                  {filteredDriverRows.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-6 text-center text-xs text-f1-muted font-mono uppercase tracking-[0.18em]">
+                        No drivers on {selectedTeam} found in this season's roster.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </FiaTable>
 
         {/* Constructors */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Constructors' Championship</CardTitle>
-            <CardDescription>
-              {isLoading ? "Loading…" : `${constructorRows.length} teams competing · click a stripe to filter the drivers' table`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[420px] w-full" />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-[10px] text-f1-muted uppercase tracking-wider">
-                    <tr className="border-b border-f1-edge">
-                      <th className="text-left pb-2 pl-1">Pos</th>
-                      <th className="text-left pb-2">Team</th>
-                      <th className="text-right pb-2 pr-1">Pts</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {constructorRows.map((c) => {
-                      const isSelected = selectedTeam === c.team_name;
-                      const toggle = () => setSelectedTeam(isSelected ? null : c.team_name);
-                      return (
-                        <tr
-                          key={c.team_name}
-                          className={cn(
-                            "border-b border-f1-edge/60 transition-colors",
-                            isSelected ? "bg-paddock-coral/8" : "hover:bg-white/[0.02]",
-                          )}
-                        >
-                          <td className="py-2 pl-1 tabular-nums font-mono">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-f1-muted">{c.constructor_position}</span>
-                              <PositionDelta delta={constructorPositionDelta[c.team_name] ?? null} />
-                            </div>
-                          </td>
-                          <td className="py-2">
-                            <button
-                              type="button"
-                              onClick={toggle}
-                              title={isSelected ? "Clear team filter" : `Filter drivers by ${c.team_name}`}
-                              className="flex items-center gap-2 group/team"
-                            >
-                              <span
-                                className={cn(
-                                  "h-3 w-1 rounded-sm transition-all",
-                                  isSelected ? "h-5 w-1.5" : "group-hover/team:h-4",
-                                )}
-                                style={{ background: c._color }}
-                              />
-                              <span className={cn(
-                                "transition-colors",
-                                isSelected ? "text-paddock-coral font-semibold" : "text-f1-white group-hover/team:text-paddock-coral",
-                              )}>
-                                {c.team_name}
-                              </span>
-                            </button>
-                          </td>
-                          <td className="py-2 pr-1">
-                            <PointsBar pts={c.points} maxPts={constructorLeaderPts} color={c._color} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <FiaTable
+          title="Constructors' Championship"
+          subtitle={
+            isLoading
+              ? "Loading…"
+              : `${constructorRows.length} teams · click a stripe to filter drivers`
+          }
+          index={`P1–P${constructorRows.length || "—"}`}
+        >
+          {isLoading ? (
+            <Skeleton className="h-[420px] w-full" />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr>
+                    <FiaTh align="left"  width="6ch">Pos</FiaTh>
+                    <FiaTh align="left"            >Team</FiaTh>
+                    <FiaTh align="right" width="9ch" lastCol>Pts</FiaTh>
+                  </tr>
+                </thead>
+                <tbody>
+                  {constructorRows.map((c) => {
+                    const isSelected = selectedTeam === c.team_name;
+                    const toggle = () => setSelectedTeam(isSelected ? null : c.team_name);
+                    return (
+                      <tr key={c.team_name} className="group">
+                        <FiaTd>
+                          <FiaHoverEdge active={isSelected} />
+                          <div className="flex items-center gap-1.5 font-mono tabular-nums">
+                            <span className="text-paddock-cream/90 w-[2ch] text-right">{c.constructor_position}</span>
+                            <PositionDelta delta={constructorPositionDelta[c.team_name] ?? null} />
+                          </div>
+                        </FiaTd>
+                        <FiaTd>
+                          <button
+                            type="button"
+                            onClick={toggle}
+                            title={isSelected ? "Clear team filter" : `Filter drivers by ${c.team_name}`}
+                            className="flex items-center gap-2 group/team"
+                          >
+                            <span
+                              className={cn(
+                                "transition-all",
+                                isSelected ? "h-5 w-[3px]" : "h-3 w-[2px] group-hover/team:h-4",
+                              )}
+                              style={{ background: c._color }}
+                            />
+                            <span className={cn(
+                              "transition-colors font-mono uppercase tracking-[0.08em]",
+                              isSelected ? "text-paddock-coral font-semibold" : "text-f1-white group-hover/team:text-paddock-coral",
+                            )}>
+                              {c.team_name}
+                            </span>
+                          </button>
+                        </FiaTd>
+                        <FiaTd lastCol align="right">
+                          <PointsBar pts={c.points} maxPts={constructorLeaderPts} color={c._color} />
+                        </FiaTd>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </FiaTable>
       </div>
 
       {/* Leader callout */}
@@ -451,19 +447,129 @@ export default function StandingsRoute() {
  * Inline horizontal-bar visualisation of points relative to the leader.
  * The bar sits behind the number at ~20% opacity so the column still
  * scans as a tabular figure but you can also see the gap at a glance.
+ *
+ * Hard-edged for the FIA-table aesthetic — no border-radius.
  */
 function PointsBar({ pts, maxPts, color }: { pts: number; maxPts: number; color: string }) {
   const pct = maxPts > 0 ? Math.max(0, Math.min(100, (pts / maxPts) * 100)) : 0;
   return (
     <div className="relative h-5 flex items-center justify-end">
       <div
-        className="absolute inset-y-0.5 left-0 rounded-sm transition-all"
+        className="absolute inset-y-0.5 left-0 transition-all"
         style={{ background: color, opacity: 0.22, width: `${pct}%` }}
       />
-      <span className="relative tabular-nums font-semibold pr-1 text-f1-white">
+      <span className="relative tabular-nums font-mono font-semibold pr-2 text-f1-white">
         {Math.round(pts)}
       </span>
     </div>
+  );
+}
+
+// ── FIA-table primitives ─────────────────────────────────────────────
+// Shared rule colours used by the matrix; restated here so the standings
+// surface matches without sharing state with the panel package.
+
+const FIA_RULE = "rgba(237, 228, 211, 0.12)";
+const FIA_STRONG = "rgba(237, 228, 211, 0.25)";
+
+function FiaTable({
+  title, subtitle, index, children,
+}: {
+  title: string;
+  subtitle?: string;
+  index?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border border-f1-edge bg-paddock-panel">
+      {/* Label band — matches DistributionMatrix's header strip so all */}
+      {/* FIA-aesthetic surfaces share the same opening register. */}
+      <div
+        className="flex items-center justify-between gap-3 px-4 py-2.5"
+        style={{ borderBottom: `1px solid ${FIA_STRONG}` }}
+      >
+        <div>
+          <div className="text-[9px] uppercase tracking-[0.22em] text-paddock-cream font-semibold font-mono">
+            {title}
+          </div>
+          {subtitle && (
+            <div className="text-[10px] text-f1-muted mt-0.5">{subtitle}</div>
+          )}
+        </div>
+        {index && (
+          <span className="text-[9px] uppercase tracking-[0.18em] text-f1-muted font-mono whitespace-nowrap">
+            {index}
+          </span>
+        )}
+      </div>
+      <div className="px-4 py-3">{children}</div>
+    </div>
+  );
+}
+
+function FiaTh({
+  children, align = "left", width, lastCol = false,
+}: {
+  children: React.ReactNode;
+  align?: "left" | "right";
+  width?: string;
+  lastCol?: boolean;
+}) {
+  return (
+    <th
+      className={cn(
+        "text-[9px] uppercase tracking-[0.18em] text-paddock-cream/75 font-semibold py-2 px-2 font-mono",
+        align === "left"  ? "text-left"  : "text-right",
+      )}
+      style={{
+        width,
+        borderRight: lastCol ? "none" : `1px solid ${FIA_RULE}`,
+        borderBottom: `1px solid ${FIA_STRONG}`,
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function FiaTd({
+  children, align = "left", lastCol = false,
+}: {
+  children: React.ReactNode;
+  align?: "left" | "right";
+  lastCol?: boolean;
+}) {
+  return (
+    <td
+      className={cn(
+        "py-2 px-2 relative",
+        align === "left" ? "text-left" : "text-right",
+      )}
+      style={{
+        borderRight: lastCol ? "none" : `1px solid ${FIA_RULE}`,
+        borderBottom: `1px solid ${FIA_RULE}`,
+      }}
+    >
+      {children}
+    </td>
+  );
+}
+
+/**
+ * 2px coral left-edge flash that appears on row hover (or always when
+ * `active` is true). Drops the row-background hover pattern in favour
+ * of an FIA-style single-edge indicator.
+ */
+function FiaHoverEdge({ active = false }: { active?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "absolute left-0 top-0 bottom-0 w-[2px] transition-opacity",
+        active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+      )}
+      style={{ background: "var(--color-paddock-coral)" }}
+    />
   );
 }
 
