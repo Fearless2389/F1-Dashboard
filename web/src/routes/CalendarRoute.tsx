@@ -64,15 +64,10 @@ function RaceCard({
       <button type="button" onClick={onToggle} className="w-full text-left">
         {ev.circuit_id && (
           <div
-            className="aspect-[16/8] w-full border-b border-f1-edge overflow-hidden relative"
-            style={{
-              background:
-                status === "next"
-                  ? "radial-gradient(ellipse at center, rgba(255,94,108,0.18) 0%, rgba(11,14,26,0.95) 70%)"
-                  : status === "past"
-                    ? "linear-gradient(180deg, #11141f 0%, #0b0e1a 100%)"
-                    : "linear-gradient(180deg, #161a2a 0%, #0b0e1a 100%)",
-            }}
+            className={cn(
+              "aspect-[16/8] w-full border-b border-f1-edge overflow-hidden relative bg-paddock-dark",
+              status === "next" && "ring-1 ring-inset ring-paddock-coral/25",
+            )}
           >
             <img
               src={`/circuits/${ev.circuit_id}.svg`}

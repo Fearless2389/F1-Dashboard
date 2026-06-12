@@ -62,7 +62,7 @@ export function DistributionMatrix({ drivers }: Props) {
                 </th>
               ))}
               <th
-                className="text-[9px] uppercase tracking-widest text-paddock-cyan text-center px-1.5 py-2 min-w-[32px] border-l border-f1-edge/60"
+                className="text-[9px] uppercase tracking-widest text-paddock-amber text-center px-1.5 py-2 min-w-[32px] border-l border-f1-edge/60"
                 title="Share of simulations in which the car retired"
               >
                 DNF
@@ -113,11 +113,11 @@ export function DistributionMatrix({ drivers }: Props) {
                   <td
                     className={cn(
                       "border-t border-f1-edge/30 border-l border-f1-edge/60 text-center tabular-nums px-1 py-1.5",
-                      showDnf ? "text-paddock-cyan font-semibold" : "text-f1-muted/0",
+                      showDnf ? "text-paddock-amber font-semibold" : "text-f1-muted/0",
                     )}
                     style={{
                       background: showDnf
-                        ? `rgba(34, 232, 201, ${0.10 + dnfIntensity * 0.5})`
+                        ? `rgba(245, 184, 0, ${0.08 + dnfIntensity * 0.42})`
                         : "transparent",
                     }}
                     title={`${dnfValue}% of simulations retire`}

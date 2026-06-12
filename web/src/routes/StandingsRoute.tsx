@@ -476,7 +476,7 @@ function PositionDelta({ delta }: { delta: number | null }) {
     <span
       className={cn(
         "inline-flex items-center text-[9px] font-bold tabular-nums leading-none",
-        up ? "text-paddock-cyan" : "text-paddock-coral",
+        up ? "text-paddock-mint" : "text-paddock-coral",
       )}
       title={`${up ? "Up" : "Down"} ${Math.abs(delta)} from last round`}
     >

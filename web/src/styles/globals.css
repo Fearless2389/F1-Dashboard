@@ -1,13 +1,17 @@
 /*
  * Paddock Dashboard — global stylesheet.
  *
- * Two-tone brand palette:
- *   - paddock-coral (primary): brand, LIVE pill, primary actions, "performance" stats
- *   - paddock-cyan  (secondary): status indicators, "Telemetry" tab, success states
+ * Editorial palette — coral as the only true brand colour, cream as the
+ * neutral editorial counterpart, and two semantic tokens (mint = positive,
+ * amber = warning) so "good" and "at risk" stop sharing a hue.
+ *
+ *   coral  → brand, LIVE pill, primary actions, headline numbers
+ *   cream  → headings, "second brand" usage, comparison series, decorative
+ *   mint   → semantic POSITIVE: up arrows, fastest lap, "hit" rows
+ *   amber  → semantic WARNING: at-risk, DNF column, retirement risk
  *
  * The legacy `--color-f1-*` tokens are kept as aliases — components written
- * against them inherit the new palette automatically. To rebrand again later,
- * change the values below and nothing else needs to move.
+ * against them inherit the new palette automatically.
  */
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600;1,700;1,800;1,900&display=swap");
@@ -19,11 +23,15 @@
   --color-paddock-coral:      #ff5e6c;   /* brand, LIVE, primary actions */
   --color-paddock-coral-soft: #ff8b96;   /* hover, soft outlines */
   --color-paddock-coral-deep: #c43d4a;   /* pressed, dense bars */
-  --color-paddock-cyan:       #22e8c9;   /* status, secondary */
-  --color-paddock-cyan-soft:  #6cf3dd;
-  --color-paddock-dark:       #0b0e1a;   /* page background */
-  --color-paddock-panel:      #141826;   /* card / panel surface */
-  --color-paddock-edge:       #232a40;   /* borders, dividers */
+  --color-paddock-cream:      #ede4d3;   /* editorial neutral, headings, comparison */
+  --color-paddock-cream-soft: #f5ecdc;
+  --color-paddock-mint:       #7fc9a4;   /* semantic positive */
+  --color-paddock-mint-soft:  #a8dcc1;
+  --color-paddock-amber:      #f5b800;   /* semantic warning */
+  --color-paddock-amber-soft: #ffd66b;
+  --color-paddock-dark:       #0c0e17;   /* page background — warmed from #0b0e1a */
+  --color-paddock-panel:      #15171f;   /* card / panel surface — warmed from #141826 */
+  --color-paddock-edge:       #262932;   /* borders, dividers — warmed from #232a40 */
   --color-paddock-white:      #f5f5f7;
   --color-paddock-muted:      #8a92ad;
 
@@ -94,11 +102,12 @@ h1, h2, h3, h4 {
 
 /* Signature dashed-border accent — used on active nav, side cards, focus chips */
 .paddock-dashed {
-  border: 1.5px dashed var(--color-paddock-cyan);
+  border: 1.5px dashed var(--color-paddock-cream);
   border-radius: 8px;
 }
 .paddock-dashed-coral { border: 1.5px dashed var(--color-paddock-coral); border-radius: 8px; }
 .paddock-dashed-muted { border: 1.5px dashed rgba(138, 146, 173, 0.55); border-radius: 8px; }
+.paddock-dashed-mint  { border: 1.5px dashed var(--color-paddock-mint);  border-radius: 8px; }
 
 /* Compact glowing pill — used by LIVE indicator and main-nav active states */
 .paddock-pill {

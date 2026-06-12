@@ -82,7 +82,7 @@ export function PredictedPodiumCard({ podium, reliability }: Props) {
           <span className="text-[10px] uppercase tracking-widest text-f1-muted">
             Reliability Score
           </span>
-          <span className="font-display font-bold text-paddock-cyan tabular-nums">
+          <span className="font-display font-bold text-paddock-mint tabular-nums">
             {reliability.accuracy_pct?.toFixed(1)}% accuracy
           </span>
         </div>

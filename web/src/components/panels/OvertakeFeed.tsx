@@ -380,7 +380,7 @@ export function OvertakeFeed({
                     </span>
                   )}
                   {!isForLead && o.new_position <= 3 && (
-                    <span className="hidden lg:inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-paddock-cyan/15 text-paddock-cyan">
+                    <span className="hidden lg:inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-paddock-mint/15 text-paddock-mint">
                       <Flame size={9} /> Podium
                     </span>
                   )}

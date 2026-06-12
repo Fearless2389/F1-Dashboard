@@ -26,15 +26,20 @@ export function TopPredictionCard({ top, qualiSource }: Props) {
   return (
     <div
       className="relative overflow-hidden rounded-xl paddock-dashed-coral bg-paddock-panel"
-      style={{ background: `linear-gradient(120deg, ${color}22 0%, transparent 60%), var(--color-paddock-panel)` }}
     >
+      {/* Driver-colour accent left border — replaces the old full-card */}
+      {/* linear-gradient wash for a cleaner, more deliberate signal. */}
+      <span
+        className="absolute left-0 top-0 bottom-0 w-1"
+        style={{ background: color }}
+        aria-hidden
+      />
       <div className="relative p-5 md:p-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="paddock-pill">TOP PREDICTION</span>
           {qualiSource === "predicted" && (
             <span
-              className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border"
-              style={{ borderColor: "rgba(34,232,201,0.4)", color: "var(--color-paddock-cyan)" }}
+              className="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-paddock-cream/40 text-paddock-cream"
               title="Quali not yet published — using predicted grid"
             >
               Predicted grid
@@ -69,7 +74,7 @@ export function TopPredictionCard({ top, qualiSource }: Props) {
               <div className="h-1.5 rounded-full bg-f1-edge overflow-hidden">
                 <m.div
                   className="h-full"
-                  style={{ background: "linear-gradient(90deg, var(--color-paddock-coral), var(--color-paddock-coral-deep))" }}
+                  style={{ background: "var(--color-paddock-coral)" }}
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
                   transition={{ type: "spring", stiffness: 110, damping: 22 }}

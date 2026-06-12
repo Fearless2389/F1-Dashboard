@@ -36,7 +36,7 @@ export function SeasonProgressionCard({
 
   return (
     <div className="paddock-dashed rounded-xl p-5 bg-f1-panel/50 backdrop-blur w-full md:w-72 flex flex-col gap-4">
-      <div className="text-[10px] uppercase tracking-widest text-paddock-cyan font-semibold">
+      <div className="text-[10px] uppercase tracking-widest text-paddock-cream font-semibold">
         Season Progression
       </div>
 
@@ -56,7 +56,7 @@ export function SeasonProgressionCard({
         <div className="h-1 rounded-full bg-f1-edge overflow-hidden">
           <m.div
             className="h-full"
-            style={{ background: "linear-gradient(90deg, var(--color-paddock-cyan), var(--color-paddock-cyan-soft))" }}
+            style={{ background: "var(--color-paddock-coral)" }}
             initial={false}
             animate={{ width: `${pct}%` }}
             transition={{ type: "spring", stiffness: 120, damping: 22 }}

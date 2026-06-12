@@ -188,7 +188,7 @@ function TargetDetail({ target }: { target: string }) {
               {meta.crosslink && (
                 <Link
                   to={meta.crosslink.to}
-                  className="inline-block text-[10px] uppercase tracking-widest text-paddock-cyan hover:text-f1-white border border-dashed border-paddock-cyan/40 rounded-full px-2.5 py-0.5"
+                  className="inline-block text-[10px] uppercase tracking-widest text-f1-muted hover:text-f1-white border border-dashed border-f1-edge hover:border-f1-muted/60 rounded-full px-2.5 py-0.5"
                 >
                   {meta.crosslink.label}
                 </Link>
@@ -307,8 +307,8 @@ function CalibrationPanel({ target }: { target: string }) {
                 />
                 <Scatter
                   data={bins}
-                  fill="#22e8c9"
-                  line={{ stroke: "#22e8c9", strokeWidth: 1.5 }}
+                  fill="#7fc9a4"
+                  line={{ stroke: "#7fc9a4", strokeWidth: 1.5 }}
                   shape="circle"
                 />
               </ScatterChart>

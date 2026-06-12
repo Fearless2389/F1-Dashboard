@@ -47,7 +47,7 @@ export function ApexHeader({ modelVersion, nextEvent, trainDate }: Props) {
         <div className="flex items-end gap-8">
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-widest text-f1-muted">Next Event</div>
-            <div className="font-display font-bold text-sm md:text-base text-paddock-cyan mt-1">
+            <div className="font-display font-bold text-sm md:text-base text-paddock-cream mt-1">
               {nextEvent}
             </div>
           </div>

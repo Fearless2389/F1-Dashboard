@@ -173,7 +173,7 @@ export default function ApexRoute() {
         {explicitMode && (
           <button type="button"
             onClick={clearSelection}
-            className="text-[10px] uppercase tracking-widest text-paddock-cyan hover:text-f1-white border border-dashed border-paddock-cyan/40 rounded-full px-2.5 py-0.5"
+            className="text-[10px] uppercase tracking-widest text-f1-muted hover:text-f1-white border border-dashed border-f1-edge hover:border-f1-muted/60 rounded-full px-2.5 py-0.5"
             title="Return to the auto-selected next race"
           >
             Back to next race

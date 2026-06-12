@@ -103,7 +103,7 @@ export function PerformanceRadar({
           <div className="text-[10px] uppercase tracking-widest text-f1-muted">Avg</div>
           <div className="font-display font-bold text-paddock-coral text-xl tabular-nums">{primaryAvg}</div>
           {compareAvg != null && (
-            <div className="text-[10px] text-paddock-cyan font-mono tabular-nums">
+            <div className="text-[10px] text-paddock-cream font-mono tabular-nums">
               vs <span className="font-semibold">{compareAvg}</span>
             </div>
           )}
@@ -131,10 +131,10 @@ export function PerformanceRadar({
             {compareValues && (
               <Radar
                 dataKey="compare"
-                stroke="var(--color-paddock-cyan)"
+                stroke="var(--color-paddock-cream)"
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
-                fill="var(--color-paddock-cyan)"
+                fill="var(--color-paddock-cream)"
                 fillOpacity={0.12}
                 isAnimationActive={false}
               />
@@ -158,9 +158,9 @@ export function PerformanceRadar({
             <span className="inline-block w-3 h-0.5 rounded-sm bg-paddock-coral" />
             {primaryLabel ?? "Primary"}
           </span>
-          <span className="inline-flex items-center gap-1.5 text-paddock-cyan">
+          <span className="inline-flex items-center gap-1.5 text-paddock-cream">
             <svg width="14" height="3"><line x1="0" y1="1.5" x2="14" y2="1.5"
-              stroke="var(--color-paddock-cyan)" strokeWidth="2" strokeDasharray="4 3" /></svg>
+              stroke="var(--color-paddock-cream)" strokeWidth="2" strokeDasharray="4 3" /></svg>
             {compareLabel ?? "Compare"}
           </span>
         </div>

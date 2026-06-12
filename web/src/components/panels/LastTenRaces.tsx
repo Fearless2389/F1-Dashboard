@@ -31,7 +31,7 @@ function chipStyle(finish: number | null | undefined, dnf: boolean): { bg: strin
   if (finish === 1) return { bg: "linear-gradient(180deg, #ffd200 0%, #b78f00 100%)", fg: "#0e0e1a" };
   if (finish === 2) return { bg: "linear-gradient(180deg, #d4d4dc 0%, #6f7587 100%)", fg: "#0e0e1a" };
   if (finish === 3) return { bg: "linear-gradient(180deg, #cd7f32 0%, #7a4a1a 100%)", fg: "#0e0e1a" };
-  if (finish <= 10)  return { bg: "rgba(34,232,201,0.16)", fg: "#22e8c9", border: "rgba(34,232,201,0.45)" };
+  if (finish <= 10)  return { bg: "rgba(127,201,164,0.16)", fg: "#7fc9a4", border: "rgba(127,201,164,0.45)" };
   return { bg: "#1f2235", fg: "#8a92ad" };
 }
 

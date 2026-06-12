@@ -41,14 +41,14 @@ export function ForecastHeroCard({
   const color = teamColorFallback(pick.team_colour, pick.team_name);
   const pct = Math.round((pick.prob || 0) * 100);
   return (
-    <div
-      className="relative overflow-hidden rounded-xl border border-f1-edge bg-paddock-panel/80 p-5 md:p-6"
-      style={{
-        background:
-          `linear-gradient(120deg, ${color}1a 0%, transparent 60%), ` +
-          "var(--color-paddock-panel)",
-      }}
-    >
+    <div className="relative overflow-hidden rounded-xl border border-f1-edge bg-paddock-panel p-5 md:p-6">
+      {/* Driver-colour accent stripe — replaces the old full-card */}
+      {/* gradient wash for a more deliberate signal. */}
+      <span
+        className="absolute left-0 top-0 bottom-0 w-1"
+        style={{ background: color }}
+        aria-hidden
+      />
       <div className="text-[10px] uppercase tracking-widest text-paddock-coral font-semibold">
         {kicker}
       </div>

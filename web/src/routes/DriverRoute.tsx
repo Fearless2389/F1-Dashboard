@@ -177,14 +177,10 @@ function DriverProfile({
 
       {prof && (
         <>
-          {/* ── Hero: italic name + team-colour gradient ── */}
-          <div className="relative overflow-hidden rounded-xl border border-f1-edge bg-gradient-to-br from-paddock-panel via-[#1a1f33] to-paddock-dark">
+          {/* ── Hero: italic name on flat panel + faint team-colour wash ── */}
+          <div className="relative overflow-hidden rounded-xl border border-f1-edge bg-paddock-panel">
             <div className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  `radial-gradient(ellipse 80% 60% at 85% 30%, ${color}33 0%, transparent 60%), ` +
-                  `radial-gradient(ellipse 60% 50% at 15% 80%, ${color}22 0%, transparent 55%)`,
-              }}
+              style={{ background: `${color}0c` }}
             />
             {prof.driver_number != null && (
               // Flex-centre the watermark inside an absolute box that fills the
@@ -236,7 +232,7 @@ function DriverProfile({
 
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {prof.nationality && (
-                  <span className="paddock-dashed rounded-full px-3 py-1 text-[10px] uppercase tracking-widest font-semibold text-paddock-cyan bg-f1-panel/40">
+                  <span className="paddock-dashed rounded-full px-3 py-1 text-[10px] uppercase tracking-widest font-semibold text-paddock-cream bg-f1-panel/40">
                     {prof.nationality}
                   </span>
                 )}
@@ -258,7 +254,7 @@ function DriverProfile({
           {/* "Driver did not race in YYYY" notice — surfaced when the user
               compares a rookie against a season that predates their debut. */}
           {isComparing && !compareHasData && (
-            <div className="rounded-md border border-paddock-cyan/30 bg-paddock-cyan/5 px-4 py-3 text-xs text-paddock-cyan">
+            <div className="rounded-md border border-paddock-cream/30 bg-paddock-cream/5 px-4 py-3 text-xs text-paddock-cream">
               <span className="font-semibold">{fullName.toUpperCase()}</span>
               <span className="text-f1-muted"> did not race in</span> <span className="font-mono font-semibold">{compareSeason}</span>
               <span className="text-f1-muted"> — comparison panels show only the {season} season.</span>
@@ -340,7 +336,7 @@ function BigStatsBlock({
     format: (v: number) => string;
     direction: "higher_better" | "lower_better";
     hint: string;
-    accent: "coral" | "cyan";
+    accent: "coral" | "cream";
   }> = [
     {
       label: "Season Points",
@@ -358,7 +354,7 @@ function BigStatsBlock({
       format: (v) => `P${Math.round(v)}`,
       direction: "lower_better",
       hint: "Position in the drivers' championship",
-      accent: "cyan",
+      accent: "cream",
     },
     {
       label: "Avg Finish · L10",
@@ -376,7 +372,7 @@ function BigStatsBlock({
       format: (v) => `${Math.round(v * 100)}%`,
       direction: "lower_better",
       hint: "Share of last 10 races where the driver did not finish",
-      accent: "cyan",
+      accent: "cream",
     },
   ];
 
@@ -421,13 +417,13 @@ function BigStatCompareRow({
     format: (v: number) => string;
     direction: "higher_better" | "lower_better";
     hint: string;
-    accent: "coral" | "cyan";
+    accent: "coral" | "cream";
   };
   season: number;
   compareSeason: number;
 }) {
   const { label, primaryValue, compareValue, format, direction, hint, accent } = stat;
-  const accentVar = accent === "coral" ? "var(--color-paddock-coral)" : "var(--color-paddock-cyan)";
+  const accentVar = accent === "coral" ? "var(--color-paddock-coral)" : "var(--color-paddock-cream)";
 
   let deltaText = "—";
   let deltaTone: "up" | "down" | "flat" = "flat";
@@ -461,7 +457,7 @@ function BigStatCompareRow({
       </div>
       <div className={cn(
         "text-right w-16 font-mono tabular-nums text-[11px]",
-        deltaTone === "up"   && "text-paddock-cyan",
+        deltaTone === "up"   && "text-paddock-mint",
         deltaTone === "down" && "text-paddock-coral",
         deltaTone === "flat" && "text-f1-muted",
       )}>
@@ -476,19 +472,14 @@ function BigStat({
 }: {
   label: string;
   value: string;
-  accent?: "coral" | "cyan";
+  accent?: "coral" | "cream";
   hint?: string;
 }) {
-  const accentVar = accent === "coral" ? "var(--color-paddock-coral)" : "var(--color-paddock-cyan)";
+  const accentVar = accent === "coral" ? "var(--color-paddock-coral)" : "var(--color-paddock-cream)";
   return (
     <div
-      className="relative rounded-xl border border-f1-edge bg-f1-panel/60 px-6 py-7 overflow-hidden flex flex-col justify-between min-h-[140px]"
+      className="relative rounded-xl border border-f1-edge bg-paddock-panel px-6 py-7 overflow-hidden flex flex-col justify-between min-h-[140px]"
       title={hint}
-      style={{
-        background:
-          `radial-gradient(ellipse 100% 100% at 100% 0%, ${accent === "coral" ? "rgba(255,94,108,0.10)" : "rgba(34,232,201,0.08)"} 0%, transparent 60%), ` +
-          "var(--color-paddock-panel)",
-      }}
     >
       <span
         className="absolute left-0 top-0 bottom-0 w-1"
@@ -564,8 +555,8 @@ export default function DriverRoute() {
           {/* Compare-with picker — only meaningful on the profile view */}
           {code && (
             compareSeason != null ? (
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-paddock-cyan/10 border border-paddock-cyan/40 pl-2 pr-1 py-0.5">
-                <span className="text-[10px] uppercase tracking-widest text-paddock-cyan">vs</span>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-paddock-cream/10 border border-paddock-cream/40 pl-2 pr-1 py-0.5">
+                <span className="text-[10px] uppercase tracking-widest text-paddock-cream">vs</span>
                 <Select
                   value={compareSeason}
                   onChange={(e) => update({ vs: parseInt(e.target.value, 10) })}
@@ -576,7 +567,7 @@ export default function DriverRoute() {
                 <button type="button"
                   onClick={() => update({ vs: null })}
                   aria-label="Clear comparison"
-                  className="text-paddock-cyan hover:text-f1-white p-1 rounded-full hover:bg-white/10"
+                  className="text-paddock-cream hover:text-f1-white p-1 rounded-full hover:bg-white/10"
                 >
                   <X size={11} />
                 </button>
@@ -586,7 +577,7 @@ export default function DriverRoute() {
                 size="sm"
                 variant="ghost"
                 onClick={() => update({ vs: defaultCompareSeason })}
-                className="border border-dashed border-f1-edge hover:border-paddock-cyan/60"
+                className="border border-dashed border-f1-edge hover:border-paddock-cream/60"
               >
                 <Plus size={12} /> Compare
               </Button>

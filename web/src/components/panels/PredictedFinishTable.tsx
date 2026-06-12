@@ -15,7 +15,7 @@ const CONFIDENCE_HINT =
 
 /**
  * P4–P10 prediction table. Each row has a confidence bar — coral for high
- * confidence rows, cyan for "race at risk" rows (high DNF or low top-10 prob).
+ * confidence rows, amber for "race at risk" rows (high DNF or low top-10 prob).
  *
  * The header chips include "?" affordances that surface the underlying
  * formulas on hover, so users aren't left guessing what "High Confidence"
@@ -37,7 +37,7 @@ export function PredictedFinishTable({ rows }: Props) {
             <Info size={9} className="ml-0.5 text-f1-muted/70" />
           </span>
           <span className="flex items-center gap-1" title={CONFIDENCE_HINT}>
-            <span className="inline-block h-2 w-2 rounded-full bg-paddock-cyan" /> Race at Risk
+            <span className="inline-block h-2 w-2 rounded-full bg-paddock-amber" /> Race at Risk
             <Info size={9} className="ml-0.5 text-f1-muted/70" />
           </span>
         </div>
@@ -58,7 +58,7 @@ export function PredictedFinishTable({ rows }: Props) {
         {rows.map((r, idx) => {
           const color = teamColorFallback(r.team_colour, r.team_name);
           const pct = Math.round((r.confidence_score || 0) * 100);
-          const barColor = r.at_risk ? "var(--color-paddock-cyan)" : "var(--color-paddock-coral)";
+          const barColor = r.at_risk ? "var(--color-paddock-amber)" : "var(--color-paddock-coral)";
           return (
             <m.div
               key={r.position}

@@ -85,7 +85,7 @@ export default function AboutRoute() {
       </Section>
 
       {/* ── MODELS ──────────────────────────────────────────────────── */}
-      <Section icon={<LineChart size={18} className="text-paddock-cyan" />} kicker="Models" title="Six trained predictors">
+      <Section icon={<LineChart size={18} className="text-paddock-cream" />} kicker="Models" title="Six trained predictors">
         <p className="text-sm text-f1-muted leading-relaxed mb-4">
           Trained on a <strong className="text-f1-white">time-aware split</strong> (2018–2024 +
           2026 train, 2025 validation, 2026 test) to prevent target leakage from regulation
@@ -100,14 +100,14 @@ export default function AboutRoute() {
           ))}
         </div>
         <div className="mt-4">
-          <Link to="/model" className="inline-flex items-center gap-1 text-xs text-paddock-cyan hover:text-f1-white">
+          <Link to="/model" className="inline-flex items-center gap-1 text-xs text-paddock-cream hover:text-f1-white">
             See per-model metrics + feature importance <ArrowRight size={12} />
           </Link>
         </div>
       </Section>
 
       {/* ── SIMULATOR ───────────────────────────────────────────────── */}
-      <Section icon={<Cpu size={18} className="text-paddock-cyan" />} kicker="Monte Carlo" title="10,000-iteration race simulator">
+      <Section icon={<Cpu size={18} className="text-paddock-cream" />} kicker="Monte Carlo" title="10,000-iteration race simulator">
         <p className="text-sm text-f1-muted leading-relaxed">
           The point predictions tell you who'll win, but they don't tell you{" "}
           <em>how confident</em> the model is. On every Predictor page we run{" "}
@@ -145,7 +145,7 @@ export default function AboutRoute() {
             href="https://github.com/Fearless2389/F1-Dashboard/blob/main/DEPLOY.md"
             target="_blank"
             rel="noreferrer"
-            className="text-paddock-cyan hover:text-f1-white"
+            className="text-paddock-cream hover:text-f1-white"
           >
             DEPLOY.md →
           </a>

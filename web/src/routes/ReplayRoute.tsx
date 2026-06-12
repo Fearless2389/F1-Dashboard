@@ -394,7 +394,7 @@ export default function ReplayRoute() {
                   ["Esc",    "Close telemetry / close panel"],
                 ].map(([key, label]) => (
                   <div key={key} className="flex items-baseline justify-between gap-3">
-                    <kbd className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded border border-f1-edge bg-f1-panel/60 text-paddock-cyan shrink-0 min-w-[44px] text-center">
+                    <kbd className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded border border-f1-edge bg-f1-panel/60 text-paddock-cream shrink-0 min-w-[44px] text-center">
                       {key}
                     </kbd>
                     <span className="text-f1-muted text-right flex-1">{label}</span>

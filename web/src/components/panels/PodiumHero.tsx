@@ -32,14 +32,7 @@ export function PodiumHero({
   const p1 = by[1], p2 = by[2], p3 = by[3];
 
   return (
-    <div className="relative rounded-xl border border-f1-edge bg-gradient-to-br from-paddock-panel via-[#181d31] to-paddock-dark overflow-hidden">
-      {/* Faint background streaks for racing-track feel */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at top right, rgba(255,94,108,0.18), transparent 55%), radial-gradient(ellipse at bottom left, rgba(34,232,201,0.10), transparent 55%)",
-        }}
-      />
-
+    <div className="relative rounded-xl border border-f1-edge bg-paddock-panel overflow-hidden">
       <div className="relative p-6 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-start">
         {/* Left — label + race title + description */}
         <div className="min-w-0">

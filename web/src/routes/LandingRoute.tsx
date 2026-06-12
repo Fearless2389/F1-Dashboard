@@ -22,18 +22,7 @@ import { Button } from "@/components/ui/Button";
  */
 export default function LandingRoute() {
   return (
-    <div className="-m-6 min-h-[calc(100vh-56px)] bg-paddock-dark text-f1-white relative overflow-hidden">
-      {/* Background radial gradients — same palette as the dashboard so
-          the landing feels continuous with the rest of the site. */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at top right, rgba(255,94,108,0.18), transparent 55%), " +
-            "radial-gradient(ellipse at bottom left, rgba(34,232,201,0.12), transparent 60%)",
-        }}
-      />
-
+    <div className="-m-6 min-h-[calc(100vh-56px)] bg-paddock-dark text-f1-white relative overflow-hidden f1-grid-bg">
       <div className="relative max-w-6xl mx-auto px-6 py-16 md:py-24">
         {/* ── HERO ──────────────────────────────────────────────────── */}
         <m.div
@@ -85,7 +74,7 @@ export default function LandingRoute() {
           />
           <FeatureCard
             href="/live"
-            icon={<MonitorPlay size={20} className="text-paddock-cyan" />}
+            icon={<MonitorPlay size={20} className="text-paddock-cream" />}
             kicker="Replay"
             title="Watch the race unfold"
             body="Track-map dot animation for every driver, live timing tower with compounds + tyre age, overtake feed that streams as the playhead crosses each move, and per-driver telemetry traces (speed, throttle, brake, gear)."

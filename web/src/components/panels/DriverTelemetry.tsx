@@ -178,7 +178,7 @@ export function DriverTelemetry({ driver, season, roundNum, sessionTime, onClose
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-f1-muted shrink-0">
           <span>Stint {driver.stint_number ?? "—"}</span>
           {last?.drsActive && (
-            <span className="rounded-full px-1.5 py-0.5 bg-paddock-cyan/20 text-paddock-cyan font-semibold">
+            <span className="rounded-full px-1.5 py-0.5 bg-paddock-mint/20 text-paddock-mint font-semibold">
               DRS
             </span>
           )}

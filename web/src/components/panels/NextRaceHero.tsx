@@ -35,20 +35,6 @@ export function NextRaceHero({ next }: Props) {
 
   return (
     <div className="relative overflow-hidden rounded-xl paddock-dashed-coral bg-paddock-panel">
-      {/* Background — radial gradients only. The ghosted circuit SVG was
-          dropped at the user's request — wide tracks like Barcelona
-          looked truncated and even with object-contain they competed
-          with the gradient + the title for attention. The card reads
-          cleaner with just the colour wash. */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at top right, rgba(255,94,108,0.18), transparent 55%), " +
-            "radial-gradient(ellipse at bottom left, rgba(34,232,201,0.10), transparent 60%)",
-        }}
-      />
-
       <div className="relative p-6 md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-6">
           {/* Left — title block */}

@@ -162,7 +162,7 @@ function CareerTooltip({ active, payload }: TooltipProps<number, string>) {
       </div>
       <div className="font-mono text-f1-white">{row.points} pts · {row.races} races</div>
       {row.avg_finish != null && (
-        <div className="font-mono text-paddock-cyan">avg P{row.avg_finish.toFixed(1)}</div>
+        <div className="font-mono text-paddock-cream">avg P{row.avg_finish.toFixed(1)}</div>
       )}
     </div>
   );

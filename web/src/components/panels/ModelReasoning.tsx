@@ -10,9 +10,9 @@ interface Props {
 }
 
 const IMPACT_STYLES: Record<string, { color: string; bg: string }> = {
-  HIGH:   { color: "var(--color-paddock-cyan)",  bg: "rgba(34,232,201,0.16)" },
-  MEDIUM: { color: "var(--color-paddock-cyan)",  bg: "rgba(34,232,201,0.10)" },
-  LOW:    { color: "#5d8c84",                    bg: "rgba(34,232,201,0.06)" },
+  HIGH:   { color: "var(--color-paddock-mint)", bg: "rgba(127,201,164,0.16)" },
+  MEDIUM: { color: "var(--color-paddock-mint)", bg: "rgba(127,201,164,0.10)" },
+  LOW:    { color: "#6b8a7c",                    bg: "rgba(127,201,164,0.06)" },
 };
 
 const SECTION_ICONS = [BarChart3, Gauge, Sparkles] as const;

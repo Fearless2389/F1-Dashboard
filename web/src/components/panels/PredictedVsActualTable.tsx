@@ -74,7 +74,7 @@ export function PredictedVsActualTable({ data }: Props) {
                 key={r.position}
                 className={cn(
                   "grid grid-cols-[28px_1fr_1fr_28px] gap-x-3 items-center py-2 border-b border-f1-edge/60 last:border-b-0 transition-colors",
-                  r.is_hit ? "bg-paddock-cyan/5" : "",
+                  r.is_hit ? "bg-paddock-mint/5" : "",
                 )}
               >
                 <div className="font-mono tabular-nums text-sm text-f1-white">
@@ -100,7 +100,7 @@ export function PredictedVsActualTable({ data }: Props) {
                   <div className="min-w-0">
                     <div className={cn(
                       "font-mono text-sm font-semibold leading-tight",
-                      r.is_hit ? "text-paddock-cyan" : "text-f1-white",
+                      r.is_hit ? "text-paddock-mint" : "text-f1-white",
                     )}>
                       {r.actual_driver ?? "—"}
                     </div>
@@ -114,7 +114,7 @@ export function PredictedVsActualTable({ data }: Props) {
 
                 <div className="text-center">
                   {r.is_hit ? (
-                    <Check size={14} className="text-paddock-cyan inline-block" />
+                    <Check size={14} className="text-paddock-mint inline-block" />
                   ) : (
                     <X size={12} className="text-f1-muted/40 inline-block" />
                   )}
@@ -137,7 +137,7 @@ function MetricChip({
   tone: "hit" | "neutral" | "miss";
 }) {
   const styles = {
-    hit:     "border-paddock-cyan/40 bg-paddock-cyan/10 text-paddock-cyan",
+    hit:     "border-paddock-mint/40 bg-paddock-mint/10 text-paddock-mint",
     neutral: "border-white/15 bg-white/[0.04] text-f1-white",
     miss:    "border-paddock-coral/30 bg-paddock-coral/8 text-paddock-coral",
   }[tone];
