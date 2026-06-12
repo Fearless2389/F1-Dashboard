@@ -308,19 +308,33 @@ function ResultsTable({
                 <th className="text-left px-2 py-1.5">Team</th>
                 <th className="text-right px-2 py-1.5">Grid</th>
                 <th className="text-right px-2 py-1.5">Pts</th>
-                <th className="text-left px-3 py-1.5">Status</th>
+                <th className="text-right px-3 py-1.5">Gap / Status</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(r => {
                 const color = teamColor(r.team_name);
                 const finished = r.position != null;
-                const statusBadge = (() => {
-                  const s = (r.status || "").toLowerCase();
+                // Gap-or-status — preference order:
+                //  1. P1: render their absolute race time (Jolpica's `time`
+                //     for the leader is "1:34:21.123") in the leader colour
+                //     so it reads as "this is the winning time".
+                //  2. Finishers with a gap string: "+5.234" or "+1 LAP".
+                //  3. Lapped finishers without a time: fall through to the
+                //     status string Jolpica returns ("+1 Lap", "Lapped" etc.).
+                //  4. DNF / DSQ: badge.
+                const gapCell = (() => {
                   if (!finished) return <Badge tone="muted">DNF</Badge>;
+                  const s = (r.status || "").toLowerCase();
                   if (s.includes("disqualified")) return <Badge tone="muted">DSQ</Badge>;
-                  if (s.startsWith("+")) return <span className="text-f1-muted">{r.status}</span>;
-                  return <span className="text-f1-muted">{r.status}</span>;
+                  if (r.position === 1 && r.time) {
+                    return <span className="text-paddock-coral font-semibold tabular-nums">{r.time}</span>;
+                  }
+                  if (r.time) {
+                    return <span className="text-f1-white tabular-nums">{r.time}</span>;
+                  }
+                  // Jolpica's status for lapped finishers reads as e.g. "+1 Lap"
+                  return <span className="text-f1-muted">{r.status ?? "—"}</span>;
                 })();
                 return (
                   <tr key={r.driver_code} className="border-t border-f1-edge/40">
@@ -340,7 +354,7 @@ function ResultsTable({
                     <td className="px-2 py-1.5 text-right tabular-nums">
                       {r.points > 0 ? <span className="text-f1-white">{r.points}</span> : <span className="text-f1-muted">0</span>}
                     </td>
-                    <td className="px-3 py-1.5">{statusBadge}</td>
+                    <td className="px-3 py-1.5 text-right">{gapCell}</td>
                   </tr>
                 );
               })}

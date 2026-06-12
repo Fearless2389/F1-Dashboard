@@ -313,6 +313,7 @@ def _df_to_result_rows(df: pd.DataFrame) -> list[ResultRow]:
             points=float(r.get("points") or 0.0),
             status=_clean(r.get("status")),
             laps=_clean(r.get("laps")),
+            time=_clean(r.get("time")),
         ))
     return rows
 

@@ -15,7 +15,6 @@ import { ReplayLapTicker } from "@/components/panels/ReplayLapTicker";
 import { ReplayTrackMap } from "@/components/panels/ReplayTrackMap";
 import { OvertakeFeed } from "@/components/panels/OvertakeFeed";
 import { TrackStatusBanner } from "@/components/panels/TrackStatusBanner";
-import { WinProbabilityChart } from "@/components/panels/WinProbabilityChart";
 import { DriverTelemetry } from "@/components/panels/DriverTelemetry";
 import { useReplay } from "@/hooks/useReplay";
 import { api } from "@/lib/api";
@@ -29,7 +28,6 @@ export default function ReplayRoute() {
   const replay = useReplay(season, roundNum);
   const [selected, setSelected] = useState<string | null>(null);
   const [towerOpen, setTowerOpen] = useState(true);
-  const [winProbOpen, setWinProbOpen] = useState(false);
   // Default ON — broadcast-style code labels above every dot. Press L to
   // declutter when you want a clean track view.
   const [showLabels, setShowLabels] = useState(true);
@@ -97,7 +95,6 @@ export default function ReplayRoute() {
         }
         case "l": case "L": setShowLabels(v => !v); break;
         case "t": case "T": setTowerOpen(v => !v); break;
-        case "w": case "W": setWinProbOpen(v => !v); break;
         case "d": case "D": setTelemetryOpen(v => !v); break;
         case "h": case "H": case "?": setHelpOpen(v => !v); break;
         case "Escape": setTelemetryOpen(false); setHelpOpen(false); break;
@@ -164,13 +161,6 @@ export default function ReplayRoute() {
               ))}
             </div>
           )}
-          <Button
-            size="sm"
-            variant={winProbOpen ? "primary" : "secondary"}
-            onClick={() => setWinProbOpen(v => !v)}
-          >
-            <LineChartIcon size={14} /> Win Prob
-          </Button>
           <Button
             size="sm"
             variant={helpOpen ? "primary" : "secondary"}
@@ -400,7 +390,6 @@ export default function ReplayRoute() {
                   ["L",      "Toggle driver labels on track"],
                   ["T",      "Toggle timing tower"],
                   ["D",      "Toggle driver telemetry"],
-                  ["W",      "Toggle win-probability chart"],
                   ["H or ?", "Show / hide this panel"],
                   ["Esc",    "Close telemetry / close panel"],
                 ].map(([key, label]) => (
@@ -414,35 +403,6 @@ export default function ReplayRoute() {
                 <div className="pt-2 mt-2 border-t border-f1-edge text-[10px] text-f1-muted/70 italic">
                   Click any dot or row → driver telemetry. Click <span className="font-mono">/replay/&lt;y&gt;/&lt;r&gt;</span> in the URL bar to jump races.
                 </div>
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
-
-        {/* Win-probability drawer (slides up from bottom) */}
-        <AnimatePresence>
-          {winProbOpen && (
-            <m.div
-              key="winprob"
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 28 }}
-              className="absolute left-4 right-4 bottom-4 md:left-[336px] md:right-[336px] z-20 rounded-xl border border-f1-edge bg-f1-dark/95 backdrop-blur shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-4 py-2 border-b border-f1-edge">
-                <div className="font-display font-semibold text-sm">Live Win Probability</div>
-                <button onClick={() => setWinProbOpen(false)} className="text-f1-muted hover:text-f1-white">
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="p-2">
-                <WinProbabilityChart
-                  season={season}
-                  roundNum={roundNum}
-                  currentLap={replay.lap}
-                  podium={replay.meta?.podium}
-                />
               </div>
             </m.div>
           )}

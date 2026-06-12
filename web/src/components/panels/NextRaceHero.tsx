@@ -37,11 +37,16 @@ export function NextRaceHero({ next }: Props) {
     <div className="relative overflow-hidden rounded-xl paddock-dashed-coral bg-paddock-panel">
       {/* Background — ghosted circuit outline + radial gradients */}
       {next.circuit_id && (
+        // object-contain fits the SVG entirely within the hero card,
+        // letterboxing if needed. object-cover was scaling the wide
+        // Barcelona circuit to fill the height, which pushed the right
+        // side of the track past the card edge and made the circuit look
+        // truncated.
         <img
           src={`/circuits/${next.circuit_id}.svg`}
           alt=""
           aria-hidden
-          className="absolute inset-0 w-full h-full object-cover opacity-[0.12] select-none pointer-events-none"
+          className="absolute inset-0 w-full h-full object-contain opacity-[0.12] select-none pointer-events-none"
         />
       )}
       <div

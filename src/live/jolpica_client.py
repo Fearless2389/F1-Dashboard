@@ -163,6 +163,7 @@ def _parse_results(data: dict) -> pd.DataFrame:
         for r in race.get("Results", []):
             drv = r.get("Driver", {})
             con = r.get("Constructor", {})
+            time_obj = r.get("Time") or {}
             rows.append({
                 "season":      int(race.get("season")),
                 "round":       int(race.get("round")),
@@ -177,6 +178,7 @@ def _parse_results(data: dict) -> pd.DataFrame:
                 "points":      float(r.get("points", 0)),
                 "status":      r.get("status"),
                 "laps":        int(r.get("laps", 0)) if r.get("laps") else None,
+                "time":        time_obj.get("time"),
             })
     return pd.DataFrame(rows)
 
@@ -235,6 +237,7 @@ def race_results(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
             for r in race.get("Results", []):
                 drv = r.get("Driver", {})
                 con = r.get("Constructor", {})
+                time_obj = r.get("Time") or {}
                 rows.append({
                     "season":      int(race.get("season")),
                     "round":       int(race.get("round")),
@@ -248,6 +251,10 @@ def race_results(season: int, round_num: Optional[int] = None) -> pd.DataFrame:
                     "points":      float(r.get("points", 0)),
                     "status":      r.get("status"),
                     "laps":        int(r.get("laps", 0)) if r.get("laps") else None,
+                    # P1's time is the absolute race time; everyone else is
+                    # a gap like "+5.234". Lapped finishers / DNFs have no
+                    # time string — Jolpica just returns status.
+                    "time":        time_obj.get("time"),
                 })
                 page_rows += 1
 

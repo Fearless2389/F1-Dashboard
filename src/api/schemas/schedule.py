@@ -66,6 +66,10 @@ class ResultRow(BaseModel):
     points: float = 0.0
     status: Optional[str] = None
     laps: Optional[int] = None
+    # P1 carries the absolute race time ("1:30:45.123"); everyone else has
+    # a gap string ("+5.234") or None when no time was recorded (DNFs,
+    # lapped finishers in older races, etc.).
+    time: Optional[str] = None
 
 
 class ResultsResponse(BaseModel):

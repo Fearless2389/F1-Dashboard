@@ -1247,6 +1247,8 @@ export interface components {
             points: number;
             status?: string | null;
             laps?: number | null;
+            /** Time — race time for P1, gap string ("+5.234") for everyone else, null for DNFs */
+            time?: string | null;
         };
         /** ResultsResponse */
         ResultsResponse: {
