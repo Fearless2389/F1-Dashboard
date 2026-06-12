@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import Shell from "@/components/Shell";
+import LandingRoute from "@/routes/LandingRoute";
+import AboutRoute from "@/routes/AboutRoute";
 import LiveRoute from "@/routes/LiveRoute";
 import CalendarRoute from "@/routes/CalendarRoute";
 import DriverRoute from "@/routes/DriverRoute";
@@ -10,21 +12,27 @@ import StandingsRoute from "@/routes/StandingsRoute";
 import ApexRoute from "@/routes/ApexRoute";
 
 /**
- * /forecast was merged into /apex so the entire race-prediction surface
- * lives on one page. Preserve any `?season=…&round=…` query params from
- * old bookmarks or external links — the search string drops through to
- * the new route which reads the same params.
+ * /forecast → /apex (forecast was merged into the predictor page);
+ * /live remains the home of the replay picker; /dashboard is an alias
+ * so the landing page's "Open dashboard" CTA goes somewhere stable.
  */
 function ForecastRedirect() {
   const { search } = useLocation();
   return <Navigate to={`/apex${search}`} replace />;
 }
 
+function DashboardAlias() {
+  const { search } = useLocation();
+  return <Navigate to={`/live${search}`} replace />;
+}
+
 export default function App() {
   return (
     <Shell>
       <Routes>
-        <Route path="/" element={<Navigate to="/live" replace />} />
+        <Route path="/" element={<LandingRoute />} />
+        <Route path="/dashboard" element={<DashboardAlias />} />
+        <Route path="/about" element={<AboutRoute />} />
         <Route path="/live" element={<LiveRoute />} />
         <Route path="/calendar" element={<CalendarRoute />} />
         <Route path="/apex" element={<ApexRoute />} />
@@ -34,7 +42,7 @@ export default function App() {
         <Route path="/driver" element={<DriverRoute />} />
         <Route path="/model" element={<ModelRoute />} />
         <Route path="/replay/:season/:round" element={<ReplayRoute />} />
-        <Route path="*" element={<Navigate to="/live" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Shell>
   );

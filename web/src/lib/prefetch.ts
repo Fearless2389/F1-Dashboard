@@ -47,7 +47,9 @@ export function prefetchForRoute(qc: QueryClient, route: string, season = 2026):
     pf(["drivers", "grid", season], `/api/drivers?season=${season}`, MIN_5);
     return;
   }
-  if (route === "/model") {
+  if (route === "/model" || route === "/about") {
+    // About surface cross-links to /model; prefetch the manifest so the
+    // metrics table renders instantly when the visitor jumps over.
     pf(["manifest"], "/api/models", Infinity);
     return;
   }

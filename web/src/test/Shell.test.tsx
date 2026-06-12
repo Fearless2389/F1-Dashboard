@@ -5,29 +5,32 @@ import { describe, expect, it } from "vitest";
 
 import Shell from "@/components/Shell";
 
-function Wrap({ children }: { children: React.ReactNode }) {
+function Wrap({ children, initialEntries = ["/live"] }: {
+  children: React.ReactNode;
+  initialEntries?: string[];
+}) {
   const qc = new QueryClient();
   return (
     <QueryClientProvider client={qc}>
-      <MemoryRouter>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
     </QueryClientProvider>
   );
 }
 
 describe("Shell", () => {
-  it("renders the brand wordmark + top nav, with no sidebar or search chrome", () => {
-    render(<Wrap><Shell><div>child</div></Shell></Wrap>);
+  it("renders the brand wordmark + top nav on a dashboard route", () => {
+    // Mount on a non-landing route so the top-nav is visible (nav is hidden
+    // on the landing page so the hero owns the screen).
+    render(<Wrap initialEntries={["/live"]}><Shell><div>child</div></Shell></Wrap>);
 
     expect(screen.getByText("PADDOCK DASHBOARD")).toBeInTheDocument();
 
-    // Top nav — six entries after the apex+forecast merge ("Predictor" hosts
-    // the combined surface; /forecast still redirects so old links work).
-    expect(screen.getByText("Live Race")).toBeInTheDocument();
-    expect(screen.getByText("Predictor")).toBeInTheDocument();
+    // Top nav — 5 entries per the Q1.b user-approved plan.
+    expect(screen.getByText("Watch")).toBeInTheDocument();
+    expect(screen.getByText("Predict")).toBeInTheDocument();
     expect(screen.getByText("Standings")).toBeInTheDocument();
     expect(screen.getByText("Schedule")).toBeInTheDocument();
-    expect(screen.getByText("Drivers")).toBeInTheDocument();
-    expect(screen.getByText("Models")).toBeInTheDocument();
+    expect(screen.getByText("About")).toBeInTheDocument();
 
     // Sidebar gone.
     expect(screen.queryByText("RACE CONTROL")).toBeNull();
