@@ -73,19 +73,19 @@ export function NextRaceHero({ next }: Props) {
             </div>
           </div>
 
-          {/* Right — countdown */}
+          {/* Right — split-flap countdown */}
           <div className="text-right shrink-0">
-            <div className="text-[10px] uppercase tracking-widest text-f1-muted">Lights out in</div>
+            <div className="text-[10px] uppercase tracking-widest text-f1-muted mb-1.5">Lights out in</div>
             <m.div
               key={target ?? "no-date"}
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="font-display font-bold text-paddock-coral text-3xl md:text-4xl tabular-nums leading-tight mt-1"
+              className="leading-none"
             >
-              <Countdown target={target} />
+              <Countdown target={target} variant="splitflap" flapSize="lg" />
             </m.div>
             {next.event_date && (
-              <div className="text-[10px] text-f1-muted mt-1 font-mono">
+              <div className="text-[10px] text-f1-muted mt-2 font-mono">
                 {new Date(next.event_date).toUTCString().slice(0, 16)}
               </div>
             )}

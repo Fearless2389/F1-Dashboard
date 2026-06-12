@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Select } from "@/components/ui/Input";
 import { NewToF1Strip } from "@/components/NewToF1Strip";
+import { SectionHeader } from "@/components/SectionHeader";
 import { GlossaryTerm } from "@/lib/glossary";
 import { PodiumHero } from "@/components/panels/PodiumHero";
 import { SeasonProgressionCard } from "@/components/panels/SeasonProgressionCard";
@@ -188,17 +189,15 @@ export default function StandingsRoute() {
         of a team's drivers. Switch the round dropdown to see standings as of any race weekend.
       </NewToF1Strip>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="font-display font-bold text-2xl flex items-center gap-2">
-            <Trophy size={20} className="text-paddock-coral" />
-            Championship Standings
-          </h1>
-          <p className="text-xs text-f1-muted mt-1">
-            Live data via Jolpica · click a driver to jump to their profile · click a team's colour stripe to filter
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <SectionHeader
+          className="flex-1 min-w-[260px]"
+          kicker="Standings"
+          title="Championship"
+          index={round === "all" ? `${season} · FINAL` : `${season} · AFTER R${String(round).padStart(2, "0")}`}
+          description="Live data via Jolpica · click a driver to jump to their profile · click a team's colour stripe to filter"
+        />
+        <div className="flex items-center gap-2 flex-wrap pb-1">
           <span className="text-[10px] uppercase tracking-widest text-f1-muted">Season</span>
           <Select
             value={season}
@@ -256,6 +255,11 @@ export default function StandingsRoute() {
       </div>
 
       {/* Championship development line chart — every driver's cumulative points across rounds */}
+      <SectionHeader
+        kicker="Development"
+        title="Points across the season"
+        index={recentRace?.round ? `R1–R${recentRace.round}` : "—"}
+      />
       <ChampionshipProgressionChart data={progression} isLoading={progressionLoading} />
 
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">

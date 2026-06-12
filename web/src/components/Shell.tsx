@@ -33,17 +33,22 @@ function Topbar() {
   const onLanding = pathname === "/";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-6 border-b border-f1-edge bg-f1-dark/95 backdrop-blur px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-stretch border-b border-paddock-cream/20 bg-f1-dark/95 backdrop-blur">
       {/* Brand — links home (the landing page now, not /live). */}
-      <NavLink to="/" className="paddock-brand text-xl md:text-2xl select-none">
+      <NavLink
+        to="/"
+        className="paddock-brand text-xl md:text-2xl select-none flex items-center px-6 border-r border-paddock-cream/15"
+      >
         PADDOCK DASHBOARD
       </NavLink>
 
-      {/* Top nav — hidden on the landing page so the hero owns the screen.
-          Visible everywhere else with hover-prefetch on every link. */}
+      {/* Top nav — pit-wall column-gutter treatment: each tab is a fixed
+          cell with a vertical hairline divider on its right edge.
+          Active state = 2px coral top-rule + cream text. No border-radius
+          anywhere. Hidden on the landing page so the hero owns the screen. */}
       {!onLanding && (
-        <nav className="ml-auto hidden md:flex items-center gap-2">
-          {TOP_NAV.map(({ to, label }) => (
+        <nav className="ml-auto hidden md:flex items-stretch">
+          {TOP_NAV.map(({ to, label }, idx) => (
             <NavLink
               key={to}
               to={to}
@@ -52,15 +57,28 @@ function Topbar() {
               onFocus={() => prefetchForRoute(qc, to)}
               className={({ isActive }) =>
                 cn(
-                  "px-3 py-1.5 text-xs uppercase tracking-widest rounded-md transition-colors",
-                  "font-medium",
+                  "relative flex items-center justify-center px-5 text-[11px] uppercase tracking-[0.18em] font-semibold transition-colors",
+                  idx === 0 && "border-l border-paddock-cream/15",
+                  "border-r border-paddock-cream/15",
                   isActive
-                    ? "text-paddock-coral border-b-2 border-paddock-coral"
-                    : "text-f1-muted hover:text-f1-white border-b-2 border-transparent",
+                    ? "text-paddock-cream bg-white/[0.02]"
+                    : "text-f1-muted hover:text-paddock-cream hover:bg-white/[0.015]",
                 )
               }
             >
-              {label}
+              {({ isActive }) => (
+                <>
+                  {/* Hard-edged 2px coral top rule announces the active */}
+                  {/* tab without any rounded "pill" affordance. */}
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute left-0 right-0 top-0 h-[2px] bg-paddock-coral"
+                    />
+                  )}
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

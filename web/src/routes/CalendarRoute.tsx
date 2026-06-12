@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { RouteHeader } from "@/components/RouteHeader";
+import { SectionHeader } from "@/components/SectionHeader";
 import { NextRaceHero } from "@/components/panels/NextRaceHero";
 import { useSchedule } from "@/hooks/useApi";
 import { useRaceContext } from "@/store/raceContext";
@@ -470,15 +470,11 @@ export default function CalendarRoute() {
 
   return (
     <div className="space-y-4">
-      <RouteHeader
+      <SectionHeader
         kicker="Schedule"
         title={`${season} season`}
-        subtitle="Round-by-round calendar with circuit specs, weather forecast and live countdown. Click any card to expand race + sprint results."
-        controls={
-          <div className="text-xs text-f1-muted">
-            {events.length} rounds · {pastCount} completed · {events.length - pastCount} remaining
-          </div>
-        }
+        index={`${String(pastCount).padStart(2, "0")} / ${events.length} COMPLETE`}
+        description="Round-by-round calendar with circuit specs, weather forecast and live countdown. Click any card to expand race + sprint results."
       />
 
       {/* Next race hero */}

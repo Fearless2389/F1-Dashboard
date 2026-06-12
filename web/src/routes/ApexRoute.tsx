@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Select } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewToF1Strip } from "@/components/NewToF1Strip";
+import { SectionHeader } from "@/components/SectionHeader";
 import { GlossaryTerm } from "@/lib/glossary";
 import { ApexHeader } from "@/components/panels/ApexHeader";
 import { TopPredictionCard } from "@/components/panels/TopPredictionCard";
@@ -198,10 +199,14 @@ export default function ApexRoute() {
 
       {data && (
         <>
-          {/* Hero row — Pole (Forecast) + Top Prediction (Apex). The Apex
-              card carries the SHAP-derived prose so it stays the editorial
-              winner surface; the Forecast pole card adds the missing
-              "predicted starting grid" piece. */}
+          <SectionHeader
+            kicker="The prediction"
+            title="Pole & race winner"
+            index={`RD.${String(data.race_meta.round ?? "—").padStart(2, "0")}`}
+            description="Predicted starting grid from the qualifying model; predicted winner from the apex model with SHAP-derived reasoning."
+          />
+
+          {/* Hero row — Pole (Forecast) + Top Prediction (Apex). */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-[2fr_3fr]">
             {forecast ? (
               <ForecastHeroCard
@@ -222,9 +227,13 @@ export default function ApexRoute() {
             />
           </div>
 
-          {/* Podium tiles + Top-5 win-prob bars. The podium tiles are the
-              editorial P1/P2/P3 call; the bars give the next two contenders
-              and visualise probability mass against the leader. */}
+          <SectionHeader
+            kicker="On the podium"
+            title="Top three & top five probability mass"
+            index={forecast ? `SIM.${(forecast.n_simulations / 1000).toFixed(0)}K` : "SIM.—"}
+          />
+
+          {/* Podium tiles + Top-5 win-prob bars. */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-[2fr_3fr]">
             <PredictedPodiumCard
               podium={data.podium}
@@ -236,6 +245,13 @@ export default function ApexRoute() {
               <Skeleton className="h-48 w-full" />
             )}
           </div>
+
+          <SectionHeader
+            kicker="The field"
+            title="Why these picks · P4–P10"
+            index="SHAP · TOP-10"
+            description="SHAP-attributed reasoning for each podium driver, then the model's top-10 confidence ladder for the rest of the field."
+          />
 
           {/* Reasoning + Finish table */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-[2fr_3fr]">
@@ -275,6 +291,13 @@ export default function ApexRoute() {
           )}
 
           {/* Predicted vs actual top-10 — only for past races with results published. */}
+          {isPastRace && (
+            <SectionHeader
+              kicker="Accuracy"
+              title="Predicted vs actual finishing order"
+              index="P1–P10"
+            />
+          )}
           {isPastRace && accuracy && <PredictedVsActualTable data={accuracy} />}
           {isPastRace && accLoading && <Skeleton className="h-72 w-full" />}
           {isPastRace && accError && (

@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { DriverCard } from "@/components/cards/DriverCard";
 import { RouteHeader } from "@/components/RouteHeader";
+import { SectionHeader } from "@/components/SectionHeader";
 import { SeasonResultsGrid } from "@/components/cards/SeasonResultsGrid";
 import { PerformanceRadar } from "@/components/panels/PerformanceRadar";
+import { PerformanceStrip } from "@/components/panels/PerformanceStrip";
 import { LastTenRaces } from "@/components/panels/LastTenRaces";
 import { DriverCareerChart } from "@/components/panels/DriverCareerChart";
 import { SeasonComparisonChart } from "@/components/panels/SeasonComparisonChart";
@@ -250,6 +252,11 @@ function DriverProfile({
           </div>
 
           {/* ── Career trajectory across all seasons (only if 2+ seasons) ── */}
+          <SectionHeader
+            kicker="Career"
+            title="Trajectory across seasons"
+            index={`${prof.races ?? 0} STARTS`}
+          />
           <DriverCareerChart driverCode={code} timeline={prof.timeline ?? []} />
 
           {/* "Driver did not race in YYYY" notice — surfaced when the user
@@ -263,15 +270,35 @@ function DriverProfile({
           )}
 
           {/* ── Stats row + radar (two-column) ── */}
+          <SectionHeader
+            kicker={isComparingWithData ? `${season} vs ${compareSeason}` : `${season} season`}
+            title={isComparingWithData ? "Season comparison" : "The current read"}
+            index={prof.championship_position != null ? `P${prof.championship_position} OVERALL` : undefined}
+          />
           <div className="grid gap-4 grid-cols-1 xl:grid-cols-[3fr_2fr] items-stretch">
             <BigStatsBlock prof={prof} comparison={isComparing ? compareProf : null} season={season} compareSeason={compareSeason} />
-            <PerformanceRadar
-              driverCode={code}
-              values={prof.radar}
-              compareValues={isComparingWithData ? compareProf.radar : null}
-              primaryLabel={String(season)}
-              compareLabel={compareSeason != null ? String(compareSeason) : undefined}
-            />
+            {/* Performance read — the strip is the editorial default
+                (zero-centred team-mate H2H bars). Drivers with fewer
+                than 3 races in the sample don't have a stable H2H
+                baseline yet, so we gracefully degrade to the original
+                radar (absolute-position fallback formulas). */}
+            {(prof.races ?? 0) >= 3 ? (
+              <PerformanceStrip
+                driverCode={code}
+                values={prof.radar}
+                compareValues={isComparingWithData ? compareProf.radar : null}
+                primaryLabel={String(season)}
+                compareLabel={compareSeason != null ? String(compareSeason) : undefined}
+              />
+            ) : (
+              <PerformanceRadar
+                driverCode={code}
+                values={prof.radar}
+                compareValues={isComparingWithData ? compareProf.radar : null}
+                primaryLabel={String(season)}
+                compareLabel={compareSeason != null ? String(compareSeason) : undefined}
+              />
+            )}
           </div>
 
           {/* ── Race-by-race comparison — only when the comparison season
@@ -294,15 +321,21 @@ function DriverProfile({
           )}
 
           {/* ── Last 10 races visual ── */}
+          <SectionHeader
+            kicker="Recent form"
+            title="The last ten races"
+            index="L10"
+          />
           <LastTenRaces results={prof.last_10 ?? []} />
 
           {/* ── Full season grid (per-round colour chips) ── */}
+          <SectionHeader
+            kicker="Season grid"
+            title={`${season} race-by-race`}
+            index={`R1–R${Math.max(prof.season_results?.length ?? 0, 22)}`}
+          />
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Season {season} results</CardTitle>
-              <CardDescription>One cell per round · colour = finish position</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-5">
               <SeasonResultsGrid
                 results={prof.season_results ?? []}
                 totalRounds={Math.max(prof.season_results?.length ?? 0, 22)}
